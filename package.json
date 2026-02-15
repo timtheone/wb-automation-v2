@@ -1,0 +1,24 @@
+{
+  "name": "wb-automation-v2",
+  "private": true,
+  "version": "0.1.0",
+  "packageManager": "pnpm@10.6.1",
+  "scripts": {
+    "dev:backend": "pnpm --filter @wb-automation-v2/backend dev",
+    "dev:bot": "pnpm --filter @wb-automation-v2/bot dev",
+    "lint": "oxlint .",
+    "lint:fix": "oxlint --fix .",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "typecheck": "pnpm -r --if-present typecheck",
+    "format": "prettier --check .",
+    "format:write": "prettier --write ."
+  },
+  "devDependencies": {
+    "@types/bun": "^1.3.9",
+    "oxlint": "^1.47.0",
+    "prettier": "^3.8.1",
+    "typescript": "^5.9.3",
+    "vitest": "^4.0.18"
+  }
+}

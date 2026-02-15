@@ -1,0 +1,15 @@
+{
+  "name": "@wb-automation-v2/wb-clients",
+  "private": true,
+  "version": "0.1.0",
+  "type": "module",
+  "scripts": {
+    "typecheck": "tsc -p tsconfig.json --noEmit",
+    "gen:fbs": "openapi-typescript ./docs/openapi-fbs.yaml -o src/generated/fbs.ts",
+    "gen:products": "openapi-typescript ./docs/openapi-products.yaml -o src/generated/products.ts",
+    "gen": "pnpm gen:fbs && pnpm gen:products"
+  },
+  "devDependencies": {
+    "openapi-typescript": "^7.13.0"
+  }
+}
