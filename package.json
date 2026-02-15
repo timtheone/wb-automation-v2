@@ -6,6 +6,12 @@
   "scripts": {
     "dev:backend": "pnpm --filter @wb-automation-v2/backend dev",
     "dev:bot": "pnpm --filter @wb-automation-v2/bot dev",
+    "db:up": "docker compose up -d --wait postgres",
+    "db:down": "docker compose down",
+    "db:push": "pnpm --filter @wb-automation-v2/db drizzle:push",
+    "db:generate": "pnpm --filter @wb-automation-v2/db drizzle:generate",
+    "db:migrate": "pnpm --filter @wb-automation-v2/db drizzle:migrate",
+    "db:studio": "pnpm --filter @wb-automation-v2/db drizzle:studio",
     "lint": "oxlint .",
     "lint:fix": "oxlint --fix .",
     "test": "vitest run",
