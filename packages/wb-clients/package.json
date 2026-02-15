@@ -3,11 +3,15 @@
   "private": true,
   "version": "0.1.0",
   "type": "module",
+  "exports": "./src/index.ts",
   "scripts": {
     "typecheck": "tsc -p tsconfig.json --noEmit",
-    "gen:fbs": "openapi-typescript ./docs/openapi-fbs.yaml -o src/generated/fbs.ts",
-    "gen:products": "openapi-typescript ./docs/openapi-products.yaml -o src/generated/products.ts",
+    "gen:fbs": "openapi-typescript ./src/docs/openapi-fbs.yaml -o src/generated/fbs-schema.d.ts",
+    "gen:products": "openapi-typescript ./src/docs/openapi-products.yaml -o src/generated/products-schema.d.ts",
     "gen": "pnpm gen:fbs && pnpm gen:products"
+  },
+  "dependencies": {
+    "openapi-fetch": "^0.15.0"
   },
   "devDependencies": {
     "openapi-typescript": "^7.13.0"

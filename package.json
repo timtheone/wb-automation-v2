@@ -12,6 +12,7 @@
     "db:generate": "pnpm --filter @wb-automation-v2/db drizzle:generate",
     "db:migrate": "pnpm --filter @wb-automation-v2/db drizzle:migrate",
     "db:studio": "pnpm --filter @wb-automation-v2/db drizzle:studio",
+    "wb:gen": "pnpm --filter @wb-automation-v2/wb-clients gen",
     "lint": "oxlint .",
     "lint:fix": "oxlint --fix .",
     "test": "vitest run",
