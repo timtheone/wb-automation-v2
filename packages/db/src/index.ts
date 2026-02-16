@@ -29,5 +29,25 @@ export function createDb(databaseUrl = getDatabaseUrl()) {
 }
 
 export type Database = ReturnType<typeof createDb>["db"];
+type DbConnection = ReturnType<typeof createDb>;
 
+let singletonConnection: DbConnection | null = null;
+
+export function getDb(): DbConnection {
+  if (!singletonConnection) {
+    singletonConnection = createDb();
+  }
+
+  return singletonConnection;
+}
+
+export function getDatabase(): Database {
+  return getDb().db;
+}
+
+export function getDatabaseClient() {
+  return getDb().client;
+}
+
+export * from "./repositories.js";
 export * from "./schema.js";

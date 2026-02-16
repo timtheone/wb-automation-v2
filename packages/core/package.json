@@ -3,6 +3,11 @@
   "private": true,
   "version": "0.1.0",
   "type": "module",
+  "exports": "./src/index.ts",
+  "dependencies": {
+    "@wb-automation-v2/db": "workspace:*",
+    "@wb-automation-v2/wb-clients": "workspace:*"
+  },
   "scripts": {
     "typecheck": "tsc -p tsconfig.json --noEmit",
     "test": "vitest run"

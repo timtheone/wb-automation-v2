@@ -39,7 +39,14 @@ importers:
         specifier: ^1.40.0
         version: 1.40.0
 
-  packages/core: {}
+  packages/core:
+    dependencies:
+      '@wb-automation-v2/db':
+        specifier: workspace:*
+        version: link:../db
+      '@wb-automation-v2/wb-clients':
+        specifier: workspace:*
+        version: link:../wb-clients
 
   packages/db:
     dependencies:
