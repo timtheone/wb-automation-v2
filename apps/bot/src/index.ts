@@ -1,16 +1,78 @@
-import { Bot } from "grammy";
+import {
+  Bot,
+  GrammyError,
+  HttpError,
+  session
+} from "grammy";
 
-const token = Bun.env.BOT_TOKEN;
+import { createBackendClient } from "./backend-client.js";
+import type { BotSession, BotContext } from "./bot-types.js";
+import { registerCommands } from "./commands/index.js";
+import { toErrorMessage } from "./commands/shared.js";
+import { isAllowedChat, readBotConfig } from "./config.js";
 
-if (!token) {
-  throw new Error("BOT_TOKEN is not set");
-}
+const config = readBotConfig();
+const backend = createBackendClient({ baseUrl: config.backendBaseUrl });
+const bot = new Bot<BotContext>(config.token);
 
-const bot = new Bot(token);
+bot.use(
+  session({
+    initial: (): BotSession => ({
+      pendingAction: null
+    }),
+    getSessionKey: (ctx) => {
+      const chatId = ctx.chat?.id;
+      const userId = ctx.from?.id;
 
-bot.command("ping", async (ctx) => {
-  await ctx.reply("pong");
+      if (chatId === undefined || userId === undefined) {
+        return undefined;
+      }
+
+      return `${chatId}:${userId}`;
+    }
+  })
+);
+
+bot.use(async (ctx, next) => {
+  if (!isAllowedChat(config.allowedChatIds, ctx.chat?.id)) {
+    if (ctx.message?.text?.startsWith("/")) {
+      await ctx.reply("This chat is not allowed for bot commands.");
+    }
+    return;
+  }
+
+  await next();
 });
 
-bot.start();
-console.log("bot started");
+bot.catch((error) => {
+  const context = error.ctx;
+
+  if (error.error instanceof GrammyError) {
+    console.error("Telegram API error", {
+      description: error.error.description,
+      updateId: context.update.update_id
+    });
+    return;
+  }
+
+  if (error.error instanceof HttpError) {
+    console.error("Telegram network error", {
+      updateId: context.update.update_id,
+      message: error.error.message
+    });
+    return;
+  }
+
+  console.error("Unhandled bot error", {
+    updateId: context.update.update_id,
+    error: toErrorMessage(error.error)
+  });
+});
+
+void bootstrap();
+
+async function bootstrap() {
+  await registerCommands(bot, backend);
+  bot.start();
+  console.log(`bot started (backend: ${config.backendBaseUrl})`);
+}

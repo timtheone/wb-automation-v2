@@ -1,0 +1,18 @@
+import type { Bot } from "grammy";
+
+import type { BackendClient } from "../backend-client.js";
+import type { BotContext } from "../bot-types.js";
+import { replyWithError } from "./shared.js";
+
+export function registerGenerateWaitingOrdersPdfCommand(bot: Bot<BotContext>, backend: BackendClient) {
+  bot.command("generate_waiting_orders_pdf", async (ctx) => {
+    await ctx.reply("Requesting get_waiting_orders_pdf...");
+
+    try {
+      await backend.POST("/flows/get-waiting-orders-pdf");
+      await ctx.reply("get_waiting_orders_pdf finished.");
+    } catch (error) {
+      await replyWithError(ctx, error);
+    }
+  });
+}

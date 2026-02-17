@@ -6,6 +6,7 @@ import { registerHealthController } from "./controllers/health-controller.js";
 import { registerShopsController } from "./controllers/shops-controller.js";
 import { createRouteErrorHandler } from "./http/error-handler.js";
 import { createLogger } from "./logger.js";
+import { backendOpenApiDocument } from "./openapi/document.js";
 import { createBackendServices } from "./services/index.js";
 
 export function createApp() {
@@ -39,18 +40,7 @@ export function createApp() {
     handleRouteError
   });
 
-  app.doc("/openapi.json", {
-    openapi: "3.1.0",
-    info: {
-      title: "WB Automation Backend API",
-      version: "0.1.0"
-    },
-    tags: [
-      { name: "Health", description: "Service health endpoints" },
-      { name: "Shops", description: "Shop management endpoints" },
-      { name: "Flows", description: "Automation flow endpoints" }
-    ]
-  });
+  app.doc("/openapi.json", backendOpenApiDocument);
 
   app.get("/docs", swaggerUI({ url: "/openapi.json" }));
 

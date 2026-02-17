@@ -53,6 +53,13 @@ importers:
       grammy:
         specifier: ^1.40.0
         version: 1.40.0
+      openapi-fetch:
+        specifier: ^0.17.0
+        version: 0.17.0
+    devDependencies:
+      openapi-typescript:
+        specifier: ^7.13.0
+        version: 7.13.0(typescript@5.9.3)
 
   packages/core:
     dependencies:
