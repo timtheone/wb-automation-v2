@@ -3,6 +3,7 @@ dist/
 coverage/
 plan.md
 README.md
+logs/
 
 .env
 .env.*

@@ -1,5 +1,10 @@
-import { createWbFbsClient, type FbsPaths, type WbFbsClient } from "@wb-automation-v2/wb-clients";
-import { createShopRepository, type Database } from "@wb-automation-v2/db";
+import {
+  createWbFbsClient,
+  WB_FBS_SANDBOX_API_BASE_URL,
+  type FbsPaths,
+  type WbFbsClient
+} from "@wb-automation-v2/wb-clients";
+import { createShopRepository, type Database, type Shop } from "@wb-automation-v2/db";
 
 import { formatEmptyResponseMessage, toErrorMessage } from "./error-utils.js";
 
@@ -65,9 +70,9 @@ export function createProcessAllShopsService(options: ProcessAllShopsOptions): P
       const results: ProcessAllShopsResultItem[] = [];
 
       for (const shop of activeShops) {
-        const fbsClient = createWbFbsClient({ token: shop.wbToken });
-
         try {
+          const credentials = resolveFbsCredentials(shop);
+          const fbsClient = createWbFbsClient(credentials);
           const newOrdersResult = await fbsClient.GET("/api/v3/orders/new");
 
           if (newOrdersResult.data === undefined) {
@@ -292,6 +297,21 @@ async function waitUntilSupplyClosed(input: {
   }
 
   throw new Error(`Timed out waiting for supply ${input.supplyId} to close`);
+}
+
+function resolveFbsCredentials(shop: Shop): { token: string; baseUrl?: string } {
+  if (!shop.useSandbox) {
+    return { token: shop.wbToken };
+  }
+
+  if (!shop.wbSandboxToken) {
+    throw new Error(`Shop ${shop.id} is configured for sandbox but wbSandboxToken is empty`);
+  }
+
+  return {
+    token: shop.wbSandboxToken,
+    baseUrl: WB_FBS_SANDBOX_API_BASE_URL
+  };
 }
 
 function toBatches(values: number[], size: number): number[][] {

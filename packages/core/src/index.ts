@@ -32,5 +32,6 @@ export type {
   ProductCardRepository,
   ShopRepository,
   SyncStateRepository,
+  WbTokenType,
   Database
 } from "@wb-automation-v2/db";

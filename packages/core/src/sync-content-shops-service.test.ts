@@ -17,7 +17,9 @@ const testState = vi.hoisted(() => {
     shops: null as Pick<ShopRepository, "listActiveShops"> | null,
     productCards: null as ProductCardRepository | null,
     syncState: null as SyncStateRepository | null,
-    createClient: null as ((token: string) => ProductsClient) | null
+    createClient: null as
+      | ((options: { token: string; baseUrl?: string }) => ProductsClient)
+      | null
   };
 });
 
@@ -39,12 +41,14 @@ vi.mock("@wb-automation-v2/db", async () => {
 
 vi.mock("@wb-automation-v2/wb-clients", async () => {
   return {
-    createWbProductsClient: ({ token }: { token: string }) => {
+    WB_PRODUCTS_API_BASE_URL: "https://content-api.wildberries.ru",
+    WB_PRODUCTS_SANDBOX_API_BASE_URL: "https://content-api-sandbox.wildberries.ru",
+    createWbProductsClient: (options: { token: string; baseUrl?: string }) => {
       if (!testState.createClient) {
         throw new Error("WB products client mock is not configured");
       }
 
-      return testState.createClient(token);
+      return testState.createClient(options);
     }
   };
 });
@@ -65,6 +69,8 @@ describe("sync content shops service", () => {
             id: "shop-1",
             name: "Shop One",
             wbToken: "token-1",
+            wbSandboxToken: null,
+            useSandbox: false,
             isActive: true,
             supplyPrefix: "игрушки_",
             tokenUpdatedAt: new Date("2026-01-01T00:00:00.000Z"),
@@ -96,8 +102,9 @@ describe("sync content shops service", () => {
     };
 
     let call = 0;
-    testState.createClient = (token: string): ProductsClient => {
+    testState.createClient = ({ token, baseUrl }): ProductsClient => {
       expect(token).toBe("token-1");
+      expect(baseUrl).toBe("https://content-api.wildberries.ru");
 
       return {
         async POST(_path, { body }) {
@@ -176,5 +183,72 @@ describe("sync content shops service", () => {
     expect(storedState).not.toBeNull();
     expect(storedState!.lastStatus).toBe("success");
     expect(storedState!.cursorNmId).toBe(11);
+  });
+
+  it("uses sandbox content endpoint and sandbox token when shop is configured for sandbox", async () => {
+    testState.shops = {
+      async listActiveShops() {
+        return [
+          {
+            id: "shop-sandbox",
+            name: "Sandbox Shop",
+            wbToken: "prod-token",
+            wbSandboxToken: "sandbox-token",
+            useSandbox: true,
+            isActive: true,
+            supplyPrefix: "игрушки_",
+            tokenUpdatedAt: new Date("2026-01-01T00:00:00.000Z"),
+            createdAt: new Date("2026-01-01T00:00:00.000Z"),
+            updatedAt: new Date("2026-01-01T00:00:00.000Z")
+          } satisfies Shop
+        ];
+      }
+    };
+
+    testState.productCards = {
+      async upsertMany(cards) {
+        return cards.length;
+      }
+    };
+
+    testState.syncState = {
+      async getByShopId() {
+        return null;
+      },
+      async upsert() {
+        return;
+      }
+    };
+
+    testState.createClient = ({ token, baseUrl }) => {
+      expect(token).toBe("sandbox-token");
+      expect(baseUrl).toBe("https://content-api-sandbox.wildberries.ru");
+
+      return {
+        async POST() {
+          return {
+            data: {
+              cards: [],
+              cursor: {
+                updatedAt: "2026-01-03T00:00:00.000Z",
+                nmID: 1,
+                total: 0
+              }
+            },
+            response: new Response(null, { status: 200 })
+          };
+        }
+      };
+    };
+
+    const service = createSyncContentShopsService({
+      pageLimit: 2,
+      maxPagesPerShop: 10
+    });
+
+    const result = await service.syncContentShops();
+
+    expect(result.successCount).toBe(1);
+    expect(result.failureCount).toBe(0);
   });
 });

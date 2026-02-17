@@ -8,6 +8,13 @@
       "when": 1771136178833,
       "tag": "0000_charming_tempest",
       "breakpoints": true
+    },
+    {
+      "idx": 1,
+      "version": "7",
+      "when": 1771247827322,
+      "tag": "0001_new_beyonder",
+      "breakpoints": true
     }
   ]
 }

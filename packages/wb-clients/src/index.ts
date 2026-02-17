@@ -1,6 +1,7 @@
 export {
   createWbFbsClient,
   WB_FBS_API_BASE_URL,
+  WB_FBS_SANDBOX_API_BASE_URL,
   type CreateWbFbsClientOptions,
   type WbFbsClient
 } from "./fbs-client.js";
@@ -13,6 +14,7 @@ export {
 export {
   createWbProductsClient,
   WB_PRODUCTS_API_BASE_URL,
+  WB_PRODUCTS_SANDBOX_API_BASE_URL,
   type CreateWbProductsClientOptions,
   type WbProductsClient
 } from "./products-client.js";

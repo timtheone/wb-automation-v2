@@ -27,6 +27,8 @@ export const shops = pgTable("shops", {
   id: uuid("id").defaultRandom().primaryKey(),
   name: text("name").notNull().unique(),
   wbToken: text("wb_token").notNull(),
+  wbSandboxToken: text("wb_sandbox_token"),
+  useSandbox: boolean("use_sandbox").notNull().default(false),
   isActive: boolean("is_active").notNull().default(true),
   supplyPrefix: text("supply_prefix").notNull().default("игрушки_"),
   tokenUpdatedAt: timestamp("token_updated_at", { withTimezone: true }).notNull().defaultNow(),

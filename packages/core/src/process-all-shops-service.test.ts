@@ -21,7 +21,9 @@ interface MockWbFbsClient {
 const testState = vi.hoisted(() => {
   return {
     shops: null as Pick<ShopRepository, "listActiveShops"> | null,
-    createClient: null as ((token: string) => MockWbFbsClient) | null
+    createClient: null as
+      | ((options: { token: string; baseUrl?: string }) => MockWbFbsClient)
+      | null
   };
 });
 
@@ -39,12 +41,13 @@ vi.mock("@wb-automation-v2/db", async () => {
 
 vi.mock("@wb-automation-v2/wb-clients", async () => {
   return {
-    createWbFbsClient: ({ token }: { token: string }) => {
+    WB_FBS_SANDBOX_API_BASE_URL: "https://marketplace-api-sandbox.wildberries.ru",
+    createWbFbsClient: (options: { token: string; baseUrl?: string }) => {
       if (!testState.createClient) {
         throw new Error("WB FBS client mock is not configured");
       }
 
-      return testState.createClient(token);
+      return testState.createClient(options);
     }
   };
 });
@@ -57,6 +60,8 @@ function createSingleShopRepo(overrides?: Partial<Shop>): Pick<ShopRepository, "
           id: "shop-1",
           name: "Shop One",
           wbToken: "token-1",
+          wbSandboxToken: null,
+          useSandbox: false,
           isActive: true,
           supplyPrefix: "pref_",
           tokenUpdatedAt: new Date("2026-01-01T00:00:00.000Z"),
@@ -200,6 +205,41 @@ describe("process all shops service", () => {
     expect(result.successCount).toBe(0);
     expect(result.skippedCount).toBe(1);
     expect(result.results[0]?.status).toBe("skipped");
+  });
+
+  it("uses sandbox FBS endpoint and sandbox token when shop is configured for sandbox", async () => {
+    testState.shops = createSingleShopRepo({
+      wbToken: "prod-token",
+      wbSandboxToken: "sandbox-token",
+      useSandbox: true
+    });
+
+    testState.createClient = (options) => {
+      expect(options.token).toBe("sandbox-token");
+      expect(options.baseUrl).toBe("https://marketplace-api-sandbox.wildberries.ru");
+
+      return createClient({
+        async GET(path) {
+          if (path === "/api/v3/orders/new") {
+            return {
+              data: { orders: [] },
+              response: new Response(null, { status: 200 })
+            };
+          }
+
+          throw new Error(`Unexpected GET ${path}`);
+        }
+      });
+    };
+
+    const service = createProcessAllShopsService({
+      db: {} as Database
+    });
+
+    const result = await service.processAllShops();
+
+    expect(result.skippedCount).toBe(1);
+    expect(result.failureCount).toBe(0);
   });
 
   it("creates supply with deterministic prefix+timestamp name", async () => {

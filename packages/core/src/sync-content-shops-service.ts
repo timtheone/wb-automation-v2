@@ -1,7 +1,13 @@
-import { createWbProductsClient, type ProductsPaths } from "@wb-automation-v2/wb-clients";
+import {
+  createWbProductsClient,
+  WB_PRODUCTS_API_BASE_URL,
+  WB_PRODUCTS_SANDBOX_API_BASE_URL,
+  type ProductsPaths
+} from "@wb-automation-v2/wb-clients";
 import {
   createDbRepositories,
-  type ProductCard
+  type ProductCard,
+  type Shop
 } from "@wb-automation-v2/db";
 
 import { formatEmptyResponseMessage, toErrorMessage } from "./error-utils.js";
@@ -51,6 +57,16 @@ type SyncContentShopsOptions = {
   now?: () => Date;
   pageLimit?: number;
   maxPagesPerShop?: number;
+  onWbCardsListResponse?: (input: {
+    shopId: string;
+    shopName: string;
+    page: number;
+    apiBaseUrl: string;
+    responseUrl: string;
+    requestBody: CardsListBody;
+    responseStatus: number;
+    responseData: CardsListResponse;
+  }) => void;
 };
 
 export interface SyncContentShopsService {
@@ -63,6 +79,7 @@ export function createSyncContentShopsService(
   const now = options.now ?? (() => new Date());
   const pageLimit = options.pageLimit ?? DEFAULT_PAGE_LIMIT;
   const maxPagesPerShop = options.maxPagesPerShop ?? DEFAULT_MAX_PAGES_PER_SHOP;
+  const onWbCardsListResponse = options.onWbCardsListResponse;
   const { shops, productCards, syncState } = createDbRepositories();
 
   return {
@@ -89,7 +106,8 @@ export function createSyncContentShopsService(
         let cardsUpserted = 0;
 
         try {
-          const productsClient = createWbProductsClient({ token: shop.wbToken });
+          const credentials = resolveProductsCredentials(shop);
+          const productsClient = createWbProductsClient(credentials);
           let cursorUpdatedAt = prevState?.cursorUpdatedAt ?? null;
           let cursorNmId = prevState?.cursorNmId ?? null;
 
@@ -111,6 +129,17 @@ export function createSyncContentShopsService(
             if (result.data === undefined) {
               throw new Error(formatEmptyResponseMessage(result.response));
             }
+
+            onWbCardsListResponse?.({
+              shopId: shop.id,
+              shopName: shop.name,
+              page: pagesFetched + 1,
+              apiBaseUrl: credentials.baseUrl,
+              responseUrl: result.response.url,
+              requestBody: body,
+              responseStatus: result.response.status,
+              responseData: result.data
+            });
 
             const cards = result.data.cards ?? [];
             const mappedCards = cards
@@ -199,6 +228,24 @@ export function createSyncContentShopsService(
         results
       };
     }
+  };
+}
+
+function resolveProductsCredentials(shop: Shop): { token: string; baseUrl: string } {
+  if (!shop.useSandbox) {
+    return {
+      token: shop.wbToken,
+      baseUrl: WB_PRODUCTS_API_BASE_URL
+    };
+  }
+
+  if (!shop.wbSandboxToken) {
+    throw new Error(`Shop ${shop.id} is configured for sandbox but wbSandboxToken is empty`);
+  }
+
+  return {
+    token: shop.wbSandboxToken,
+    baseUrl: WB_PRODUCTS_SANDBOX_API_BASE_URL
   };
 }
 

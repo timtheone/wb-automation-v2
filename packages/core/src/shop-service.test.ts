@@ -47,6 +47,8 @@ class InMemoryShopRepository implements ShopRepository {
       id: `shop-${this.shops.length + 1}`,
       name: input.name,
       wbToken: input.wbToken,
+      wbSandboxToken: input.wbSandboxToken ?? null,
+      useSandbox: input.useSandbox ?? false,
       isActive: input.isActive ?? true,
       supplyPrefix: input.supplyPrefix ?? "игрушки_",
       tokenUpdatedAt: now,
@@ -59,7 +61,13 @@ class InMemoryShopRepository implements ShopRepository {
     return shop;
   }
 
-  async updateShop(id: string, patch: { name?: string; supplyPrefix?: string; isActive?: boolean }) {
+  async updateShop(id: string, patch: {
+    name?: string;
+    wbSandboxToken?: string | null;
+    useSandbox?: boolean;
+    supplyPrefix?: string;
+    isActive?: boolean;
+  }) {
     const shop = this.shops.find((item) => item.id === id);
 
     if (!shop) {
@@ -71,15 +79,20 @@ class InMemoryShopRepository implements ShopRepository {
     return shop;
   }
 
-  async updateShopToken(id: string, wbToken: string, tokenUpdatedAt: Date) {
+  async updateShopToken(id: string, wbToken: string, tokenUpdatedAt: Date, tokenType = "production") {
     const shop = this.shops.find((item) => item.id === id);
 
     if (!shop) {
       return null;
     }
 
-    shop.wbToken = wbToken;
-    shop.tokenUpdatedAt = tokenUpdatedAt;
+    if (tokenType === "sandbox") {
+      shop.wbSandboxToken = wbToken;
+    } else {
+      shop.wbToken = wbToken;
+      shop.tokenUpdatedAt = tokenUpdatedAt;
+    }
+
     shop.updatedAt = tokenUpdatedAt;
 
     return shop;
@@ -119,6 +132,25 @@ describe("shop service", () => {
     expect(deactivated.isActive).toBe(false);
   });
 
+  it("updates sandbox token when tokenType is sandbox", async () => {
+    testState.shops = new InMemoryShopRepository();
+    const service = createShopService();
+
+    const created = await service.createShop({
+      name: "Sandbox Shop",
+      wbToken: "prod-token"
+    });
+
+    const updated = await service.updateShopToken({
+      id: created.id,
+      wbToken: "sandbox-token",
+      tokenType: "sandbox"
+    });
+
+    expect(updated.wbToken).toBe("prod-token");
+    expect(updated.wbSandboxToken).toBe("sandbox-token");
+  });
+
   it("throws not found when updating missing shop", async () => {
     testState.shops = new InMemoryShopRepository();
     const service = createShopService();
@@ -129,5 +161,18 @@ describe("shop service", () => {
         name: "new"
       })
     ).rejects.toBeInstanceOf(ShopNotFoundError);
+  });
+
+  it("rejects enabling sandbox without sandbox token", async () => {
+    testState.shops = new InMemoryShopRepository();
+    const service = createShopService();
+
+    await expect(
+      service.createShop({
+        name: "Sandbox Shop",
+        wbToken: "prod-token",
+        useSandbox: true
+      })
+    ).rejects.toThrow("wbSandboxToken must be provided when useSandbox is true");
   });
 });

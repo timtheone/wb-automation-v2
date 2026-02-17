@@ -4,11 +4,14 @@ import { getDatabase, type Database } from "./index.js";
 import { productCards, shops, syncState } from "./schema.js";
 
 export type SyncStatus = "idle" | "running" | "success" | "failed";
+export type WbTokenType = "production" | "sandbox";
 
 export interface Shop {
   id: string;
   name: string;
   wbToken: string;
+  wbSandboxToken: string | null;
+  useSandbox: boolean;
   isActive: boolean;
   supplyPrefix: string;
   tokenUpdatedAt: Date;
@@ -42,6 +45,8 @@ export interface SyncState {
 export interface CreateShopInput {
   name: string;
   wbToken: string;
+  wbSandboxToken?: string | null;
+  useSandbox?: boolean;
   supplyPrefix?: string;
   isActive?: boolean;
 }
@@ -49,6 +54,8 @@ export interface CreateShopInput {
 export interface UpdateShopInput {
   id: string;
   name?: string;
+  wbSandboxToken?: string | null;
+  useSandbox?: boolean;
   supplyPrefix?: string;
   isActive?: boolean;
 }
@@ -56,6 +63,7 @@ export interface UpdateShopInput {
 export interface UpdateShopTokenInput {
   id: string;
   wbToken: string;
+  tokenType?: WbTokenType;
 }
 
 export interface UpsertSyncStateInput {
@@ -74,7 +82,12 @@ export interface ShopRepository {
   getShopById(id: string): Promise<Shop | null>;
   createShop(input: CreateShopInput): Promise<Shop>;
   updateShop(id: string, patch: Omit<UpdateShopInput, "id">): Promise<Shop | null>;
-  updateShopToken(id: string, wbToken: string, tokenUpdatedAt: Date): Promise<Shop | null>;
+  updateShopToken(
+    id: string,
+    wbToken: string,
+    tokenUpdatedAt: Date,
+    tokenType?: WbTokenType
+  ): Promise<Shop | null>;
   deactivateShop(id: string): Promise<Shop | null>;
 }
 
@@ -129,6 +142,8 @@ export function createShopRepository(db: Database = getDatabase()): ShopReposito
         .values({
           name: input.name,
           wbToken: input.wbToken,
+          wbSandboxToken: input.wbSandboxToken ?? null,
+          useSandbox: input.useSandbox ?? false,
           isActive: input.isActive ?? true,
           supplyPrefix: input.supplyPrefix ?? "игрушки_",
           tokenUpdatedAt: new Date(),
@@ -160,14 +175,22 @@ export function createShopRepository(db: Database = getDatabase()): ShopReposito
       return row ? mapShop(row) : null;
     },
 
-    async updateShopToken(id, wbToken, tokenUpdatedAt) {
+    async updateShopToken(id, wbToken, tokenUpdatedAt, tokenType = "production") {
+      const patch =
+        tokenType === "sandbox"
+          ? {
+              wbSandboxToken: wbToken,
+              updatedAt: tokenUpdatedAt
+            }
+          : {
+              wbToken,
+              tokenUpdatedAt,
+              updatedAt: tokenUpdatedAt
+            };
+
       const [row] = await db
         .update(shops)
-        .set({
-          wbToken,
-          tokenUpdatedAt,
-          updatedAt: tokenUpdatedAt
-        })
+        .set(patch)
         .where(eq(shops.id, id))
         .returning();
 
@@ -272,6 +295,8 @@ function mapShop(row: typeof shops.$inferSelect): Shop {
     id: row.id,
     name: row.name,
     wbToken: row.wbToken,
+    wbSandboxToken: row.wbSandboxToken,
+    useSandbox: row.useSandbox,
     isActive: row.isActive,
     supplyPrefix: row.supplyPrefix,
     tokenUpdatedAt: row.tokenUpdatedAt,
