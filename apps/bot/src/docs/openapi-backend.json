@@ -111,6 +111,9 @@
       "ErrorResponse": {
         "type": "object",
         "properties": {
+          "code": {
+            "type": "string"
+          },
           "error": {
             "type": "string"
           },
@@ -395,11 +398,15 @@
       "NotImplementedResponse": {
         "type": "object",
         "properties": {
+          "code": {
+            "type": "string"
+          },
           "error": {
             "type": "string"
           }
         },
         "required": [
+          "code",
           "error"
         ]
       }

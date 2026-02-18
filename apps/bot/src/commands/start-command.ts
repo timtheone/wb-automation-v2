@@ -6,9 +6,9 @@ export function registerStartCommand(bot: Bot<BotContext>) {
   bot.command("start", async (ctx) => {
     await ctx.reply(
       [
-        "wb-automation bot is ready.",
+        ctx.t.start.ready(),
         "",
-        "Commands:",
+        ctx.t.start.commandsLabel(),
         "/process_all_shops",
         "/sync_content_shops",
         "/generate_pdfs",

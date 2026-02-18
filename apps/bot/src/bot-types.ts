@@ -1,6 +1,7 @@
 import type { Context, SessionFlavor } from "grammy";
 
 import type { BackendPaths } from "./backend-client.js";
+import type { BotLocale, BotTranslator } from "./i18n/index.js";
 
 export type PendingAction =
   | {
@@ -32,7 +33,11 @@ export type BotSession = {
   pendingAction: PendingAction | null;
 };
 
-export type BotContext = Context & SessionFlavor<BotSession>;
+export type BotContext = Context &
+  SessionFlavor<BotSession> & {
+    locale: BotLocale;
+    t: BotTranslator;
+  };
 
 export type ShopDto =
   BackendPaths["/shops"]["get"]["responses"][200]["content"]["application/json"]["shops"][number];

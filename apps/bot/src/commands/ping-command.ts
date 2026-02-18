@@ -4,6 +4,6 @@ import type { BotContext } from "../bot-types.js";
 
 export function registerPingCommand(bot: Bot<BotContext>) {
   bot.command("ping", async (ctx) => {
-    await ctx.reply("pong");
+    await ctx.reply(ctx.t.ping.pong());
   });
 }

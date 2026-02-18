@@ -6,7 +6,7 @@ import { getTelegramContextHeaders, replyWithError } from "./shared.js";
 
 export function registerGeneratePdfsCommand(bot: Bot<BotContext>, backend: BackendClient) {
   bot.command("generate_pdfs", async (ctx) => {
-    await ctx.reply("Requesting get_combined_pdf_lists...");
+    await ctx.reply(ctx.t.flows.generatePdfs.requesting());
 
     try {
       await backend.POST("/flows/get-combined-pdf-lists", {
@@ -14,7 +14,7 @@ export function registerGeneratePdfsCommand(bot: Bot<BotContext>, backend: Backe
           header: await getTelegramContextHeaders(ctx)
         }
       });
-      await ctx.reply("get_combined_pdf_lists finished.");
+      await ctx.reply(ctx.t.flows.generatePdfs.finished());
     } catch (error) {
       await replyWithError(ctx, error);
     }

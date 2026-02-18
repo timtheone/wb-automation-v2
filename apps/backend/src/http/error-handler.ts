@@ -11,6 +11,7 @@ export function createRouteErrorHandler(logger: Logger): RouteErrorHandler {
     if (error instanceof RequestValidationError) {
       return c.json(
         {
+          code: error.code,
           error: error.message,
           details: error.details
         },
@@ -19,11 +20,11 @@ export function createRouteErrorHandler(logger: Logger): RouteErrorHandler {
     }
 
     if (error instanceof ShopNotFoundError) {
-      return c.json({ error: error.message }, 404);
+      return c.json({ code: "SHOP_NOT_FOUND", error: error.message }, 404);
     }
 
     if (isUniqueViolation(error)) {
-      return c.json({ error: "Shop with this name already exists" }, 409);
+      return c.json({ code: "SHOP_NAME_ALREADY_EXISTS", error: "Shop with this name already exists" }, 409);
     }
 
     logger.error(
@@ -35,7 +36,7 @@ export function createRouteErrorHandler(logger: Logger): RouteErrorHandler {
       "request failed"
     );
 
-    return c.json({ error: "Internal server error" }, 500);
+    return c.json({ code: "INTERNAL_SERVER_ERROR", error: "Internal server error" }, 500);
   };
 }
 

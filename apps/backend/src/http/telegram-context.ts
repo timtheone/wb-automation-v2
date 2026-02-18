@@ -31,11 +31,19 @@ export function readTelegramRequestContext(c: Context): TelegramRequestContext {
   });
 
   if (!parsed.success) {
-    throw new RequestValidationError("Invalid Telegram context headers", parsed.error.flatten());
+    throw new RequestValidationError(
+      "Invalid Telegram context headers",
+      z.flattenError(parsed.error),
+      "TELEGRAM_CONTEXT_INVALID"
+    );
   }
 
   if (parsed.data.chatType === "private" && parsed.data.ownerTelegramUserId !== parsed.data.requesterTelegramUserId) {
-    throw new RequestValidationError("owner telegram user must match requester in private chats");
+    throw new RequestValidationError(
+      "owner telegram user must match requester in private chats",
+      null,
+      "TELEGRAM_PRIVATE_OWNER_MISMATCH"
+    );
   }
 
   return parsed.data;

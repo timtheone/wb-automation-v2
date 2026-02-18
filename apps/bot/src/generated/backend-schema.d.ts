@@ -540,6 +540,7 @@ export interface components {
             updatedAt: string;
         };
         ErrorResponse: {
+            code?: string;
             error: string;
             details?: unknown;
         };
@@ -611,6 +612,7 @@ export interface components {
             error: string | null;
         };
         NotImplementedResponse: {
+            code: string;
             error: string;
         };
     };

@@ -5,11 +5,11 @@ import type { BotContext } from "../bot-types.js";
 export function registerCancelCommand(bot: Bot<BotContext>) {
   bot.command("cancel", async (ctx) => {
     if (!ctx.session.pendingAction) {
-      await ctx.reply("No active input flow.");
+      await ctx.reply(ctx.t.cancel.noActiveInputFlow());
       return;
     }
 
     ctx.session.pendingAction = null;
-    await ctx.reply("Cancelled.");
+    await ctx.reply(ctx.t.cancel.cancelled());
   });
 }

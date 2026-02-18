@@ -6,9 +6,9 @@ export function registerHelpCommand(bot: Bot<BotContext>) {
   bot.command("help", async (ctx) => {
     await ctx.reply(
       [
-        "Use /shops for shop CRUD and token updates.",
-        "Use /process_all_shops and /sync_content_shops for operational flows.",
-        "PDF commands are wired, backend support is still pending."
+        ctx.t.help.line1(),
+        ctx.t.help.line2(),
+        ctx.t.help.line3()
       ].join("\n")
     );
   });

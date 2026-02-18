@@ -6,7 +6,7 @@ import { getTelegramContextHeaders, replyWithError } from "./shared.js";
 
 export function registerGenerateWaitingOrdersPdfCommand(bot: Bot<BotContext>, backend: BackendClient) {
   bot.command("generate_waiting_orders_pdf", async (ctx) => {
-    await ctx.reply("Requesting get_waiting_orders_pdf...");
+    await ctx.reply(ctx.t.flows.generateWaitingOrdersPdf.requesting());
 
     try {
       await backend.POST("/flows/get-waiting-orders-pdf", {
@@ -14,7 +14,7 @@ export function registerGenerateWaitingOrdersPdfCommand(bot: Bot<BotContext>, ba
           header: await getTelegramContextHeaders(ctx)
         }
       });
-      await ctx.reply("get_waiting_orders_pdf finished.");
+      await ctx.reply(ctx.t.flows.generateWaitingOrdersPdf.finished());
     } catch (error) {
       await replyWithError(ctx, error);
     }

@@ -1,11 +1,13 @@
 import { z } from "@hono/zod-openapi";
 
 export const errorResponseSchema = z.object({
+  code: z.string().optional(),
   error: z.string(),
   details: z.any().optional()
 }).openapi("ErrorResponse");
 
 export const notImplementedResponseSchema = z.object({
+  code: z.string(),
   error: z.string()
 }).openapi("NotImplementedResponse");
 

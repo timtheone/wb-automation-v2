@@ -10,6 +10,7 @@ import type { BotSession, BotContext } from "./bot-types.js";
 import { registerCommands } from "./commands/index.js";
 import { toErrorMessage } from "./commands/shared.js";
 import { readBotConfig } from "./config.js";
+import { createTranslator, resolveLocale } from "./i18n/index.js";
 
 const config = readBotConfig();
 const backend = createBackendClient({ baseUrl: config.backendBaseUrl });
@@ -32,6 +33,13 @@ bot.use(
     }
   })
 );
+
+bot.use(async (ctx, next) => {
+  const locale = resolveLocale(ctx.from?.language_code);
+  ctx.locale = locale;
+  ctx.t = createTranslator(locale);
+  await next();
+});
 
 bot.catch((error) => {
   const context = error.ctx;

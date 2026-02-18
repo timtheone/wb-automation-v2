@@ -2,21 +2,28 @@ import { InlineKeyboard, type Bot } from "grammy";
 
 import type { BackendClient } from "../backend-client.js";
 import type { BotContext, CreateShopBody, PendingAction, ShopDto } from "../bot-types.js";
-import { formatIsoDate, getTelegramContextHeaders, replyWithError, requireResponseData } from "./shared.js";
+import type { BotTranslator } from "../i18n/index.js";
+import {
+  createBotCommandError,
+  formatIsoDate,
+  getTelegramContextHeaders,
+  replyWithError,
+  requireResponseData
+} from "./shared.js";
 
 export function registerShopsCommand(bot: Bot<BotContext>, backend: BackendClient) {
   bot.command("shops", async (ctx) => {
     ctx.session.pendingAction = null;
-    await ctx.reply("Shops menu", {
-      reply_markup: getShopsMenuKeyboard()
+    await ctx.reply(ctx.t.shops.menuTitle(), {
+      reply_markup: getShopsMenuKeyboard(ctx.t)
     });
   });
 
   bot.callbackQuery("shops:menu", async (ctx) => {
     await safeAnswerCallback(ctx);
     ctx.session.pendingAction = null;
-    await ctx.reply("Shops menu", {
-      reply_markup: getShopsMenuKeyboard()
+    await ctx.reply(ctx.t.shops.menuTitle(), {
+      reply_markup: getShopsMenuKeyboard(ctx.t)
     });
   });
 
@@ -39,7 +46,9 @@ export function registerShopsCommand(bot: Bot<BotContext>, backend: BackendClien
       draft: {}
     };
 
-    await ctx.reply(["Create shop flow started.", "Send shop name.", "Use /cancel to abort."].join("\n"));
+    await ctx.reply(
+      [ctx.t.shops.createFlowStarted(), ctx.t.shops.sendShopName(), ctx.t.shops.useCancelToAbort()].join("\n")
+    );
   });
 
   bot.callbackQuery(/^shops:view:(.+)$/, async (ctx) => {
@@ -62,7 +71,7 @@ export function registerShopsCommand(bot: Bot<BotContext>, backend: BackendClien
       shopId
     };
 
-    await ctx.reply("Send new shop name.");
+    await ctx.reply(ctx.t.shops.sendNewShopName());
   });
 
   bot.callbackQuery(/^shops:pref:(.+)$/, async (ctx) => {
@@ -74,7 +83,7 @@ export function registerShopsCommand(bot: Bot<BotContext>, backend: BackendClien
       shopId
     };
 
-    await ctx.reply("Send new supply prefix.");
+    await ctx.reply(ctx.t.shops.sendNewSupplyPrefix());
   });
 
   bot.callbackQuery(/^shops:tokp:(.+)$/, async (ctx) => {
@@ -87,7 +96,7 @@ export function registerShopsCommand(bot: Bot<BotContext>, backend: BackendClien
       tokenType: "production"
     };
 
-    await ctx.reply("Send new production WB token.");
+    await ctx.reply(ctx.t.shops.sendNewProductionToken());
   });
 
   bot.callbackQuery(/^shops:toks:(.+)$/, async (ctx) => {
@@ -100,7 +109,7 @@ export function registerShopsCommand(bot: Bot<BotContext>, backend: BackendClien
       tokenType: "sandbox"
     };
 
-    await ctx.reply("Send new sandbox WB token.");
+    await ctx.reply(ctx.t.shops.sendNewSandboxToken());
   });
 
   bot.callbackQuery(/^shops:act:(.+)$/, async (ctx) => {
@@ -120,7 +129,12 @@ export function registerShopsCommand(bot: Bot<BotContext>, backend: BackendClien
         }
       );
       const updated = requireResponseData(response.data, "PATCH /shops/{id}").shop;
-      await ctx.reply(`Shop ${updated.name} is now ${updated.isActive ? "active" : "inactive"}.`);
+      await ctx.reply(
+        ctx.t.shops.shopNowStatus({
+          name: updated.name,
+          status: updated.isActive ? ctx.t.shops.state.active() : ctx.t.shops.state.inactive()
+        })
+      );
       await sendShopDetails(ctx, backend, shopId);
     } catch (error) {
       await replyWithError(ctx, error);
@@ -144,7 +158,12 @@ export function registerShopsCommand(bot: Bot<BotContext>, backend: BackendClien
         }
       );
       const updated = requireResponseData(response.data, "PATCH /shops/{id}").shop;
-      await ctx.reply(`Shop ${updated.name} mode is now ${updated.useSandbox ? "sandbox" : "production"}.`);
+      await ctx.reply(
+        ctx.t.shops.shopModeNow({
+          name: updated.name,
+          mode: updated.useSandbox ? ctx.t.shops.state.sandbox() : ctx.t.shops.state.production()
+        })
+      );
       await sendShopDetails(ctx, backend, shopId);
     } catch (error) {
       await replyWithError(ctx, error);
@@ -166,7 +185,7 @@ export function registerShopsCommand(bot: Bot<BotContext>, backend: BackendClien
         }
       );
       const updated = requireResponseData(response.data, "DELETE /shops/{id}").shop;
-      await ctx.reply(`Shop ${updated.name} was deactivated.`);
+      await ctx.reply(ctx.t.shops.shopDeactivated({ name: updated.name }));
       await sendShopsList(ctx, backend);
     } catch (error) {
       await replyWithError(ctx, error);
@@ -206,7 +225,7 @@ export function registerShopsCommand(bot: Bot<BotContext>, backend: BackendClien
         );
         const updated = requireResponseData(response.data, "PATCH /shops/{id}").shop;
         ctx.session.pendingAction = null;
-        await ctx.reply(`Shop renamed to ${updated.name}.`);
+        await ctx.reply(ctx.t.shops.shopRenamed({ name: updated.name }));
         await sendShopDetails(ctx, backend, pending.shopId);
         return;
       }
@@ -225,7 +244,7 @@ export function registerShopsCommand(bot: Bot<BotContext>, backend: BackendClien
         );
         const updated = requireResponseData(response.data, "PATCH /shops/{id}").shop;
         ctx.session.pendingAction = null;
-        await ctx.reply(`Supply prefix updated for ${updated.name}.`);
+        await ctx.reply(ctx.t.shops.supplyPrefixUpdated({ name: updated.name }));
         await sendShopDetails(ctx, backend, pending.shopId);
         return;
       }
@@ -248,7 +267,9 @@ export function registerShopsCommand(bot: Bot<BotContext>, backend: BackendClien
         const updated = requireResponseData(response.data, "PATCH /shops/{id}/token").shop;
         ctx.session.pendingAction = null;
         await ctx.reply(
-          `${pending.tokenType === "sandbox" ? "Sandbox" : "Production"} token updated for ${updated.name}.`
+          pending.tokenType === "sandbox"
+            ? ctx.t.shops.sandboxTokenUpdated({ name: updated.name })
+            : ctx.t.shops.productionTokenUpdated({ name: updated.name })
         );
         await sendShopDetails(ctx, backend, pending.shopId);
       }
@@ -262,22 +283,22 @@ async function sendShopsList(ctx: BotContext, backend: BackendClient) {
   const shops = await listShops(ctx, backend);
 
   if (shops.length === 0) {
-    await ctx.reply("No shops configured yet.", {
-      reply_markup: getShopsMenuKeyboard()
+    await ctx.reply(ctx.t.shops.noShopsConfiguredYet(), {
+      reply_markup: getShopsMenuKeyboard(ctx.t)
     });
     return;
   }
 
-  await ctx.reply(formatShopsList(shops), {
-    reply_markup: getShopsListKeyboard(shops)
+  await ctx.reply(formatShopsList(ctx.t, shops), {
+    reply_markup: getShopsListKeyboard(ctx.t, shops)
   });
 }
 
 async function sendShopDetails(ctx: BotContext, backend: BackendClient, shopId: string) {
   const shop = await findShopById(ctx, backend, shopId);
 
-  await ctx.reply(formatShopDetails(shop), {
-    reply_markup: getShopActionsKeyboard(shop.id)
+  await ctx.reply(formatShopDetails(ctx.t, shop), {
+    reply_markup: getShopActionsKeyboard(ctx.t, shop)
   });
 }
 
@@ -296,7 +317,7 @@ async function findShopById(ctx: BotContext, backend: BackendClient, shopId: str
   const shop = shops.find((item) => item.id === shopId);
 
   if (!shop) {
-    throw new Error(`Shop not found: ${shopId}`);
+    throw createBotCommandError("SHOP_NOT_FOUND", { shopId });
   }
 
   return shop;
@@ -311,21 +332,21 @@ async function handleCreateFlowStep(
   if (pending.step === "name") {
     pending.draft.name = requireNonEmpty(text, "name");
     pending.step = "wbToken";
-    await ctx.reply("Send production WB token.");
+    await ctx.reply(ctx.t.shops.sendProductionToken());
     return;
   }
 
   if (pending.step === "wbToken") {
     pending.draft.wbToken = requireNonEmpty(text, "wbToken");
     pending.step = "supplyPrefix";
-    await ctx.reply("Send supply prefix, or '-' to use default.");
+    await ctx.reply(ctx.t.shops.sendSupplyPrefixOrDefault());
     return;
   }
 
   if (pending.step === "supplyPrefix") {
     pending.draft.supplyPrefix = normalizeOptionalValue(text);
     pending.step = "useSandbox";
-    await ctx.reply("Use sandbox mode? Reply yes or no.");
+    await ctx.reply(ctx.t.shops.useSandboxQuestion());
     return;
   }
 
@@ -333,7 +354,7 @@ async function handleCreateFlowStep(
     const useSandbox = parseBooleanInput(text);
 
     if (useSandbox === null) {
-      await ctx.reply("Please reply with yes or no.");
+      await ctx.reply(ctx.t.shops.replyYesOrNo());
       return;
     }
 
@@ -341,19 +362,19 @@ async function handleCreateFlowStep(
 
     if (useSandbox) {
       pending.step = "wbSandboxToken";
-      await ctx.reply("Send sandbox WB token.");
+      await ctx.reply(ctx.t.shops.sendSandboxToken());
       return;
     }
 
     pending.step = "isActive";
-    await ctx.reply("Should this shop be active now? Reply yes or no.");
+    await ctx.reply(ctx.t.shops.shouldBeActiveQuestion());
     return;
   }
 
   if (pending.step === "wbSandboxToken") {
     pending.draft.wbSandboxToken = requireNonEmpty(text, "wbSandboxToken");
     pending.step = "isActive";
-    await ctx.reply("Should this shop be active now? Reply yes or no.");
+    await ctx.reply(ctx.t.shops.shouldBeActiveQuestion());
     return;
   }
 
@@ -364,7 +385,7 @@ async function handleCreateFlowStep(
   const isActive = parseBooleanInput(text);
 
   if (isActive === null) {
-    await ctx.reply("Please reply with yes or no.");
+    await ctx.reply(ctx.t.shops.replyYesOrNo());
     return;
   }
 
@@ -372,7 +393,7 @@ async function handleCreateFlowStep(
   const wbToken = pending.draft.wbToken;
 
   if (!name || !wbToken) {
-    throw new Error("Create flow lost required fields. Please run /shops and start again.");
+    throw createBotCommandError("CREATE_FLOW_REQUIRED_FIELDS_MISSING");
   }
 
   const createBody: CreateShopBody = {
@@ -396,70 +417,77 @@ async function handleCreateFlowStep(
   const created = requireResponseData(response.data, "POST /shops").shop;
 
   ctx.session.pendingAction = null;
-  await ctx.reply(`Shop created: ${created.name}`);
+  await ctx.reply(ctx.t.shops.shopCreated({ name: created.name }));
   await sendShopDetails(ctx, backend, created.id);
 }
 
-function getShopsMenuKeyboard(): InlineKeyboard {
-  return new InlineKeyboard().text("List shops", "shops:list").row().text("Create shop", "shops:create");
+function getShopsMenuKeyboard(t: BotTranslator): InlineKeyboard {
+  return new InlineKeyboard()
+    .text(t.shops.buttons.listShops(), "shops:list")
+    .row()
+    .text(t.shops.buttons.createShop(), "shops:create");
 }
 
-function getShopsListKeyboard(shops: ShopDto[]): InlineKeyboard {
+function getShopsListKeyboard(t: BotTranslator, shops: ShopDto[]): InlineKeyboard {
   const keyboard = new InlineKeyboard();
 
   for (const shop of shops) {
-    keyboard.text(trimForButton(`${shop.name}${shop.isActive ? "" : " (inactive)"}`), `shops:view:${shop.id}`);
+    keyboard.text(
+      trimForButton(`${shop.name}${shop.isActive ? "" : ` (${t.shops.state.inactive()})`}`),
+      `shops:view:${shop.id}`
+    );
     keyboard.row();
   }
 
-  keyboard.text("Create shop", "shops:create");
+  keyboard.text(t.shops.buttons.createShop(), "shops:create");
   keyboard.row();
-  keyboard.text("Menu", "shops:menu");
+  keyboard.text(t.shops.buttons.menu(), "shops:menu");
 
   return keyboard;
 }
 
-function getShopActionsKeyboard(shopId: string): InlineKeyboard {
+function getShopActionsKeyboard(t: BotTranslator, shop: ShopDto): InlineKeyboard {
   return new InlineKeyboard()
-    .text("Rename", `shops:ren:${shopId}`)
-    .text("Update prefix", `shops:pref:${shopId}`)
+    .text(t.shops.buttons.rename(), `shops:ren:${shop.id}`)
+    .text(t.shops.buttons.updatePrefix(), `shops:pref:${shop.id}`)
     .row()
-    .text("Prod token", `shops:tokp:${shopId}`)
-    .text("Sandbox token", `shops:toks:${shopId}`)
+    .text(t.shops.buttons.productionToken(), `shops:tokp:${shop.id}`)
+    .text(t.shops.buttons.sandboxToken(), `shops:toks:${shop.id}`)
     .row()
-    .text("Toggle active", `shops:act:${shopId}`)
-    .text("Toggle sandbox", `shops:sbx:${shopId}`)
+    .text(shop.isActive ? t.shops.buttons.deactivate() : t.shops.buttons.activate(), `shops:act:${shop.id}`)
+    .text(t.shops.buttons.toggleSandbox(), `shops:sbx:${shop.id}`)
     .row()
-    .text("Deactivate", `shops:del:${shopId}`)
-    .row()
-    .text("Back to list", "shops:list")
-    .text("Menu", "shops:menu");
+    .text(t.shops.buttons.backToList(), "shops:list")
+    .text(t.shops.buttons.menu(), "shops:menu");
 }
 
-function formatShopsList(shops: ShopDto[]): string {
-  const lines = ["Shops:"];
+function formatShopsList(t: BotTranslator, shops: ShopDto[]): string {
+  const lines = [t.shops.listHeader()];
 
   for (const [index, shop] of shops.entries()) {
     lines.push(
-      `${index + 1}. ${shop.name} | ${shop.isActive ? "active" : "inactive"} | ${
-        shop.useSandbox ? "sandbox" : "production"
-      }`
+      t.shops.listItem({
+        index: index + 1,
+        name: shop.name,
+        status: shop.isActive ? t.shops.state.active() : t.shops.state.inactive(),
+        mode: shop.useSandbox ? t.shops.state.sandbox() : t.shops.state.production()
+      })
     );
   }
 
   return lines.join("\n");
 }
 
-function formatShopDetails(shop: ShopDto): string {
+function formatShopDetails(t: BotTranslator, shop: ShopDto): string {
   return [
-    `Shop: ${shop.name}`,
-    `ID: ${shop.id}`,
-    `Status: ${shop.isActive ? "active" : "inactive"}`,
-    `Mode: ${shop.useSandbox ? "sandbox" : "production"}`,
-    `Supply prefix: ${shop.supplyPrefix}`,
-    `Prod token: ${maskToken(shop.wbToken)}`,
-    `Sandbox token: ${shop.wbSandboxToken ? maskToken(shop.wbSandboxToken) : "not set"}`,
-    `Token updated: ${formatIsoDate(shop.tokenUpdatedAt)}`
+    `${t.shops.details.shop()}: ${shop.name}`,
+    `${t.shops.details.id()}: ${shop.id}`,
+    `${t.shops.details.status()}: ${shop.isActive ? t.shops.state.active() : t.shops.state.inactive()}`,
+    `${t.shops.details.mode()}: ${shop.useSandbox ? t.shops.state.sandbox() : t.shops.state.production()}`,
+    `${t.shops.details.supplyPrefix()}: ${shop.supplyPrefix}`,
+    `${t.shops.details.productionToken()}: ${maskToken(shop.wbToken)}`,
+    `${t.shops.details.sandboxToken()}: ${shop.wbSandboxToken ? maskToken(shop.wbSandboxToken) : t.shops.state.notSet()}`,
+    `${t.shops.details.tokenUpdated()}: ${formatIsoDate(shop.tokenUpdatedAt)}`
   ].join("\n");
 }
 
@@ -473,7 +501,7 @@ async function safeAnswerCallback(ctx: BotContext) {
 
 function requireMatchValue(value: string | undefined): string {
   if (!value) {
-    throw new Error("Invalid callback payload");
+    throw createBotCommandError("INVALID_CALLBACK_PAYLOAD");
   }
 
   return value;
@@ -483,7 +511,7 @@ function requireNonEmpty(value: string, field: string): string {
   const normalized = value.trim();
 
   if (!normalized) {
-    throw new Error(`${field} must not be empty`);
+    throw createBotCommandError("FIELD_MUST_NOT_BE_EMPTY", { field });
   }
 
   return normalized;
@@ -502,11 +530,11 @@ function normalizeOptionalValue(value: string): string | undefined {
 function parseBooleanInput(value: string): boolean | null {
   const normalized = value.trim().toLowerCase();
 
-  if (["y", "yes", "true", "1"].includes(normalized)) {
+  if (["y", "yes", "true", "1", "d", "da", "д", "да"].includes(normalized)) {
     return true;
   }
 
-  if (["n", "no", "false", "0"].includes(normalized)) {
+  if (["n", "no", "false", "0", "net", "н", "нет"].includes(normalized)) {
     return false;
   }
 

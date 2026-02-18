@@ -13,7 +13,8 @@
   },
   "dependencies": {
     "grammy": "^1.40.0",
-    "openapi-fetch": "^0.17.0"
+    "openapi-fetch": "^0.17.0",
+    "typesafe-i18n": "^5.27.1"
   },
   "devDependencies": {
     "openapi-typescript": "^7.13.0"

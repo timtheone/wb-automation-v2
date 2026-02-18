@@ -141,6 +141,7 @@ export function registerFlowsController(
       await dependencies.tenantService.resolveTenantContext(readTelegramRequestContext(c));
       return c.json(
         {
+          code: "FLOW_GET_COMBINED_PDF_LISTS_NOT_IMPLEMENTED",
           error: "Flow get_combined_pdf_lists is not implemented yet"
         },
         501
@@ -155,6 +156,7 @@ export function registerFlowsController(
       await dependencies.tenantService.resolveTenantContext(readTelegramRequestContext(c));
       return c.json(
         {
+          code: "FLOW_GET_WAITING_ORDERS_PDF_NOT_IMPLEMENTED",
           error: "Flow get_waiting_orders_pdf is not implemented yet"
         },
         501
