@@ -1,0 +1,1 @@
+ALTER TYPE "public"."telegram_chat_type" ADD VALUE 'channel';

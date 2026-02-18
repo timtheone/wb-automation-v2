@@ -9,7 +9,7 @@ import { createBackendClient } from "./backend-client.js";
 import type { BotSession, BotContext } from "./bot-types.js";
 import { registerCommands } from "./commands/index.js";
 import { toErrorMessage } from "./commands/shared.js";
-import { isAllowedChat, readBotConfig } from "./config.js";
+import { readBotConfig } from "./config.js";
 
 const config = readBotConfig();
 const backend = createBackendClient({ baseUrl: config.backendBaseUrl });
@@ -32,17 +32,6 @@ bot.use(
     }
   })
 );
-
-bot.use(async (ctx, next) => {
-  if (!isAllowedChat(config.allowedChatIds, ctx.chat?.id)) {
-    if (ctx.message?.text?.startsWith("/")) {
-      await ctx.reply("This chat is not allowed for bot commands.");
-    }
-    return;
-  }
-
-  await next();
-});
 
 bot.catch((error) => {
   const context = error.ctx;

@@ -160,6 +160,7 @@ describe("process all shops service", () => {
       });
 
     const service = createProcessAllShopsService({
+      tenantId: "tenant-1",
       db: {} as Database,
       sleep: async () => {
         return;
@@ -197,6 +198,7 @@ describe("process all shops service", () => {
       });
 
     const service = createProcessAllShopsService({
+      tenantId: "tenant-1",
       db: {} as Database
     });
 
@@ -233,6 +235,7 @@ describe("process all shops service", () => {
     };
 
     const service = createProcessAllShopsService({
+      tenantId: "tenant-1",
       db: {} as Database
     });
 
@@ -314,6 +317,7 @@ describe("process all shops service", () => {
       });
 
     const service = createProcessAllShopsService({
+      tenantId: "tenant-1",
       db: {} as Database,
       now: () => new Date("2026-03-04T05:06:00.000Z")
     });
@@ -406,6 +410,7 @@ describe("process all shops service", () => {
       });
 
     const service = createProcessAllShopsService({
+      tenantId: "tenant-1",
       db: {} as Database
     });
 
@@ -505,6 +510,7 @@ describe("process all shops service", () => {
       });
 
     const service = createProcessAllShopsService({
+      tenantId: "tenant-1",
       db: {} as Database,
       supplyPageLimit: 2
     });
@@ -545,6 +551,7 @@ describe("process all shops service", () => {
       });
 
     const service = createProcessAllShopsService({
+      tenantId: "tenant-1",
       db: {} as Database
     });
 

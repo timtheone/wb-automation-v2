@@ -7,21 +7,19 @@ import {
 import { getDatabase } from "@wb-automation-v2/db";
 
 export interface BackendFlowsService {
-  processAllShops(): Promise<ProcessAllShopsResult>;
-  syncContentShops(): Promise<SyncContentShopsResult>;
+  processAllShops(tenantId: string): Promise<ProcessAllShopsResult>;
+  syncContentShops(tenantId: string): Promise<SyncContentShopsResult>;
 }
 
 export function createBackendFlowsService(): BackendFlowsService {
   const db = getDatabase();
-  const processAllShopsService = createProcessAllShopsService({ db });
-  const syncContentShopsService = createSyncContentShopsService({});
 
   return {
-    processAllShops() {
-      return processAllShopsService.processAllShops();
+    processAllShops(tenantId) {
+      return createProcessAllShopsService({ db, tenantId }).processAllShops();
     },
-    syncContentShops() {
-      return syncContentShopsService.syncContentShops();
+    syncContentShops(tenantId) {
+      return createSyncContentShopsService({ db, tenantId }).syncContentShops();
     }
   };
 }

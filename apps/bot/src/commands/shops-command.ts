@@ -2,7 +2,7 @@ import { InlineKeyboard, type Bot } from "grammy";
 
 import type { BackendClient } from "../backend-client.js";
 import type { BotContext, CreateShopBody, PendingAction, ShopDto } from "../bot-types.js";
-import { formatIsoDate, replyWithError, requireResponseData } from "./shared.js";
+import { formatIsoDate, getTelegramContextHeaders, replyWithError, requireResponseData } from "./shared.js";
 
 export function registerShopsCommand(bot: Bot<BotContext>, backend: BackendClient) {
   bot.command("shops", async (ctx) => {
@@ -108,13 +108,17 @@ export function registerShopsCommand(bot: Bot<BotContext>, backend: BackendClien
     const shopId = requireMatchValue(ctx.match[1]);
 
     try {
-      const shop = await findShopById(backend, shopId);
-      const response = await backend.PATCH("/shops/{id}", {
-        params: {
-          path: { id: shopId }
-        },
-        body: { isActive: !shop.isActive }
-      });
+      const shop = await findShopById(ctx, backend, shopId);
+      const response = await backend.PATCH(
+        "/shops/{id}",
+        {
+          params: {
+            path: { id: shopId },
+            header: await getTelegramContextHeaders(ctx)
+          },
+          body: { isActive: !shop.isActive }
+        }
+      );
       const updated = requireResponseData(response.data, "PATCH /shops/{id}").shop;
       await ctx.reply(`Shop ${updated.name} is now ${updated.isActive ? "active" : "inactive"}.`);
       await sendShopDetails(ctx, backend, shopId);
@@ -128,13 +132,17 @@ export function registerShopsCommand(bot: Bot<BotContext>, backend: BackendClien
     const shopId = requireMatchValue(ctx.match[1]);
 
     try {
-      const shop = await findShopById(backend, shopId);
-      const response = await backend.PATCH("/shops/{id}", {
-        params: {
-          path: { id: shopId }
-        },
-        body: { useSandbox: !shop.useSandbox }
-      });
+      const shop = await findShopById(ctx, backend, shopId);
+      const response = await backend.PATCH(
+        "/shops/{id}",
+        {
+          params: {
+            path: { id: shopId },
+            header: await getTelegramContextHeaders(ctx)
+          },
+          body: { useSandbox: !shop.useSandbox }
+        }
+      );
       const updated = requireResponseData(response.data, "PATCH /shops/{id}").shop;
       await ctx.reply(`Shop ${updated.name} mode is now ${updated.useSandbox ? "sandbox" : "production"}.`);
       await sendShopDetails(ctx, backend, shopId);
@@ -148,11 +156,15 @@ export function registerShopsCommand(bot: Bot<BotContext>, backend: BackendClien
     const shopId = requireMatchValue(ctx.match[1]);
 
     try {
-      const response = await backend.DELETE("/shops/{id}", {
-        params: {
-          path: { id: shopId }
+      const response = await backend.DELETE(
+        "/shops/{id}",
+        {
+          params: {
+            path: { id: shopId },
+            header: await getTelegramContextHeaders(ctx)
+          }
         }
-      });
+      );
       const updated = requireResponseData(response.data, "DELETE /shops/{id}").shop;
       await ctx.reply(`Shop ${updated.name} was deactivated.`);
       await sendShopsList(ctx, backend);
@@ -182,12 +194,16 @@ export function registerShopsCommand(bot: Bot<BotContext>, backend: BackendClien
 
       if (pending.kind === "rename") {
         const normalized = requireNonEmpty(text, "name");
-        const response = await backend.PATCH("/shops/{id}", {
-          params: {
-            path: { id: pending.shopId }
-          },
-          body: { name: normalized }
-        });
+        const response = await backend.PATCH(
+          "/shops/{id}",
+          {
+            params: {
+              path: { id: pending.shopId },
+              header: await getTelegramContextHeaders(ctx)
+            },
+            body: { name: normalized }
+          }
+        );
         const updated = requireResponseData(response.data, "PATCH /shops/{id}").shop;
         ctx.session.pendingAction = null;
         await ctx.reply(`Shop renamed to ${updated.name}.`);
@@ -197,12 +213,16 @@ export function registerShopsCommand(bot: Bot<BotContext>, backend: BackendClien
 
       if (pending.kind === "prefix") {
         const normalized = requireNonEmpty(text, "supplyPrefix");
-        const response = await backend.PATCH("/shops/{id}", {
-          params: {
-            path: { id: pending.shopId }
-          },
-          body: { supplyPrefix: normalized }
-        });
+        const response = await backend.PATCH(
+          "/shops/{id}",
+          {
+            params: {
+              path: { id: pending.shopId },
+              header: await getTelegramContextHeaders(ctx)
+            },
+            body: { supplyPrefix: normalized }
+          }
+        );
         const updated = requireResponseData(response.data, "PATCH /shops/{id}").shop;
         ctx.session.pendingAction = null;
         await ctx.reply(`Supply prefix updated for ${updated.name}.`);
@@ -212,15 +232,19 @@ export function registerShopsCommand(bot: Bot<BotContext>, backend: BackendClien
 
       if (pending.kind === "token") {
         const token = requireNonEmpty(text, "wbToken");
-        const response = await backend.PATCH("/shops/{id}/token", {
-          params: {
-            path: { id: pending.shopId }
-          },
-          body: {
-            wbToken: token,
-            tokenType: pending.tokenType
+        const response = await backend.PATCH(
+          "/shops/{id}/token",
+          {
+            params: {
+              path: { id: pending.shopId },
+              header: await getTelegramContextHeaders(ctx)
+            },
+            body: {
+              wbToken: token,
+              tokenType: pending.tokenType
+            }
           }
-        });
+        );
         const updated = requireResponseData(response.data, "PATCH /shops/{id}/token").shop;
         ctx.session.pendingAction = null;
         await ctx.reply(
@@ -235,7 +259,7 @@ export function registerShopsCommand(bot: Bot<BotContext>, backend: BackendClien
 }
 
 async function sendShopsList(ctx: BotContext, backend: BackendClient) {
-  const shops = await listShops(backend);
+  const shops = await listShops(ctx, backend);
 
   if (shops.length === 0) {
     await ctx.reply("No shops configured yet.", {
@@ -250,21 +274,25 @@ async function sendShopsList(ctx: BotContext, backend: BackendClient) {
 }
 
 async function sendShopDetails(ctx: BotContext, backend: BackendClient, shopId: string) {
-  const shop = await findShopById(backend, shopId);
+  const shop = await findShopById(ctx, backend, shopId);
 
   await ctx.reply(formatShopDetails(shop), {
     reply_markup: getShopActionsKeyboard(shop.id)
   });
 }
 
-async function listShops(backend: BackendClient): Promise<ShopDto[]> {
-  const response = await backend.GET("/shops");
+async function listShops(ctx: BotContext, backend: BackendClient): Promise<ShopDto[]> {
+  const response = await backend.GET("/shops", {
+    params: {
+      header: await getTelegramContextHeaders(ctx)
+    }
+  });
   const payload = requireResponseData(response.data, "GET /shops");
   return payload.shops;
 }
 
-async function findShopById(backend: BackendClient, shopId: string): Promise<ShopDto> {
-  const shops = await listShops(backend);
+async function findShopById(ctx: BotContext, backend: BackendClient, shopId: string): Promise<ShopDto> {
+  const shops = await listShops(ctx, backend);
   const shop = shops.find((item) => item.id === shopId);
 
   if (!shop) {
@@ -356,9 +384,15 @@ async function handleCreateFlowStep(
     isActive
   };
 
-  const response = await backend.POST("/shops", {
-    body: createBody
-  });
+  const response = await backend.POST(
+    "/shops",
+    {
+      params: {
+        header: await getTelegramContextHeaders(ctx)
+      },
+      body: createBody
+    }
+  );
   const created = requireResponseData(response.data, "POST /shops").shop;
 
   ctx.session.pendingAction = null;

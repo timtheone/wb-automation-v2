@@ -49,7 +49,12 @@ export interface paths {
         get: {
             parameters: {
                 query?: never;
-                header?: never;
+                header: {
+                    "x-telegram-chat-id": string;
+                    "x-telegram-chat-type": "private" | "group" | "supergroup" | "channel";
+                    "x-telegram-user-id": string;
+                    "x-telegram-owner-user-id": string;
+                };
                 path?: never;
                 cookie?: never;
             };
@@ -79,7 +84,12 @@ export interface paths {
         post: {
             parameters: {
                 query?: never;
-                header?: never;
+                header: {
+                    "x-telegram-chat-id": string;
+                    "x-telegram-chat-type": "private" | "group" | "supergroup" | "channel";
+                    "x-telegram-user-id": string;
+                    "x-telegram-owner-user-id": string;
+                };
                 path?: never;
                 cookie?: never;
             };
@@ -146,7 +156,12 @@ export interface paths {
         delete: {
             parameters: {
                 query?: never;
-                header?: never;
+                header: {
+                    "x-telegram-chat-id": string;
+                    "x-telegram-chat-type": "private" | "group" | "supergroup" | "channel";
+                    "x-telegram-user-id": string;
+                    "x-telegram-owner-user-id": string;
+                };
                 path: {
                     id: string;
                 };
@@ -188,7 +203,12 @@ export interface paths {
         patch: {
             parameters: {
                 query?: never;
-                header?: never;
+                header: {
+                    "x-telegram-chat-id": string;
+                    "x-telegram-chat-type": "private" | "group" | "supergroup" | "channel";
+                    "x-telegram-user-id": string;
+                    "x-telegram-owner-user-id": string;
+                };
                 path: {
                     id: string;
                 };
@@ -256,7 +276,12 @@ export interface paths {
         patch: {
             parameters: {
                 query?: never;
-                header?: never;
+                header: {
+                    "x-telegram-chat-id": string;
+                    "x-telegram-chat-type": "private" | "group" | "supergroup" | "channel";
+                    "x-telegram-user-id": string;
+                    "x-telegram-owner-user-id": string;
+                };
                 path: {
                     id: string;
                 };
@@ -320,7 +345,12 @@ export interface paths {
         post: {
             parameters: {
                 query?: never;
-                header?: never;
+                header: {
+                    "x-telegram-chat-id": string;
+                    "x-telegram-chat-type": "private" | "group" | "supergroup" | "channel";
+                    "x-telegram-user-id": string;
+                    "x-telegram-owner-user-id": string;
+                };
                 path?: never;
                 cookie?: never;
             };
@@ -364,7 +394,12 @@ export interface paths {
         post: {
             parameters: {
                 query?: never;
-                header?: never;
+                header: {
+                    "x-telegram-chat-id": string;
+                    "x-telegram-chat-type": "private" | "group" | "supergroup" | "channel";
+                    "x-telegram-user-id": string;
+                    "x-telegram-owner-user-id": string;
+                };
                 path?: never;
                 cookie?: never;
             };
@@ -408,7 +443,12 @@ export interface paths {
         post: {
             parameters: {
                 query?: never;
-                header?: never;
+                header: {
+                    "x-telegram-chat-id": string;
+                    "x-telegram-chat-type": "private" | "group" | "supergroup" | "channel";
+                    "x-telegram-user-id": string;
+                    "x-telegram-owner-user-id": string;
+                };
                 path?: never;
                 cookie?: never;
             };
@@ -443,7 +483,12 @@ export interface paths {
         post: {
             parameters: {
                 query?: never;
-                header?: never;
+                header: {
+                    "x-telegram-chat-id": string;
+                    "x-telegram-chat-type": "private" | "group" | "supergroup" | "channel";
+                    "x-telegram-user-id": string;
+                    "x-telegram-owner-user-id": string;
+                };
                 path?: never;
                 cookie?: never;
             };

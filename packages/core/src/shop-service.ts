@@ -1,6 +1,7 @@
 import {
   createShopRepository,
   type CreateShopInput,
+  type Database,
   type Shop,
   type WbTokenType,
   type UpdateShopInput,
@@ -22,9 +23,16 @@ export interface ShopService {
   deactivateShop(shopId: string): Promise<Shop>;
 }
 
-export function createShopService(options: { now?: () => Date } = {}): ShopService {
+export function createShopService(options: {
+  tenantId: string;
+  db?: Database;
+  now?: () => Date;
+}): ShopService {
   const now = options.now ?? (() => new Date());
-  const shops = createShopRepository();
+  const shops = createShopRepository({
+    tenantId: options.tenantId,
+    db: options.db
+  });
 
   return {
     async listShops() {

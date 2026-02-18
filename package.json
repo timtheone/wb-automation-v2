@@ -12,6 +12,7 @@
     "scheduler:sync:run": "bash ./scripts/sync-content-scheduler.sh run",
     "db:up": "docker compose up -d --wait postgres",
     "db:down": "docker compose down",
+    "db:reset": "docker compose down -v && pnpm db:up && pnpm db:migrate",
     "db:push": "pnpm --filter @wb-automation-v2/db drizzle:push",
     "db:generate": "pnpm --filter @wb-automation-v2/db drizzle:generate",
     "db:migrate": "pnpm --filter @wb-automation-v2/db drizzle:migrate",

@@ -431,6 +431,49 @@
         "tags": [
           "Shops"
         ],
+        "parameters": [
+          {
+            "schema": {
+              "type": "string",
+              "pattern": "^-?\\d+$"
+            },
+            "required": true,
+            "name": "x-telegram-chat-id",
+            "in": "header"
+          },
+          {
+            "schema": {
+              "type": "string",
+              "enum": [
+                "private",
+                "group",
+                "supergroup",
+                "channel"
+              ]
+            },
+            "required": true,
+            "name": "x-telegram-chat-type",
+            "in": "header"
+          },
+          {
+            "schema": {
+              "type": "string",
+              "pattern": "^-?\\d+$"
+            },
+            "required": true,
+            "name": "x-telegram-user-id",
+            "in": "header"
+          },
+          {
+            "schema": {
+              "type": "string",
+              "pattern": "^-?\\d+$"
+            },
+            "required": true,
+            "name": "x-telegram-owner-user-id",
+            "in": "header"
+          }
+        ],
         "responses": {
           "200": {
             "description": "List shops",
@@ -457,6 +500,49 @@
       "post": {
         "tags": [
           "Shops"
+        ],
+        "parameters": [
+          {
+            "schema": {
+              "type": "string",
+              "pattern": "^-?\\d+$"
+            },
+            "required": true,
+            "name": "x-telegram-chat-id",
+            "in": "header"
+          },
+          {
+            "schema": {
+              "type": "string",
+              "enum": [
+                "private",
+                "group",
+                "supergroup",
+                "channel"
+              ]
+            },
+            "required": true,
+            "name": "x-telegram-chat-type",
+            "in": "header"
+          },
+          {
+            "schema": {
+              "type": "string",
+              "pattern": "^-?\\d+$"
+            },
+            "required": true,
+            "name": "x-telegram-user-id",
+            "in": "header"
+          },
+          {
+            "schema": {
+              "type": "string",
+              "pattern": "^-?\\d+$"
+            },
+            "required": true,
+            "name": "x-telegram-owner-user-id",
+            "in": "header"
+          }
         ],
         "requestBody": {
           "content": {
@@ -525,6 +611,47 @@
             "required": true,
             "name": "id",
             "in": "path"
+          },
+          {
+            "schema": {
+              "type": "string",
+              "pattern": "^-?\\d+$"
+            },
+            "required": true,
+            "name": "x-telegram-chat-id",
+            "in": "header"
+          },
+          {
+            "schema": {
+              "type": "string",
+              "enum": [
+                "private",
+                "group",
+                "supergroup",
+                "channel"
+              ]
+            },
+            "required": true,
+            "name": "x-telegram-chat-type",
+            "in": "header"
+          },
+          {
+            "schema": {
+              "type": "string",
+              "pattern": "^-?\\d+$"
+            },
+            "required": true,
+            "name": "x-telegram-user-id",
+            "in": "header"
+          },
+          {
+            "schema": {
+              "type": "string",
+              "pattern": "^-?\\d+$"
+            },
+            "required": true,
+            "name": "x-telegram-owner-user-id",
+            "in": "header"
           }
         ],
         "requestBody": {
@@ -592,6 +719,47 @@
             "required": true,
             "name": "id",
             "in": "path"
+          },
+          {
+            "schema": {
+              "type": "string",
+              "pattern": "^-?\\d+$"
+            },
+            "required": true,
+            "name": "x-telegram-chat-id",
+            "in": "header"
+          },
+          {
+            "schema": {
+              "type": "string",
+              "enum": [
+                "private",
+                "group",
+                "supergroup",
+                "channel"
+              ]
+            },
+            "required": true,
+            "name": "x-telegram-chat-type",
+            "in": "header"
+          },
+          {
+            "schema": {
+              "type": "string",
+              "pattern": "^-?\\d+$"
+            },
+            "required": true,
+            "name": "x-telegram-user-id",
+            "in": "header"
+          },
+          {
+            "schema": {
+              "type": "string",
+              "pattern": "^-?\\d+$"
+            },
+            "required": true,
+            "name": "x-telegram-owner-user-id",
+            "in": "header"
           }
         ],
         "responses": {
@@ -642,6 +810,47 @@
             "required": true,
             "name": "id",
             "in": "path"
+          },
+          {
+            "schema": {
+              "type": "string",
+              "pattern": "^-?\\d+$"
+            },
+            "required": true,
+            "name": "x-telegram-chat-id",
+            "in": "header"
+          },
+          {
+            "schema": {
+              "type": "string",
+              "enum": [
+                "private",
+                "group",
+                "supergroup",
+                "channel"
+              ]
+            },
+            "required": true,
+            "name": "x-telegram-chat-type",
+            "in": "header"
+          },
+          {
+            "schema": {
+              "type": "string",
+              "pattern": "^-?\\d+$"
+            },
+            "required": true,
+            "name": "x-telegram-user-id",
+            "in": "header"
+          },
+          {
+            "schema": {
+              "type": "string",
+              "pattern": "^-?\\d+$"
+            },
+            "required": true,
+            "name": "x-telegram-owner-user-id",
+            "in": "header"
           }
         ],
         "requestBody": {
@@ -702,6 +911,49 @@
         "tags": [
           "Flows"
         ],
+        "parameters": [
+          {
+            "schema": {
+              "type": "string",
+              "pattern": "^-?\\d+$"
+            },
+            "required": true,
+            "name": "x-telegram-chat-id",
+            "in": "header"
+          },
+          {
+            "schema": {
+              "type": "string",
+              "enum": [
+                "private",
+                "group",
+                "supergroup",
+                "channel"
+              ]
+            },
+            "required": true,
+            "name": "x-telegram-chat-type",
+            "in": "header"
+          },
+          {
+            "schema": {
+              "type": "string",
+              "pattern": "^-?\\d+$"
+            },
+            "required": true,
+            "name": "x-telegram-user-id",
+            "in": "header"
+          },
+          {
+            "schema": {
+              "type": "string",
+              "pattern": "^-?\\d+$"
+            },
+            "required": true,
+            "name": "x-telegram-owner-user-id",
+            "in": "header"
+          }
+        ],
         "responses": {
           "200": {
             "description": "Process all active shops",
@@ -730,6 +982,49 @@
       "post": {
         "tags": [
           "Flows"
+        ],
+        "parameters": [
+          {
+            "schema": {
+              "type": "string",
+              "pattern": "^-?\\d+$"
+            },
+            "required": true,
+            "name": "x-telegram-chat-id",
+            "in": "header"
+          },
+          {
+            "schema": {
+              "type": "string",
+              "enum": [
+                "private",
+                "group",
+                "supergroup",
+                "channel"
+              ]
+            },
+            "required": true,
+            "name": "x-telegram-chat-type",
+            "in": "header"
+          },
+          {
+            "schema": {
+              "type": "string",
+              "pattern": "^-?\\d+$"
+            },
+            "required": true,
+            "name": "x-telegram-user-id",
+            "in": "header"
+          },
+          {
+            "schema": {
+              "type": "string",
+              "pattern": "^-?\\d+$"
+            },
+            "required": true,
+            "name": "x-telegram-owner-user-id",
+            "in": "header"
+          }
         ],
         "responses": {
           "200": {
@@ -760,6 +1055,49 @@
         "tags": [
           "Flows"
         ],
+        "parameters": [
+          {
+            "schema": {
+              "type": "string",
+              "pattern": "^-?\\d+$"
+            },
+            "required": true,
+            "name": "x-telegram-chat-id",
+            "in": "header"
+          },
+          {
+            "schema": {
+              "type": "string",
+              "enum": [
+                "private",
+                "group",
+                "supergroup",
+                "channel"
+              ]
+            },
+            "required": true,
+            "name": "x-telegram-chat-type",
+            "in": "header"
+          },
+          {
+            "schema": {
+              "type": "string",
+              "pattern": "^-?\\d+$"
+            },
+            "required": true,
+            "name": "x-telegram-user-id",
+            "in": "header"
+          },
+          {
+            "schema": {
+              "type": "string",
+              "pattern": "^-?\\d+$"
+            },
+            "required": true,
+            "name": "x-telegram-owner-user-id",
+            "in": "header"
+          }
+        ],
         "responses": {
           "501": {
             "description": "Flow is not implemented",
@@ -778,6 +1116,49 @@
       "post": {
         "tags": [
           "Flows"
+        ],
+        "parameters": [
+          {
+            "schema": {
+              "type": "string",
+              "pattern": "^-?\\d+$"
+            },
+            "required": true,
+            "name": "x-telegram-chat-id",
+            "in": "header"
+          },
+          {
+            "schema": {
+              "type": "string",
+              "enum": [
+                "private",
+                "group",
+                "supergroup",
+                "channel"
+              ]
+            },
+            "required": true,
+            "name": "x-telegram-chat-type",
+            "in": "header"
+          },
+          {
+            "schema": {
+              "type": "string",
+              "pattern": "^-?\\d+$"
+            },
+            "required": true,
+            "name": "x-telegram-user-id",
+            "in": "header"
+          },
+          {
+            "schema": {
+              "type": "string",
+              "pattern": "^-?\\d+$"
+            },
+            "required": true,
+            "name": "x-telegram-owner-user-id",
+            "in": "header"
+          }
         ],
         "responses": {
           "501": {

@@ -43,6 +43,7 @@ export interface ProcessAllShopsResult {
 }
 
 type ProcessAllShopsOptions = {
+  tenantId: string;
   db: Database;
   now?: () => Date;
   sleep?: (ms: number) => Promise<void>;
@@ -61,7 +62,10 @@ export function createProcessAllShopsService(options: ProcessAllShopsOptions): P
   const supplyPageLimit = options.supplyPageLimit ?? DEFAULT_SUPPLY_PAGE_LIMIT;
   const maxPollAttempts = options.maxPollAttempts ?? DEFAULT_POLL_ATTEMPTS;
   const pollIntervalMs = options.pollIntervalMs ?? DEFAULT_POLL_INTERVAL_MS;
-  const shops = createShopRepository(options.db);
+  const shops = createShopRepository({
+    tenantId: options.tenantId,
+    db: options.db
+  });
 
   return {
     async processAllShops() {

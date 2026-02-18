@@ -15,6 +15,20 @@
       "when": 1771247827322,
       "tag": "0001_new_beyonder",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1771318343364,
+      "tag": "0002_easy_excalibur",
+      "breakpoints": true
+    },
+    {
+      "idx": 3,
+      "version": "7",
+      "when": 1771383175710,
+      "tag": "0003_equal_iron_man",
+      "breakpoints": true
     }
   ]
 }

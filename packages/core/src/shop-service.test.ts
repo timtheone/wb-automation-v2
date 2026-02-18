@@ -108,6 +108,7 @@ describe("shop service", () => {
     testState.shops = new InMemoryShopRepository();
     const fixedNow = new Date("2026-02-01T10:00:00.000Z");
     const service = createShopService({
+      tenantId: "tenant-1",
       now: () => fixedNow
     });
 
@@ -134,7 +135,7 @@ describe("shop service", () => {
 
   it("updates sandbox token when tokenType is sandbox", async () => {
     testState.shops = new InMemoryShopRepository();
-    const service = createShopService();
+    const service = createShopService({ tenantId: "tenant-1" });
 
     const created = await service.createShop({
       name: "Sandbox Shop",
@@ -153,7 +154,7 @@ describe("shop service", () => {
 
   it("throws not found when updating missing shop", async () => {
     testState.shops = new InMemoryShopRepository();
-    const service = createShopService();
+    const service = createShopService({ tenantId: "tenant-1" });
 
     await expect(
       service.updateShop({
@@ -165,7 +166,7 @@ describe("shop service", () => {
 
   it("rejects enabling sandbox without sandbox token", async () => {
     testState.shops = new InMemoryShopRepository();
-    const service = createShopService();
+    const service = createShopService({ tenantId: "tenant-1" });
 
     await expect(
       service.createShop({

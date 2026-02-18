@@ -168,6 +168,7 @@ describe("sync content shops service", () => {
     testState.syncState = syncStateRepo;
 
     const service = createSyncContentShopsService({
+      tenantId: "tenant-1",
       pageLimit: 2,
       maxPagesPerShop: 10,
       now: () => new Date("2026-01-10T00:00:00.000Z")
@@ -242,6 +243,7 @@ describe("sync content shops service", () => {
     };
 
     const service = createSyncContentShopsService({
+      tenantId: "tenant-1",
       pageLimit: 2,
       maxPagesPerShop: 10
     });

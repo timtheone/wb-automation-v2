@@ -1,13 +1,16 @@
 import { createRoute, type OpenAPIHono, z } from "@hono/zod-openapi";
 
+import { readTelegramRequestContext } from "../http/telegram-context.js";
 import type { RouteErrorHandler } from "../http/error-handler.js";
 import { parseJsonBody } from "../http/validation.js";
+import { telegramContextHeadersSchema } from "../openapi/telegram-context.js";
 import {
   errorResponseSchema,
   shopResponseSchema,
   shopsResponseSchema
 } from "../openapi/schemas.js";
 import type { BackendShopsService } from "../services/shops-service.js";
+import type { BackendTenantService } from "../services/tenant-service.js";
 
 const shopIdParamsSchema = z.object({
   id: z.string().min(1)
@@ -39,6 +42,9 @@ const listShopsRoute = createRoute({
   method: "get",
   path: "/shops",
   tags: ["Shops"],
+  request: {
+    headers: telegramContextHeadersSchema
+  },
   responses: {
     200: {
       description: "List shops",
@@ -64,6 +70,7 @@ const createShopRoute = createRoute({
   path: "/shops",
   tags: ["Shops"],
   request: {
+    headers: telegramContextHeadersSchema,
     body: {
       content: {
         "application/json": {
@@ -113,6 +120,7 @@ const updateShopRoute = createRoute({
   path: "/shops/{id}",
   tags: ["Shops"],
   request: {
+    headers: telegramContextHeadersSchema,
     params: shopIdParamsSchema,
     body: {
       content: {
@@ -163,6 +171,7 @@ const updateShopTokenRoute = createRoute({
   path: "/shops/{id}/token",
   tags: ["Shops"],
   request: {
+    headers: telegramContextHeadersSchema,
     params: shopIdParamsSchema,
     body: {
       content: {
@@ -213,6 +222,7 @@ const deleteShopRoute = createRoute({
   path: "/shops/{id}",
   tags: ["Shops"],
   request: {
+    headers: telegramContextHeadersSchema,
     params: shopIdParamsSchema
   },
   responses: {
@@ -247,12 +257,16 @@ export function registerShopsController(
   app: OpenAPIHono,
   dependencies: {
     shopsService: BackendShopsService;
+    tenantService: BackendTenantService;
     handleRouteError: RouteErrorHandler;
   }
 ) {
   app.openapi(listShopsRoute, async (c) => {
     try {
-      const shops = await dependencies.shopsService.listShops();
+      const tenantContext = await dependencies.tenantService.resolveTenantContext(
+        readTelegramRequestContext(c)
+      );
+      const shops = await dependencies.shopsService.listShops(tenantContext.tenantId);
       return c.json({ shops }, 200);
     } catch (error) {
       return dependencies.handleRouteError(c, error) as never;
@@ -261,8 +275,11 @@ export function registerShopsController(
 
   app.openapi(createShopRoute, async (c) => {
     try {
+      const tenantContext = await dependencies.tenantService.resolveTenantContext(
+        readTelegramRequestContext(c)
+      );
       const body = await parseJsonBody(c, createShopBodySchema);
-      const shop = await dependencies.shopsService.createShop(body);
+      const shop = await dependencies.shopsService.createShop(tenantContext.tenantId, body);
       return c.json({ shop }, 201);
     } catch (error) {
       return dependencies.handleRouteError(c, error) as never;
@@ -271,8 +288,11 @@ export function registerShopsController(
 
   app.openapi(updateShopRoute, async (c) => {
     try {
+      const tenantContext = await dependencies.tenantService.resolveTenantContext(
+        readTelegramRequestContext(c)
+      );
       const body = await parseJsonBody(c, updateShopBodySchema);
-      const shop = await dependencies.shopsService.updateShop({
+      const shop = await dependencies.shopsService.updateShop(tenantContext.tenantId, {
         id: c.req.param("id"),
         ...body
       });
@@ -285,8 +305,11 @@ export function registerShopsController(
 
   app.openapi(updateShopTokenRoute, async (c) => {
     try {
+      const tenantContext = await dependencies.tenantService.resolveTenantContext(
+        readTelegramRequestContext(c)
+      );
       const body = await parseJsonBody(c, updateShopTokenBodySchema);
-      const shop = await dependencies.shopsService.updateShopToken({
+      const shop = await dependencies.shopsService.updateShopToken(tenantContext.tenantId, {
         id: c.req.param("id"),
         wbToken: body.wbToken,
         tokenType: body.tokenType
@@ -300,7 +323,10 @@ export function registerShopsController(
 
   app.openapi(deleteShopRoute, async (c) => {
     try {
-      const shop = await dependencies.shopsService.deactivateShop(c.req.param("id"));
+      const tenantContext = await dependencies.tenantService.resolveTenantContext(
+        readTelegramRequestContext(c)
+      );
+      const shop = await dependencies.shopsService.deactivateShop(tenantContext.tenantId, c.req.param("id"));
       return c.json({ shop }, 200);
     } catch (error) {
       return dependencies.handleRouteError(c, error) as never;

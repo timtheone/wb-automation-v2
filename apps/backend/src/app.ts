@@ -33,10 +33,12 @@ export function createApp() {
   registerHealthController(app);
   registerShopsController(app, {
     shopsService: services.shopsService,
+    tenantService: services.tenantService,
     handleRouteError
   });
   registerFlowsController(app, {
     flowsService: services.flowsService,
+    tenantService: services.tenantService,
     handleRouteError
   });
 

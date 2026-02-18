@@ -2,14 +2,18 @@ import type { Bot } from "grammy";
 
 import type { BackendClient } from "../backend-client.js";
 import type { BotContext, ProcessAllShopsResultDto } from "../bot-types.js";
-import { formatIsoDate, replyWithError, requireResponseData } from "./shared.js";
+import { formatIsoDate, getTelegramContextHeaders, replyWithError, requireResponseData } from "./shared.js";
 
 export function registerProcessAllShopsCommand(bot: Bot<BotContext>, backend: BackendClient) {
   bot.command("process_all_shops", async (ctx) => {
     await ctx.reply("Running process_all_shops...");
 
     try {
-      const response = await backend.POST("/flows/process-all-shops");
+      const response = await backend.POST("/flows/process-all-shops", {
+        params: {
+          header: await getTelegramContextHeaders(ctx)
+        }
+      });
       const result = requireResponseData(response.data, "POST /flows/process-all-shops");
       await ctx.reply(formatProcessAllShopsResult(result));
     } catch (error) {

@@ -6,6 +6,7 @@ import {
 } from "@wb-automation-v2/wb-clients";
 import {
   createDbRepositories,
+  type Database,
   type ProductCard,
   type Shop
 } from "@wb-automation-v2/db";
@@ -54,6 +55,8 @@ export interface SyncContentShopsResult {
 }
 
 type SyncContentShopsOptions = {
+  tenantId: string;
+  db?: Database;
   now?: () => Date;
   pageLimit?: number;
   maxPagesPerShop?: number;
@@ -80,7 +83,10 @@ export function createSyncContentShopsService(
   const pageLimit = options.pageLimit ?? DEFAULT_PAGE_LIMIT;
   const maxPagesPerShop = options.maxPagesPerShop ?? DEFAULT_MAX_PAGES_PER_SHOP;
   const onWbCardsListResponse = options.onWbCardsListResponse;
-  const { shops, productCards, syncState } = createDbRepositories();
+  const { shops, productCards, syncState } = createDbRepositories({
+    tenantId: options.tenantId,
+    db: options.db
+  });
 
   return {
     async syncContentShops() {

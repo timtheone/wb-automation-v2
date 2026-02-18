@@ -2,14 +2,18 @@ import type { Bot } from "grammy";
 
 import type { BackendClient } from "../backend-client.js";
 import type { BotContext, SyncContentShopsResultDto } from "../bot-types.js";
-import { formatIsoDate, replyWithError, requireResponseData } from "./shared.js";
+import { formatIsoDate, getTelegramContextHeaders, replyWithError, requireResponseData } from "./shared.js";
 
 export function registerSyncContentShopsCommand(bot: Bot<BotContext>, backend: BackendClient) {
   bot.command("sync_content_shops", async (ctx) => {
     await ctx.reply("Running sync_content_shops...");
 
     try {
-      const response = await backend.POST("/flows/sync-content-shops");
+      const response = await backend.POST("/flows/sync-content-shops", {
+        params: {
+          header: await getTelegramContextHeaders(ctx)
+        }
+      });
       const result = requireResponseData(response.data, "POST /flows/sync-content-shops");
       await ctx.reply(formatSyncContentShopsResult(result));
     } catch (error) {

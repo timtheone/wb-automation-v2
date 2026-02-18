@@ -2,36 +2,82 @@ import { createSyncContentShopsService, toErrorMessage } from "@wb-automation-v2
 import { getDatabaseClient } from "@wb-automation-v2/db";
 
 import { createLogger, getBackendLogFilePath } from "./logger.js";
+import { createBackendTenantService } from "./services/tenant-service.js";
 
 const logger = createLogger({ component: "sync-content-job" });
-const syncContentShopsService = createSyncContentShopsService({
-  onWbCardsListResponse(input) {
-    logger.info(
-      {
-        shopId: input.shopId,
-        shopName: input.shopName,
-        page: input.page,
-        apiBaseUrl: input.apiBaseUrl,
-        responseUrl: input.responseUrl,
-        responseStatus: input.responseStatus
-      },
-      "wb products cards list call"
-    );
-  }
-});
+const tenantService = createBackendTenantService();
 
 const startedAt = new Date();
 logger.info({ startedAt: startedAt.toISOString(), logFilePath: getBackendLogFilePath() }, "job started");
 
 try {
-  const result = await syncContentShopsService.syncContentShops();
+  const tenantContexts = await tenantService.listTenantContexts();
+
+  if (tenantContexts.length === 0) {
+    logger.info({ durationMs: Date.now() - startedAt.getTime() }, "job completed: no tenants configured");
+    await closeDatabaseConnection();
+    process.exit(0);
+  }
+
+  let aggregateProcessedShops = 0;
+  let aggregateSuccessCount = 0;
+  let aggregateFailureCount = 0;
+  let aggregateCardsUpserted = 0;
+
+  for (const tenantContext of tenantContexts) {
+    logger.info(
+      {
+        tenantId: tenantContext.tenantId,
+        ownerTelegramUserId: tenantContext.ownerTelegramUserId
+      },
+      "tenant sync started"
+    );
+
+    const syncContentShopsService = createSyncContentShopsService({
+      tenantId: tenantContext.tenantId,
+      onWbCardsListResponse(input) {
+        logger.info(
+          {
+            tenantId: tenantContext.tenantId,
+            shopId: input.shopId,
+            shopName: input.shopName,
+            page: input.page,
+            apiBaseUrl: input.apiBaseUrl,
+            responseUrl: input.responseUrl,
+            responseStatus: input.responseStatus
+          },
+          "wb products cards list call"
+        );
+      }
+    });
+
+    const result = await syncContentShopsService.syncContentShops();
+
+    aggregateProcessedShops += result.processedShops;
+    aggregateSuccessCount += result.successCount;
+    aggregateFailureCount += result.failureCount;
+    aggregateCardsUpserted += result.totalCardsUpserted;
+
+    logger.info(
+      {
+        tenantId: tenantContext.tenantId,
+        ownerTelegramUserId: tenantContext.ownerTelegramUserId,
+        processedShops: result.processedShops,
+        successCount: result.successCount,
+        failureCount: result.failureCount,
+        totalCardsUpserted: result.totalCardsUpserted
+      },
+      "tenant sync completed"
+    );
+  }
 
   logger.info(
     {
-      processedShops: result.processedShops,
-      successCount: result.successCount,
-      failureCount: result.failureCount,
-      totalCardsUpserted: result.totalCardsUpserted,
+      tenantsProcessed: tenantContexts.length,
+      processedShops: aggregateProcessedShops,
+      successCount: aggregateSuccessCount,
+      failureCount: aggregateFailureCount,
+      totalCardsUpserted: aggregateCardsUpserted,
       durationMs: Date.now() - startedAt.getTime()
     },
     "job completed"
