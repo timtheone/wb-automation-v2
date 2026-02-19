@@ -143,7 +143,7 @@ export function createProcessAllShopsService(options: ProcessAllShopsOptions): P
           const barcodeResult = await fbsClient.GET("/api/v3/supplies/{supplyId}/barcode", {
             params: {
               path: { supplyId },
-              query: { type: "svg" }
+              query: { type: "png" }
             }
           });
 

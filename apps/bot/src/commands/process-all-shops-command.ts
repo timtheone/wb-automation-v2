@@ -1,4 +1,4 @@
-import type { Bot } from "grammy";
+import { InputFile, type Bot } from "grammy";
 
 import type { BackendClient } from "../backend-client.js";
 import type { BotContext, ProcessAllShopsResultDto } from "../bot-types.js";
@@ -17,10 +17,29 @@ export function registerProcessAllShopsCommand(bot: Bot<BotContext>, backend: Ba
       });
       const result = requireResponseData(response.data, "POST /flows/process-all-shops");
       await ctx.reply(formatProcessAllShopsResult(ctx.t, result));
+      await sendProcessAllShopsQrCodes(ctx, result);
     } catch (error) {
       await replyWithError(ctx, error);
     }
   });
+}
+
+async function sendProcessAllShopsQrCodes(ctx: BotContext, result: ProcessAllShopsResultDto): Promise<void> {
+  for (const item of result.results) {
+    if (item.status !== "success" || !item.barcodeFile) {
+      continue;
+    }
+
+    const photoBuffer = Buffer.from(item.barcodeFile, "base64");
+
+    if (photoBuffer.length === 0) {
+      continue;
+    }
+
+    await ctx.replyWithPhoto(new InputFile(photoBuffer, `${item.shopId}-qr.png`), {
+      caption: String(ctx.t.flows.processAll.qrCodeCaption({ shopName: item.shopName }))
+    });
+  }
 }
 
 function formatProcessAllShopsResult(t: BotTranslator, result: ProcessAllShopsResultDto): string {

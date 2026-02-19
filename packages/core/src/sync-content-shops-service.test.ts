@@ -382,4 +382,197 @@ describe("sync content shops service", () => {
     expect(storedState?.lastStatus).toBe("success");
     expect(storedState?.cursorNmId).toBe(21);
   });
+
+  it("fails a shop when full sync reaches max pages limit", async () => {
+    testState.shops = {
+      async listActiveShops() {
+        return [
+          {
+            id: "shop-limit",
+            name: "Limit Shop",
+            wbToken: "token-limit",
+            wbSandboxToken: null,
+            useSandbox: false,
+            isActive: true,
+            supplyPrefix: "игрушки_",
+            tokenUpdatedAt: new Date("2026-01-01T00:00:00.000Z"),
+            createdAt: new Date("2026-01-01T00:00:00.000Z"),
+            updatedAt: new Date("2026-01-01T00:00:00.000Z")
+          } satisfies Shop
+        ];
+      }
+    };
+
+    testState.productCards = {
+      async upsertMany(cards) {
+        return cards.length;
+      },
+      async getByShopIdAndNmIds() {
+        return [];
+      }
+    };
+
+    let storedState: SyncState | null = {
+      shopId: "shop-limit",
+      cursorUpdatedAt: new Date("2030-01-01T00:00:00.000Z"),
+      cursorNmId: 777,
+      lastSyncedAt: new Date("2030-01-01T00:00:00.000Z"),
+      lastStatus: "success",
+      lastError: null,
+      updatedAt: new Date("2030-01-01T00:00:00.000Z")
+    };
+
+    testState.syncState = {
+      async getByShopId() {
+        return storedState;
+      },
+      async upsert(input: UpsertSyncStateInput) {
+        storedState = {
+          ...input
+        };
+      }
+    };
+
+    testState.createClient = () => ({
+      async POST() {
+        return {
+          data: {
+            cards: [{ nmID: 5001, title: "Card 5001" }],
+            cursor: {
+              updatedAt: "2026-01-02T00:00:00.000Z",
+              nmID: 5001,
+              total: 1
+            }
+          },
+          response: new Response(null, { status: 200 })
+        };
+      }
+    });
+
+    const service = createSyncContentShopsService({
+      tenantId: "tenant-1",
+      pageLimit: 1,
+      maxPagesPerShop: 1,
+      betweenPagesDelayMs: 0
+    });
+
+    const result = await service.syncContentShops();
+
+    expect(result.processedShops).toBe(1);
+    expect(result.successCount).toBe(0);
+    expect(result.failureCount).toBe(1);
+    expect(result.results[0]?.status).toBe("failed");
+    expect(result.results[0]?.error).toBe("Full content sync reached max pages limit (1) for shop shop-limit");
+    expect(storedState?.lastStatus).toBe("failed");
+    expect(storedState?.cursorNmId).toBe(777);
+    expect(storedState?.lastSyncedAt?.toISOString()).toBe("2030-01-01T00:00:00.000Z");
+  });
+
+  it("continues syncing other shops when one shop fails", async () => {
+    testState.shops = {
+      async listActiveShops() {
+        return [
+          {
+            id: "shop-fail",
+            name: "Fail Shop",
+            wbToken: "token-fail",
+            wbSandboxToken: null,
+            useSandbox: false,
+            isActive: true,
+            supplyPrefix: "игрушки_",
+            tokenUpdatedAt: new Date("2026-01-01T00:00:00.000Z"),
+            createdAt: new Date("2026-01-01T00:00:00.000Z"),
+            updatedAt: new Date("2026-01-01T00:00:00.000Z")
+          } satisfies Shop,
+          {
+            id: "shop-ok",
+            name: "OK Shop",
+            wbToken: "token-ok",
+            wbSandboxToken: null,
+            useSandbox: false,
+            isActive: true,
+            supplyPrefix: "игрушки_",
+            tokenUpdatedAt: new Date("2026-01-01T00:00:00.000Z"),
+            createdAt: new Date("2026-01-01T00:00:00.000Z"),
+            updatedAt: new Date("2026-01-01T00:00:00.000Z")
+          } satisfies Shop
+        ];
+      }
+    };
+
+    testState.productCards = {
+      async upsertMany(cards) {
+        return cards.length;
+      },
+      async getByShopIdAndNmIds() {
+        return [];
+      }
+    };
+
+    const states = new Map<string, SyncState | null>([
+      ["shop-fail", null],
+      ["shop-ok", null]
+    ]);
+
+    testState.syncState = {
+      async getByShopId(shopId: string) {
+        return states.get(shopId) ?? null;
+      },
+      async upsert(input: UpsertSyncStateInput) {
+        states.set(input.shopId, {
+          ...input
+        });
+      }
+    };
+
+    testState.createClient = ({ token }) => {
+      if (token === "token-fail") {
+        return {
+          async POST() {
+            throw new Error("products api down");
+          }
+        };
+      }
+
+      return {
+        async POST() {
+          return {
+            data: {
+              cards: [],
+              cursor: {
+                updatedAt: "2026-01-03T00:00:00.000Z",
+                nmID: 1,
+                total: 0
+              }
+            },
+            response: new Response(null, { status: 200 })
+          };
+        }
+      };
+    };
+
+    const service = createSyncContentShopsService({
+      tenantId: "tenant-1",
+      pageLimit: 100,
+      maxPagesPerShop: 10,
+      betweenPagesDelayMs: 0
+    });
+
+    const result = await service.syncContentShops();
+
+    expect(result.processedShops).toBe(2);
+    expect(result.successCount).toBe(1);
+    expect(result.failureCount).toBe(1);
+    expect(result.results.find((item) => item.shopId === "shop-fail")).toMatchObject({
+      status: "failed",
+      error: "products api down"
+    });
+    expect(result.results.find((item) => item.shopId === "shop-ok")).toMatchObject({
+      status: "success",
+      pagesFetched: 1,
+      cardsUpserted: 0
+    });
+    expect(states.get("shop-fail")?.lastStatus).toBe("failed");
+    expect(states.get("shop-ok")?.lastStatus).toBe("success");
+  });
 });

@@ -454,6 +454,112 @@ describe("get combined pdf lists service", () => {
     expect(statusBatches).toEqual([[9002, 9003, 9004]]);
   });
 
+  it("returns skipped when waiting flow has no waiting orders", async () => {
+    testState.shops = {
+      async listActiveShops() {
+        return [createShop({ id: "shop-empty", name: "Shop Empty" })];
+      }
+    };
+
+    testState.productCards = {
+      async getByShopIdAndNmIds() {
+        throw new Error("must not query product cards when waiting set is empty");
+      }
+    };
+
+    const fetchedSupplyIds: string[] = [];
+    const statusBatches: number[][] = [];
+
+    testState.createClient = () =>
+      createClient({
+        async GET(path, options) {
+          if (path === "/api/v3/supplies") {
+            return {
+              data: {
+                next: 0,
+                supplies: [
+                  { id: "SUP-NEWEST", done: true, name: "pref_1", closedAt: "2026-01-04T00:00:00.000Z" },
+                  { id: "SUP-OLDER", done: true, name: "pref_2", closedAt: "2026-01-03T00:00:00.000Z" }
+                ]
+              },
+              response: new Response(null, { status: 200 })
+            };
+          }
+
+          if (path === "/api/marketplace/v3/supplies/{supplyId}/order-ids") {
+            const supplyId = (options as { params?: { path?: { supplyId?: string } } })?.params?.path?.supplyId;
+
+            if (typeof supplyId === "string") {
+              fetchedSupplyIds.push(supplyId);
+            }
+
+            return {
+              data: {
+                orderIds: [9101, 9102]
+              },
+              response: new Response(null, { status: 200 })
+            };
+          }
+
+          if (path === "/api/v3/orders") {
+            throw new Error("must not fetch orders when waiting set is empty");
+          }
+
+          throw new Error(`Unexpected GET ${path}`);
+        },
+        async POST(path, options) {
+          if (path === "/api/v3/orders/status") {
+            const batch =
+              (options as {
+                body?: {
+                  orders?: number[];
+                };
+              })?.body?.orders ?? [];
+            statusBatches.push([...batch]);
+
+            return {
+              data: {
+                orders: [
+                  { id: 9101, wbStatus: "sorted" },
+                  { id: 9102, wbStatus: "canceled" }
+                ]
+              },
+              response: new Response(null, { status: 200 })
+            };
+          }
+
+          if (path === "/api/v3/orders/stickers") {
+            throw new Error("must not fetch stickers when waiting set is empty");
+          }
+
+          throw new Error(`Unexpected POST ${path}`);
+        }
+      });
+
+    const service = createGetWaitingOrdersPdfListsService({
+      tenantId: "tenant-1",
+      db: {} as Database
+    });
+
+    const result = await service.getWaitingOrdersPdfLists();
+
+    expect(result.processedShops).toBe(1);
+    expect(result.successCount).toBe(0);
+    expect(result.skippedCount).toBe(1);
+    expect(result.totalOrdersCollected).toBe(0);
+    expect(result.results[0]).toMatchObject({
+      shopId: "shop-empty",
+      status: "skipped",
+      supplyIds: [],
+      orderIds: [],
+      ordersCollected: 0
+    });
+    expect(fetchedSupplyIds).toEqual(["SUP-OLDER"]);
+    expect(statusBatches).toEqual([[9101, 9102]]);
+    expect(pdfBase64ToHeader(result.orderListPdfBase64)).toBe("%PDF");
+    expect(pdfBase64ToHeader(result.stickersPdfBase64)).toBe("%PDF");
+  });
+
   it("keeps processing other shops when one shop fails", async () => {
     testState.shops = {
       async listActiveShops() {

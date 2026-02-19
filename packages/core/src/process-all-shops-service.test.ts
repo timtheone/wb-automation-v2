@@ -99,10 +99,11 @@ describe("process all shops service", () => {
     testState.shops = createSingleShopRepo();
 
     const attachedBatches: number[][] = [];
+    let barcodeQueryType: string | undefined;
 
     testState.createClient = () =>
       createClient({
-        async GET(path) {
+        async GET(path, options) {
           if (path === "/api/v3/orders/new") {
             return {
               data: {
@@ -134,6 +135,8 @@ describe("process all shops service", () => {
           }
 
           if (path === "/api/v3/supplies/{supplyId}/barcode") {
+            barcodeQueryType = (options as { params?: { query?: { type?: string } } })?.params?.query?.type;
+
             return {
               data: { barcode: "SUP-1", file: "base64" },
               response: new Response(null, { status: 200 })
@@ -176,6 +179,7 @@ describe("process all shops service", () => {
     expect(result.results[0]?.ordersSkippedByMeta).toBe(1);
     expect(result.results[0]?.ordersAttached).toBe(2);
     expect(attachedBatches).toEqual([[1, 2]]);
+    expect(barcodeQueryType).toBe("png");
   });
 
   it("marks shop as skipped when every order requires metadata", async () => {
@@ -560,5 +564,157 @@ describe("process all shops service", () => {
     expect(result.skippedCount).toBe(1);
     expect(result.results[0]?.ordersInNew).toBe(0);
     expect(getSuppliesCalls).toEqual([]);
+  });
+
+  it("splits attached orders into batches of 100", async () => {
+    testState.shops = createSingleShopRepo();
+
+    const attachedBatches: number[][] = [];
+
+    testState.createClient = () =>
+      createClient({
+        async GET(path) {
+          if (path === "/api/v3/orders/new") {
+            return {
+              data: {
+                orders: Array.from({ length: 205 }, (_, index) => ({
+                  id: index + 1,
+                  requiredMeta: []
+                }))
+              },
+              response: new Response(null, { status: 200 })
+            };
+          }
+
+          if (path === "/api/v3/supplies") {
+            return {
+              data: {
+                next: 0,
+                supplies: [{ id: "SUP-BATCH", done: false, name: "pref_20260101_0000" }]
+              },
+              response: new Response(null, { status: 200 })
+            };
+          }
+
+          if (path === "/api/v3/supplies/{supplyId}") {
+            return {
+              data: { id: "SUP-BATCH", done: true },
+              response: new Response(null, { status: 200 })
+            };
+          }
+
+          if (path === "/api/v3/supplies/{supplyId}/barcode") {
+            return {
+              data: { barcode: "SUP-BATCH", file: "base64" },
+              response: new Response(null, { status: 200 })
+            };
+          }
+
+          throw new Error(`Unexpected GET ${path}`);
+        },
+        async PATCH(path, options) {
+          if (path === "/api/marketplace/v3/supplies/{supplyId}/orders") {
+            const body = (options as { body?: { orders?: number[] } })?.body;
+            attachedBatches.push((body?.orders ?? []).filter((value): value is number => typeof value === "number"));
+
+            return { response: new Response(null, { status: 204 }) };
+          }
+
+          if (path === "/api/v3/supplies/{supplyId}/deliver") {
+            return { response: new Response(null, { status: 204 }) };
+          }
+
+          throw new Error(`Unexpected PATCH ${path}`);
+        }
+      });
+
+    const service = createProcessAllShopsService({
+      tenantId: "tenant-1",
+      db: {} as Database
+    });
+
+    const result = await service.processAllShops();
+
+    expect(result.successCount).toBe(1);
+    expect(result.results[0]?.ordersAttached).toBe(205);
+    expect(attachedBatches.map((batch) => batch.length)).toEqual([100, 100, 5]);
+    expect(attachedBatches[0]?.[0]).toBe(1);
+    expect(attachedBatches[2]?.[4]).toBe(205);
+  });
+
+  it("marks shop as failed when supply closing poll times out", async () => {
+    testState.shops = createSingleShopRepo();
+
+    const sleepCalls: number[] = [];
+    let pollCalls = 0;
+
+    testState.createClient = () =>
+      createClient({
+        async GET(path) {
+          if (path === "/api/v3/orders/new") {
+            return {
+              data: {
+                orders: [{ id: 1, requiredMeta: [] }]
+              },
+              response: new Response(null, { status: 200 })
+            };
+          }
+
+          if (path === "/api/v3/supplies") {
+            return {
+              data: {
+                next: 0,
+                supplies: [{ id: "SUP-POLL", done: false, name: "pref_20260101_0000" }]
+              },
+              response: new Response(null, { status: 200 })
+            };
+          }
+
+          if (path === "/api/v3/supplies/{supplyId}") {
+            pollCalls += 1;
+
+            return {
+              data: { id: "SUP-POLL", done: false },
+              response: new Response(null, { status: 200 })
+            };
+          }
+
+          if (path === "/api/v3/supplies/{supplyId}/barcode") {
+            throw new Error("must not fetch barcode after timeout");
+          }
+
+          throw new Error(`Unexpected GET ${path}`);
+        },
+        async PATCH(path) {
+          if (path === "/api/marketplace/v3/supplies/{supplyId}/orders") {
+            return { response: new Response(null, { status: 204 }) };
+          }
+
+          if (path === "/api/v3/supplies/{supplyId}/deliver") {
+            return { response: new Response(null, { status: 204 }) };
+          }
+
+          throw new Error(`Unexpected PATCH ${path}`);
+        }
+      });
+
+    const service = createProcessAllShopsService({
+      tenantId: "tenant-1",
+      db: {} as Database,
+      maxPollAttempts: 3,
+      pollIntervalMs: 250,
+      sleep: async (ms) => {
+        sleepCalls.push(ms);
+      }
+    });
+
+    const result = await service.processAllShops();
+
+    expect(result.successCount).toBe(0);
+    expect(result.failureCount).toBe(1);
+    expect(result.results[0]?.status).toBe("failed");
+    expect(result.results[0]?.error).toBe("Timed out waiting for supply SUP-POLL to close");
+    expect(pollCalls).toBe(3);
+    expect(sleepCalls).toEqual([250, 250]);
   });
 });
