@@ -43,6 +43,7 @@ export interface TelegramContextHeaders {
   "x-telegram-chat-type": "private" | "group" | "supergroup" | "channel";
   "x-telegram-user-id": string;
   "x-telegram-owner-user-id": string;
+  "x-telegram-language-code"?: string;
 }
 
 export async function getTelegramContextHeaders(ctx: BotContext): Promise<TelegramContextHeaders> {
@@ -116,16 +117,29 @@ async function buildTelegramContextHeaders(ctx: BotContext): Promise<TelegramCon
   const ownerTelegramUserId =
     chatType === "private" ? from.id : await resolveGroupOwnerTelegramUserId(ctx, chat.id);
 
-  return {
+  const headers: TelegramContextHeaders = {
     "x-telegram-chat-id": String(chat.id),
     "x-telegram-chat-type": chatType,
     "x-telegram-user-id": String(from.id),
     "x-telegram-owner-user-id": String(ownerTelegramUserId)
   };
+
+  if (typeof from.language_code === "string" && from.language_code.trim().length > 0) {
+    headers["x-telegram-language-code"] = from.language_code;
+  }
+
+  return headers;
 }
 
-function resolveSupportedChatType(chatType: string): "private" | "group" | "supergroup" | "channel" {
-  if (chatType === "private" || chatType === "group" || chatType === "supergroup" || chatType === "channel") {
+function resolveSupportedChatType(
+  chatType: string
+): "private" | "group" | "supergroup" | "channel" {
+  if (
+    chatType === "private" ||
+    chatType === "group" ||
+    chatType === "supergroup" ||
+    chatType === "channel"
+  ) {
     return chatType;
   }
 
@@ -176,6 +190,8 @@ function resolveBackendErrorCodeMessage(t: BotTranslator, code: string): string 
       return t.errors.flowGetCombinedPdfListsNotImplemented();
     case "FLOW_GET_WAITING_ORDERS_PDF_NOT_IMPLEMENTED":
       return t.errors.flowGetWaitingOrdersPdfNotImplemented();
+    case "FLOW_JOB_NOT_FOUND":
+      return t.errors.flowJobNotFound();
     case "REQUEST_BODY_INVALID_JSON":
       return t.errors.requestBodyInvalidJson();
     case "REQUEST_BODY_INVALID":

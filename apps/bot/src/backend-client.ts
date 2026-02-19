@@ -2,10 +2,7 @@ import createClient from "openapi-fetch";
 
 import type { paths } from "./generated/backend-schema";
 
-type FetchLike = (
-  input: string | URL | Request,
-  init?: RequestInit
-) => Promise<Response>;
+type FetchLike = (input: string | URL | Request, init?: RequestInit) => Promise<Response>;
 
 interface ResponseLike {
   status: number;

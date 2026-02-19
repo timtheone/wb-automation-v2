@@ -86,6 +86,9 @@ describe("sync content shops service", () => {
       async upsertMany(cards) {
         upsertedCards.push(...cards);
         return cards.length;
+      },
+      async getByShopIdAndNmIds() {
+        return [];
       }
     };
 
@@ -209,6 +212,9 @@ describe("sync content shops service", () => {
     testState.productCards = {
       async upsertMany(cards) {
         return cards.length;
+      },
+      async getByShopIdAndNmIds() {
+        return [];
       }
     };
 

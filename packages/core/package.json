@@ -6,7 +6,12 @@
   "exports": "./src/index.ts",
   "dependencies": {
     "@wb-automation-v2/db": "workspace:*",
-    "@wb-automation-v2/wb-clients": "workspace:*"
+    "@wb-automation-v2/wb-clients": "workspace:*",
+    "pdfkit": "^0.17.2",
+    "sharp": "^0.34.4"
+  },
+  "devDependencies": {
+    "@types/pdfkit": "^0.17.5"
   },
   "scripts": {
     "typecheck": "tsc -p tsconfig.json --noEmit",

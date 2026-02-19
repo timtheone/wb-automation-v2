@@ -395,6 +395,199 @@
           "error"
         ]
       },
+      "CombinedPdfListsJobAccepted": {
+        "type": "object",
+        "properties": {
+          "jobId": {
+            "type": "string"
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "queued",
+              "running"
+            ]
+          },
+          "createdAt": {
+            "type": "string",
+            "format": "date-time"
+          }
+        },
+        "required": [
+          "jobId",
+          "status",
+          "createdAt"
+        ]
+      },
+      "CombinedPdfListsJobStatus": {
+        "type": "object",
+        "properties": {
+          "jobId": {
+            "type": "string"
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "queued",
+              "running",
+              "completed",
+              "failed"
+            ]
+          },
+          "createdAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "startedAt": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "format": "date-time"
+          },
+          "finishedAt": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "format": "date-time"
+          },
+          "error": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "result": {
+            "$ref": "#/components/schemas/CombinedPdfListsResult"
+          }
+        },
+        "required": [
+          "jobId",
+          "status",
+          "createdAt",
+          "startedAt",
+          "finishedAt",
+          "error",
+          "result"
+        ]
+      },
+      "CombinedPdfListsResult": {
+        "type": [
+          "object",
+          "null"
+        ],
+        "properties": {
+          "startedAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "finishedAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "processedShops": {
+            "type": "integer"
+          },
+          "successCount": {
+            "type": "integer"
+          },
+          "skippedCount": {
+            "type": "integer"
+          },
+          "failureCount": {
+            "type": "integer"
+          },
+          "totalOrdersCollected": {
+            "type": "integer"
+          },
+          "orderListFileName": {
+            "type": "string"
+          },
+          "stickersFileName": {
+            "type": "string"
+          },
+          "orderListPdfBase64": {
+            "type": "string"
+          },
+          "stickersPdfBase64": {
+            "type": "string"
+          },
+          "results": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/CombinedPdfListsItem"
+            }
+          }
+        },
+        "required": [
+          "startedAt",
+          "finishedAt",
+          "processedShops",
+          "successCount",
+          "skippedCount",
+          "failureCount",
+          "totalOrdersCollected",
+          "orderListFileName",
+          "stickersFileName",
+          "orderListPdfBase64",
+          "stickersPdfBase64",
+          "results"
+        ]
+      },
+      "CombinedPdfListsItem": {
+        "type": "object",
+        "properties": {
+          "shopId": {
+            "type": "string"
+          },
+          "shopName": {
+            "type": "string"
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "success",
+              "skipped",
+              "failed"
+            ]
+          },
+          "supplyIds": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "orderIds": {
+            "type": "array",
+            "items": {
+              "type": "integer"
+            }
+          },
+          "ordersCollected": {
+            "type": "integer"
+          },
+          "missingProductCards": {
+            "type": "integer"
+          },
+          "error": {
+            "type": [
+              "string",
+              "null"
+            ]
+          }
+        },
+        "required": [
+          "shopId",
+          "shopName",
+          "status",
+          "supplyIds",
+          "orderIds",
+          "ordersCollected",
+          "missingProductCards",
+          "error"
+        ]
+      },
       "NotImplementedResponse": {
         "type": "object",
         "properties": {
@@ -479,6 +672,15 @@
             "required": true,
             "name": "x-telegram-owner-user-id",
             "in": "header"
+          },
+          {
+            "schema": {
+              "type": "string",
+              "minLength": 1
+            },
+            "required": false,
+            "name": "x-telegram-language-code",
+            "in": "header"
           }
         ],
         "responses": {
@@ -548,6 +750,15 @@
             },
             "required": true,
             "name": "x-telegram-owner-user-id",
+            "in": "header"
+          },
+          {
+            "schema": {
+              "type": "string",
+              "minLength": 1
+            },
+            "required": false,
+            "name": "x-telegram-language-code",
             "in": "header"
           }
         ],
@@ -659,6 +870,15 @@
             "required": true,
             "name": "x-telegram-owner-user-id",
             "in": "header"
+          },
+          {
+            "schema": {
+              "type": "string",
+              "minLength": 1
+            },
+            "required": false,
+            "name": "x-telegram-language-code",
+            "in": "header"
           }
         ],
         "requestBody": {
@@ -767,6 +987,15 @@
             "required": true,
             "name": "x-telegram-owner-user-id",
             "in": "header"
+          },
+          {
+            "schema": {
+              "type": "string",
+              "minLength": 1
+            },
+            "required": false,
+            "name": "x-telegram-language-code",
+            "in": "header"
           }
         ],
         "responses": {
@@ -857,6 +1086,15 @@
             },
             "required": true,
             "name": "x-telegram-owner-user-id",
+            "in": "header"
+          },
+          {
+            "schema": {
+              "type": "string",
+              "minLength": 1
+            },
+            "required": false,
+            "name": "x-telegram-language-code",
             "in": "header"
           }
         ],
@@ -959,6 +1197,15 @@
             "required": true,
             "name": "x-telegram-owner-user-id",
             "in": "header"
+          },
+          {
+            "schema": {
+              "type": "string",
+              "minLength": 1
+            },
+            "required": false,
+            "name": "x-telegram-language-code",
+            "in": "header"
           }
         ],
         "responses": {
@@ -1030,6 +1277,15 @@
             },
             "required": true,
             "name": "x-telegram-owner-user-id",
+            "in": "header"
+          },
+          {
+            "schema": {
+              "type": "string",
+              "minLength": 1
+            },
+            "required": false,
+            "name": "x-telegram-language-code",
             "in": "header"
           }
         ],
@@ -1103,15 +1359,133 @@
             "required": true,
             "name": "x-telegram-owner-user-id",
             "in": "header"
+          },
+          {
+            "schema": {
+              "type": "string",
+              "minLength": 1
+            },
+            "required": false,
+            "name": "x-telegram-language-code",
+            "in": "header"
           }
         ],
         "responses": {
-          "501": {
-            "description": "Flow is not implemented",
+          "202": {
+            "description": "Start combined PDF generation job",
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/NotImplementedResponse"
+                  "$ref": "#/components/schemas/CombinedPdfListsJobAccepted"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal server error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/flows/get-combined-pdf-lists/{jobId}": {
+      "get": {
+        "tags": [
+          "Flows"
+        ],
+        "parameters": [
+          {
+            "schema": {
+              "type": "string"
+            },
+            "required": true,
+            "name": "jobId",
+            "in": "path"
+          },
+          {
+            "schema": {
+              "type": "string",
+              "pattern": "^-?\\d+$"
+            },
+            "required": true,
+            "name": "x-telegram-chat-id",
+            "in": "header"
+          },
+          {
+            "schema": {
+              "type": "string",
+              "enum": [
+                "private",
+                "group",
+                "supergroup",
+                "channel"
+              ]
+            },
+            "required": true,
+            "name": "x-telegram-chat-type",
+            "in": "header"
+          },
+          {
+            "schema": {
+              "type": "string",
+              "pattern": "^-?\\d+$"
+            },
+            "required": true,
+            "name": "x-telegram-user-id",
+            "in": "header"
+          },
+          {
+            "schema": {
+              "type": "string",
+              "pattern": "^-?\\d+$"
+            },
+            "required": true,
+            "name": "x-telegram-owner-user-id",
+            "in": "header"
+          },
+          {
+            "schema": {
+              "type": "string",
+              "minLength": 1
+            },
+            "required": false,
+            "name": "x-telegram-language-code",
+            "in": "header"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Get combined PDF generation job status",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CombinedPdfListsJobStatus"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Flow job not found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal server error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
                 }
               }
             }
@@ -1164,6 +1538,15 @@
             },
             "required": true,
             "name": "x-telegram-owner-user-id",
+            "in": "header"
+          },
+          {
+            "schema": {
+              "type": "string",
+              "minLength": 1
+            },
+            "required": false,
+            "name": "x-telegram-language-code",
             "in": "header"
           }
         ],

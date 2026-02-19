@@ -6,7 +6,7 @@ const en = {
   commandDescriptions: {
     processAllShops: "Run process_all_shops flow",
     syncContentShops: "Run sync_content_shops flow",
-    generatePdfs: "Run get_combined_pdf_lists flow",
+    generatePdfs: "Generate PDFs for latest supply",
     generateWaitingOrdersPdf: "Run get_waiting_orders_pdf flow",
     shops: "Open shops CRUD menu",
     cancel: "Cancel current input flow"
@@ -18,7 +18,7 @@ const en = {
   help: {
     line1: "Use /shops for shop CRUD and token updates.",
     line2: "Use /process_all_shops and /sync_content_shops for operational flows.",
-    line3: "PDF commands are wired, backend support is still pending."
+    line3: "Use /generate_pdfs to receive pick-list and sticker PDFs for the latest supply."
   },
   ping: {
     pong: "pong"
@@ -64,8 +64,14 @@ const en = {
       more: "... and {count:number} more shops"
     },
     generatePdfs: {
-      requesting: "Requesting get_combined_pdf_lists...",
-      finished: "get_combined_pdf_lists finished."
+      requesting: "Starting latest-supply PDF generation...",
+      queued: "Started in background. I will send PDFs when generation is complete.",
+      alreadyRunning: "PDF generation is already running for this chat.",
+      orderListReady: "Order-list PDF is ready.",
+      stickersReady: "Stickers PDF is ready.",
+      stillRunning: "PDF generation is still running. I will keep working in background.",
+      failed: "PDF generation failed: {message}",
+      finished: "Latest-supply PDF generation finished."
     },
     generateWaitingOrdersPdf: {
       requesting: "Requesting get_waiting_orders_pdf...",
@@ -145,6 +151,7 @@ const en = {
     fieldMustNotBeEmpty: "{field} must not be empty",
     flowGetCombinedPdfListsNotImplemented: "Flow get_combined_pdf_lists is not implemented yet",
     flowGetWaitingOrdersPdfNotImplemented: "Flow get_waiting_orders_pdf is not implemented yet",
+    flowJobNotFound: "Flow job not found",
     requestBodyInvalidJson: "Request body must be valid JSON",
     invalidRequestBody: "Invalid request body",
     invalidTelegramContextHeaders: "Invalid Telegram context headers",
@@ -164,7 +171,7 @@ const ruOverrides: DeepPartial<TranslationDictionary> = {
   commandDescriptions: {
     processAllShops: "Запустить процесс process_all_shops",
     syncContentShops: "Запустить процесс sync_content_shops",
-    generatePdfs: "Запустить процесс get_combined_pdf_lists",
+    generatePdfs: "Сгенерировать PDF по последней поставке",
     generateWaitingOrdersPdf: "Запустить процесс get_waiting_orders_pdf",
     shops: "Открыть меню магазинов",
     cancel: "Отменить текущий ввод"
@@ -176,7 +183,7 @@ const ruOverrides: DeepPartial<TranslationDictionary> = {
   help: {
     line1: "Используйте /shops для CRUD операций с магазинами и обновления токенов.",
     line2: "Используйте /process_all_shops и /sync_content_shops для рабочих процессов.",
-    line3: "PDF-команды подключены, но поддержка в backend пока не реализована."
+    line3: "Используйте /generate_pdfs, чтобы получить лист подбора и стикеры по последней поставке."
   },
   cancel: {
     noActiveInputFlow: "Сейчас нет активного ввода.",
@@ -219,8 +226,14 @@ const ruOverrides: DeepPartial<TranslationDictionary> = {
       more: "... и еще {count:number} магазинов"
     },
     generatePdfs: {
-      requesting: "Запрашиваю get_combined_pdf_lists...",
-      finished: "get_combined_pdf_lists завершен."
+      requesting: "Запускаю генерацию PDF по последней поставке...",
+      queued: "Запущено в фоне. Отправлю PDF, когда генерация завершится.",
+      alreadyRunning: "Генерация PDF для этого чата уже выполняется.",
+      orderListReady: "PDF листа подбора готов.",
+      stickersReady: "PDF со стикерами готов.",
+      stillRunning: "Генерация PDF все еще выполняется. Продолжаю работу в фоне.",
+      failed: "Генерация PDF завершилась ошибкой: {message}",
+      finished: "Генерация PDF по последней поставке завершена."
     },
     generateWaitingOrdersPdf: {
       requesting: "Запрашиваю get_waiting_orders_pdf...",
@@ -300,6 +313,7 @@ const ruOverrides: DeepPartial<TranslationDictionary> = {
     fieldMustNotBeEmpty: "Поле {field} не должно быть пустым",
     flowGetCombinedPdfListsNotImplemented: "Flow get_combined_pdf_lists пока не реализован",
     flowGetWaitingOrdersPdfNotImplemented: "Flow get_waiting_orders_pdf пока не реализован",
+    flowJobNotFound: "Задача потока не найдена",
     requestBodyInvalidJson: "Тело запроса должно быть валидным JSON",
     invalidRequestBody: "Некорректное тело запроса",
     invalidTelegramContextHeaders: "Некорректные Telegram context headers",

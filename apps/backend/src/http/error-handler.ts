@@ -2,6 +2,7 @@ import type { Context } from "hono";
 import { ShopNotFoundError, toErrorMessage } from "@wb-automation-v2/core";
 import type { Logger } from "pino";
 
+import { FlowJobNotFoundError } from "../services/flows-service.js";
 import { RequestValidationError } from "./validation.js";
 
 export type RouteErrorHandler = (c: Context, error: unknown) => Response;
@@ -21,6 +22,10 @@ export function createRouteErrorHandler(logger: Logger): RouteErrorHandler {
 
     if (error instanceof ShopNotFoundError) {
       return c.json({ code: "SHOP_NOT_FOUND", error: error.message }, 404);
+    }
+
+    if (error instanceof FlowJobNotFoundError) {
+      return c.json({ code: "FLOW_JOB_NOT_FOUND", error: error.message }, 404);
     }
 
     if (isUniqueViolation(error)) {

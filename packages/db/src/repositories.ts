@@ -1,4 +1,4 @@
-import { and, asc, desc, eq, sql } from "drizzle-orm";
+import { and, asc, desc, eq, inArray, sql } from "drizzle-orm";
 
 import { getDatabase, type Database } from "./index.js";
 import { productCards, shops, syncState, tenantChats, tenants } from "./schema.js";
@@ -127,6 +127,7 @@ export interface ShopRepository {
 
 export interface ProductCardRepository {
   upsertMany(cards: ProductCard[]): Promise<number>;
+  getByShopIdAndNmIds(shopId: string, nmIds: number[]): Promise<ProductCard[]>;
 }
 
 export interface SyncStateRepository {
@@ -398,6 +399,27 @@ export function createProductCardRepository(options: TenantScopedRepositoryOptio
       });
 
       return cards.length;
+    },
+
+    async getByShopIdAndNmIds(shopId: string, nmIds: number[]): Promise<ProductCard[]> {
+      if (nmIds.length === 0) {
+        return [];
+      }
+
+      return withTenantScope(context, async (db) => {
+        const rows = await db
+          .select()
+          .from(productCards)
+          .where(
+            and(
+              eq(productCards.tenantId, context.tenantId),
+              eq(productCards.shopId, shopId),
+              inArray(productCards.nmId, nmIds)
+            )
+          );
+
+        return rows.map(mapProductCard);
+      });
     }
   };
 }
@@ -507,5 +529,20 @@ function mapSyncState(row: typeof syncState.$inferSelect): SyncState {
     lastStatus: row.lastStatus,
     lastError: row.lastError,
     updatedAt: row.updatedAt
+  };
+}
+
+function mapProductCard(row: typeof productCards.$inferSelect): ProductCard {
+  return {
+    shopId: row.shopId,
+    nmId: row.nmId,
+    vendorCode: row.vendorCode,
+    brand: row.brand,
+    title: row.title,
+    img: row.img,
+    ageGroup: row.ageGroup,
+    wbCreatedAt: row.wbCreatedAt,
+    wbUpdatedAt: row.wbUpdatedAt,
+    syncedAt: row.syncedAt
   };
 }

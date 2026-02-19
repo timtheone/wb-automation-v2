@@ -260,7 +260,13 @@ function mapProductCard(shopId: string, card: CardsListCard, syncedAt: Date): Pr
     return null;
   }
 
-  const photo = card.photos?.[0];
+  const photo = (card.photos ?? []).find(
+    (item) =>
+      typeof item.c246x328 === "string" ||
+      typeof item.big === "string" ||
+      typeof item.square === "string" ||
+      typeof item.tm === "string"
+  );
 
   return {
     shopId,
@@ -268,7 +274,7 @@ function mapProductCard(shopId: string, card: CardsListCard, syncedAt: Date): Pr
     vendorCode: card.vendorCode ?? null,
     brand: card.brand ?? null,
     title: card.title ?? null,
-    img: photo?.big ?? photo?.square ?? photo?.tm ?? null,
+    img: photo?.c246x328 ?? photo?.big ?? photo?.square ?? photo?.tm ?? null,
     ageGroup: extractAgeGroup(card.characteristics),
     wbCreatedAt: parseDateOrNull(card.createdAt),
     wbUpdatedAt: parseDateOrNull(card.updatedAt),

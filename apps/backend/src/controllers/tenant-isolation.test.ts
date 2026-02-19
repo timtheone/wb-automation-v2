@@ -204,8 +204,23 @@ describe("tenant isolation via backend controllers", () => {
     });
     expect(syncResponse.status).toBe(200);
 
+    const combinedResponse = await app.request("/flows/get-combined-pdf-lists", {
+      method: "POST",
+      headers: groupHeaders
+    });
+    expect(combinedResponse.status).toBe(202);
+    const combinedJob = (await combinedResponse.json()) as { jobId: string };
+
+    const combinedStatusResponse = await app.request(`/flows/get-combined-pdf-lists/${combinedJob.jobId}`, {
+      method: "GET",
+      headers: groupHeaders
+    });
+    expect(combinedStatusResponse.status).toBe(200);
+
     expect(flowsService.processCalls).toEqual(["tenant-9000"]);
     expect(flowsService.syncCalls).toEqual(["tenant-42"]);
+    expect(flowsService.combinedStartCalls).toEqual([{ tenantId: "tenant-9000", chatId: 77 }]);
+    expect(flowsService.combinedStatusCalls).toEqual(["tenant-9000"]);
   });
 });
 
@@ -259,6 +274,7 @@ class DeterministicTenantService implements BackendTenantService {
     chatType: TelegramChatType;
     requesterTelegramUserId: number;
     ownerTelegramUserId: number;
+    languageCode?: string;
   }) {
     return {
       ...input,
@@ -398,6 +414,8 @@ class InMemoryTenantShopsService implements BackendShopsService {
 class RecordingFlowsService implements BackendFlowsService {
   readonly processCalls: string[] = [];
   readonly syncCalls: string[] = [];
+  readonly combinedStartCalls: Array<{ tenantId: string; chatId: number }> = [];
+  readonly combinedStatusCalls: string[] = [];
 
   async processAllShops(tenantId: string) {
     this.processCalls.push(tenantId);
@@ -424,6 +442,30 @@ class RecordingFlowsService implements BackendFlowsService {
       failureCount: 0,
       totalCardsUpserted: 0,
       results: []
+    };
+  }
+
+  async startCombinedPdfListsJob(tenantId: string, chatId: number, _languageCode: string | null) {
+    this.combinedStartCalls.push({ tenantId, chatId });
+
+    return {
+      jobId: "job-1",
+      status: "queued" as const,
+      createdAt: new Date("2026-01-01T00:00:00.000Z")
+    };
+  }
+
+  async getCombinedPdfListsJob(tenantId: string, _jobId: string) {
+    this.combinedStatusCalls.push(tenantId);
+
+    return {
+      jobId: "job-1",
+      status: "running" as const,
+      createdAt: new Date("2026-01-01T00:00:00.000Z"),
+      startedAt: new Date("2026-01-01T00:00:01.000Z"),
+      finishedAt: null,
+      error: null,
+      result: null
     };
   }
 }

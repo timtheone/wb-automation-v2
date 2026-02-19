@@ -54,6 +54,7 @@ export interface paths {
                     "x-telegram-chat-type": "private" | "group" | "supergroup" | "channel";
                     "x-telegram-user-id": string;
                     "x-telegram-owner-user-id": string;
+                    "x-telegram-language-code"?: string;
                 };
                 path?: never;
                 cookie?: never;
@@ -89,6 +90,7 @@ export interface paths {
                     "x-telegram-chat-type": "private" | "group" | "supergroup" | "channel";
                     "x-telegram-user-id": string;
                     "x-telegram-owner-user-id": string;
+                    "x-telegram-language-code"?: string;
                 };
                 path?: never;
                 cookie?: never;
@@ -161,6 +163,7 @@ export interface paths {
                     "x-telegram-chat-type": "private" | "group" | "supergroup" | "channel";
                     "x-telegram-user-id": string;
                     "x-telegram-owner-user-id": string;
+                    "x-telegram-language-code"?: string;
                 };
                 path: {
                     id: string;
@@ -208,6 +211,7 @@ export interface paths {
                     "x-telegram-chat-type": "private" | "group" | "supergroup" | "channel";
                     "x-telegram-user-id": string;
                     "x-telegram-owner-user-id": string;
+                    "x-telegram-language-code"?: string;
                 };
                 path: {
                     id: string;
@@ -281,6 +285,7 @@ export interface paths {
                     "x-telegram-chat-type": "private" | "group" | "supergroup" | "channel";
                     "x-telegram-user-id": string;
                     "x-telegram-owner-user-id": string;
+                    "x-telegram-language-code"?: string;
                 };
                 path: {
                     id: string;
@@ -350,6 +355,7 @@ export interface paths {
                     "x-telegram-chat-type": "private" | "group" | "supergroup" | "channel";
                     "x-telegram-user-id": string;
                     "x-telegram-owner-user-id": string;
+                    "x-telegram-language-code"?: string;
                 };
                 path?: never;
                 cookie?: never;
@@ -399,6 +405,7 @@ export interface paths {
                     "x-telegram-chat-type": "private" | "group" | "supergroup" | "channel";
                     "x-telegram-user-id": string;
                     "x-telegram-owner-user-id": string;
+                    "x-telegram-language-code"?: string;
                 };
                 path?: never;
                 cookie?: never;
@@ -448,23 +455,94 @@ export interface paths {
                     "x-telegram-chat-type": "private" | "group" | "supergroup" | "channel";
                     "x-telegram-user-id": string;
                     "x-telegram-owner-user-id": string;
+                    "x-telegram-language-code"?: string;
                 };
                 path?: never;
                 cookie?: never;
             };
             requestBody?: never;
             responses: {
-                /** @description Flow is not implemented */
-                501: {
+                /** @description Start combined PDF generation job */
+                202: {
                     headers: {
                         [name: string]: unknown;
                     };
                     content: {
-                        "application/json": components["schemas"]["NotImplementedResponse"];
+                        "application/json": components["schemas"]["CombinedPdfListsJobAccepted"];
+                    };
+                };
+                /** @description Internal server error */
+                500: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ErrorResponse"];
                     };
                 };
             };
         };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/flows/get-combined-pdf-lists/{jobId}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: {
+            parameters: {
+                query?: never;
+                header: {
+                    "x-telegram-chat-id": string;
+                    "x-telegram-chat-type": "private" | "group" | "supergroup" | "channel";
+                    "x-telegram-user-id": string;
+                    "x-telegram-owner-user-id": string;
+                    "x-telegram-language-code"?: string;
+                };
+                path: {
+                    jobId: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description Get combined PDF generation job status */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["CombinedPdfListsJobStatus"];
+                    };
+                };
+                /** @description Flow job not found */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ErrorResponse"];
+                    };
+                };
+                /** @description Internal server error */
+                500: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ErrorResponse"];
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
         delete?: never;
         options?: never;
         head?: never;
@@ -488,6 +566,7 @@ export interface paths {
                     "x-telegram-chat-type": "private" | "group" | "supergroup" | "channel";
                     "x-telegram-user-id": string;
                     "x-telegram-owner-user-id": string;
+                    "x-telegram-language-code"?: string;
                 };
                 path?: never;
                 cookie?: never;
@@ -609,6 +688,53 @@ export interface components {
             cardsUpserted: number;
             /** @enum {string} */
             status: "success" | "failed";
+            error: string | null;
+        };
+        CombinedPdfListsJobAccepted: {
+            jobId: string;
+            /** @enum {string} */
+            status: "queued" | "running";
+            /** Format: date-time */
+            createdAt: string;
+        };
+        CombinedPdfListsJobStatus: {
+            jobId: string;
+            /** @enum {string} */
+            status: "queued" | "running" | "completed" | "failed";
+            /** Format: date-time */
+            createdAt: string;
+            /** Format: date-time */
+            startedAt: string | null;
+            /** Format: date-time */
+            finishedAt: string | null;
+            error: string | null;
+            result: components["schemas"]["CombinedPdfListsResult"];
+        };
+        CombinedPdfListsResult: {
+            /** Format: date-time */
+            startedAt: string;
+            /** Format: date-time */
+            finishedAt: string;
+            processedShops: number;
+            successCount: number;
+            skippedCount: number;
+            failureCount: number;
+            totalOrdersCollected: number;
+            orderListFileName: string;
+            stickersFileName: string;
+            orderListPdfBase64: string;
+            stickersPdfBase64: string;
+            results: components["schemas"]["CombinedPdfListsItem"][];
+        } | null;
+        CombinedPdfListsItem: {
+            shopId: string;
+            shopName: string;
+            /** @enum {string} */
+            status: "success" | "skipped" | "failed";
+            supplyIds: string[];
+            orderIds: number[];
+            ordersCollected: number;
+            missingProductCards: number;
             error: string | null;
         };
         NotImplementedResponse: {

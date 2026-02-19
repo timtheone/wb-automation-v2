@@ -3,6 +3,12 @@ export {
   toErrorMessage,
 } from "./error-utils.js";
 export {
+  createGetCombinedPdfListsService,
+  type GetCombinedPdfListsResult,
+  type GetCombinedPdfListsResultItem,
+  type GetCombinedPdfListsService
+} from "./get-combined-pdf-lists-service.js";
+export {
   createProcessAllShopsService,
   type ProcessAllShopsResult,
   type ProcessAllShopsResultItem,

@@ -5,6 +5,7 @@ import {
   readTelegramRequestContext,
   TELEGRAM_CHAT_ID_HEADER,
   TELEGRAM_CHAT_TYPE_HEADER,
+  TELEGRAM_LANGUAGE_CODE_HEADER,
   TELEGRAM_OWNER_USER_ID_HEADER,
   TELEGRAM_USER_ID_HEADER
 } from "./telegram-context.js";
@@ -16,14 +17,16 @@ describe("telegram context security validation", () => {
       [TELEGRAM_CHAT_ID_HEADER]: "777",
       [TELEGRAM_CHAT_TYPE_HEADER]: "group",
       [TELEGRAM_USER_ID_HEADER]: "123",
-      [TELEGRAM_OWNER_USER_ID_HEADER]: "999"
+      [TELEGRAM_OWNER_USER_ID_HEADER]: "999",
+      [TELEGRAM_LANGUAGE_CODE_HEADER]: "ru"
     });
 
     expect(readTelegramRequestContext(context)).toEqual({
       chatId: 777,
       chatType: "group",
       requesterTelegramUserId: 123,
-      ownerTelegramUserId: 999
+      ownerTelegramUserId: 999,
+      languageCode: "ru"
     });
   });
 

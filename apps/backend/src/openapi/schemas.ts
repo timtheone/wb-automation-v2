@@ -73,3 +73,45 @@ export const syncContentShopsResultSchema = z.object({
   totalCardsUpserted: z.number().int(),
   results: z.array(syncContentShopsItemSchema)
 }).openapi("SyncContentShopsResult");
+
+const combinedPdfListsItemSchema = z.object({
+  shopId: z.string(),
+  shopName: z.string(),
+  status: z.enum(["success", "skipped", "failed"]),
+  supplyIds: z.array(z.string()),
+  orderIds: z.array(z.number().int()),
+  ordersCollected: z.number().int(),
+  missingProductCards: z.number().int(),
+  error: z.string().nullable()
+}).openapi("CombinedPdfListsItem");
+
+export const combinedPdfListsResultSchema = z.object({
+  startedAt: z.iso.datetime(),
+  finishedAt: z.iso.datetime(),
+  processedShops: z.number().int(),
+  successCount: z.number().int(),
+  skippedCount: z.number().int(),
+  failureCount: z.number().int(),
+  totalOrdersCollected: z.number().int(),
+  orderListFileName: z.string(),
+  stickersFileName: z.string(),
+  orderListPdfBase64: z.string(),
+  stickersPdfBase64: z.string(),
+  results: z.array(combinedPdfListsItemSchema)
+}).openapi("CombinedPdfListsResult");
+
+export const combinedPdfListsJobAcceptedSchema = z.object({
+  jobId: z.string(),
+  status: z.enum(["queued", "running"]),
+  createdAt: z.iso.datetime()
+}).openapi("CombinedPdfListsJobAccepted");
+
+export const combinedPdfListsJobStatusSchema = z.object({
+  jobId: z.string(),
+  status: z.enum(["queued", "running", "completed", "failed"]),
+  createdAt: z.iso.datetime(),
+  startedAt: z.iso.datetime().nullable(),
+  finishedAt: z.iso.datetime().nullable(),
+  error: z.string().nullable(),
+  result: combinedPdfListsResultSchema.nullable()
+}).openapi("CombinedPdfListsJobStatus");
