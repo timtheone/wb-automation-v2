@@ -14,7 +14,8 @@ import {
 import { formatEmptyResponseMessage, toErrorMessage } from "./error-utils.js";
 
 const DEFAULT_PAGE_LIMIT = 100;
-const DEFAULT_MAX_PAGES_PER_SHOP = 500;
+const DEFAULT_MAX_PAGES_PER_SHOP = 10_000;
+const DEFAULT_BETWEEN_PAGES_DELAY_MS = 650;
 
 type GetCardsListOperation = ProductsPaths["/content/v2/get/cards/list"]["post"];
 type CardsListBody = GetCardsListOperation["requestBody"]["content"]["application/json"];
@@ -60,6 +61,8 @@ type SyncContentShopsOptions = {
   now?: () => Date;
   pageLimit?: number;
   maxPagesPerShop?: number;
+  betweenPagesDelayMs?: number;
+  sleep?: (ms: number) => Promise<void>;
   onWbCardsListResponse?: (input: {
     shopId: string;
     shopName: string;
@@ -82,6 +85,8 @@ export function createSyncContentShopsService(
   const now = options.now ?? (() => new Date());
   const pageLimit = options.pageLimit ?? DEFAULT_PAGE_LIMIT;
   const maxPagesPerShop = options.maxPagesPerShop ?? DEFAULT_MAX_PAGES_PER_SHOP;
+  const betweenPagesDelayMs = options.betweenPagesDelayMs ?? DEFAULT_BETWEEN_PAGES_DELAY_MS;
+  const sleep = options.sleep ?? ((ms: number) => new Promise<void>((resolve) => setTimeout(resolve, ms)));
   const onWbCardsListResponse = options.onWbCardsListResponse;
   const { shops, productCards, syncState } = createDbRepositories({
     tenantId: options.tenantId,
@@ -100,8 +105,8 @@ export function createSyncContentShopsService(
 
         await syncState.upsert({
           shopId: shop.id,
-          cursorUpdatedAt: prevState?.cursorUpdatedAt ?? null,
-          cursorNmId: prevState?.cursorNmId ?? null,
+          cursorUpdatedAt: null,
+          cursorNmId: null,
           lastSyncedAt: prevState?.lastSyncedAt ?? null,
           lastStatus: "running",
           lastError: null,
@@ -114,10 +119,15 @@ export function createSyncContentShopsService(
         try {
           const credentials = resolveProductsCredentials(shop);
           const productsClient = createWbProductsClient(credentials);
-          let cursorUpdatedAt = prevState?.cursorUpdatedAt ?? null;
-          let cursorNmId = prevState?.cursorNmId ?? null;
+          let cursorUpdatedAt: Date | null = null;
+          let cursorNmId: number | null = null;
+          let reachedCollectionEnd = false;
 
           while (pagesFetched < maxPagesPerShop) {
+            if (pagesFetched > 0 && betweenPagesDelayMs > 0) {
+              await sleep(betweenPagesDelayMs);
+            }
+
             const body: CardsListBody = {
               settings: {
                 sort: { ascending: true },
@@ -173,8 +183,15 @@ export function createSyncContentShopsService(
             }
 
             if (total < pageLimit || cursorUnchanged) {
+              reachedCollectionEnd = true;
               break;
             }
+          }
+
+          if (!reachedCollectionEnd) {
+            throw new Error(
+              `Full content sync reached max pages limit (${maxPagesPerShop}) for shop ${shop.id}`
+            );
           }
 
           const finishedAt = now();

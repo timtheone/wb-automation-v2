@@ -4,9 +4,11 @@ export {
 } from "./error-utils.js";
 export {
   createGetCombinedPdfListsService,
+  createGetWaitingOrdersPdfListsService,
   type GetCombinedPdfListsResult,
   type GetCombinedPdfListsResultItem,
-  type GetCombinedPdfListsService
+  type GetCombinedPdfListsService,
+  type GetWaitingOrdersPdfListsService
 } from "./get-combined-pdf-lists-service.js";
 export {
   createProcessAllShopsService,
@@ -19,6 +21,13 @@ export {
   ShopNotFoundError,
   type ShopService
 } from "./shop-service.js";
+export {
+  createCheckWbTokenExpirationService,
+  type CheckWbTokenExpirationResult,
+  type CheckWbTokenExpirationService,
+  type WbTokenExpirationInvalidToken,
+  type WbTokenExpirationWarning
+} from "./check-wb-token-expiration-service.js";
 export {
   createSyncContentShopsService,
   type ProductsClient,

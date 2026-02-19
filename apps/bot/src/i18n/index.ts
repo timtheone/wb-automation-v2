@@ -50,6 +50,8 @@ const en = {
     },
     syncContent: {
       running: "Running sync_content_shops...",
+      queued: "Started in background. I will send sync results when it is complete.",
+      alreadyRunning: "sync_content_shops is already running for this chat.",
       completed: "sync_content_shops completed",
       processed: "Processed: {count:number}",
       success: "Success: {count:number}",
@@ -74,8 +76,9 @@ const en = {
       finished: "Latest-supply PDF generation finished."
     },
     generateWaitingOrdersPdf: {
-      requesting: "Requesting get_waiting_orders_pdf...",
-      finished: "get_waiting_orders_pdf finished."
+      requesting: "Starting waiting-orders PDF generation...",
+      queued: "Started in background. I will send waiting-orders PDFs when generation is complete.",
+      alreadyRunning: "Waiting-orders PDF generation is already running for this chat."
     }
   },
   shops: {
@@ -212,6 +215,8 @@ const ruOverrides: DeepPartial<TranslationDictionary> = {
     },
     syncContent: {
       running: "Запускаю sync_content_shops...",
+      queued: "Запущено в фоне. Отправлю результат sync_content_shops после завершения.",
+      alreadyRunning: "sync_content_shops уже выполняется для этого чата.",
       completed: "sync_content_shops завершен",
       processed: "Обработано: {count:number}",
       success: "Успешно: {count:number}",
@@ -236,8 +241,9 @@ const ruOverrides: DeepPartial<TranslationDictionary> = {
       finished: "Генерация PDF по последней поставке завершена."
     },
     generateWaitingOrdersPdf: {
-      requesting: "Запрашиваю get_waiting_orders_pdf...",
-      finished: "get_waiting_orders_pdf завершен."
+      requesting: "Запускаю генерацию PDF для ожидающих заказов...",
+      queued: "Запущено в фоне. Отправлю PDF для ожидающих заказов, когда генерация завершится.",
+      alreadyRunning: "Генерация PDF для ожидающих заказов уже выполняется для этого чата."
     }
   },
   shops: {

@@ -1,6 +1,7 @@
 import { PgBoss } from "pg-boss";
 import {
   createGetCombinedPdfListsService,
+  createGetWaitingOrdersPdfListsService,
   createProcessAllShopsService,
   createSyncContentShopsService,
   toErrorMessage,
@@ -15,6 +16,8 @@ import { createLogger } from "../logger.js";
 import { createTelegramDeliveryService } from "./telegram-delivery-service.js";
 
 const COMBINED_PDF_QUEUE_NAME = "flows.get-combined-pdf-lists";
+const WAITING_ORDERS_PDF_QUEUE_NAME = "flows.get-waiting-orders-pdf";
+const SYNC_CONTENT_QUEUE_NAME = "flows.sync-content-shops";
 const COMBINED_PDF_EXPIRE_SECONDS = 60 * 60;
 const COMBINED_PDF_DELETE_AFTER_SECONDS = 30 * 60;
 const DEFAULT_PG_BOSS_SCHEMA = "pgboss";
@@ -70,6 +73,16 @@ export interface BackendFlowsService {
     chatId: number,
     languageCode: string | null
   ): Promise<CombinedPdfJobAccepted>;
+  startWaitingOrdersPdfJob(
+    tenantId: string,
+    chatId: number,
+    languageCode: string | null
+  ): Promise<CombinedPdfJobAccepted>;
+  startSyncContentShopsJob(
+    tenantId: string,
+    chatId: number,
+    languageCode: string | null
+  ): Promise<CombinedPdfJobAccepted>;
   getCombinedPdfListsJob(tenantId: string, jobId: string): Promise<CombinedPdfJobSnapshot>;
 }
 
@@ -104,14 +117,19 @@ export function createBackendFlowsService(): BackendFlowsService {
       return createProcessAllShopsService({ db, tenantId }).processAllShops();
     },
     syncContentShops(tenantId) {
-      return createSyncContentShopsService({ db, tenantId }).syncContentShops();
+      return createSyncContentShopsServiceWithProgressLogging({
+        db,
+        logger,
+        tenantId
+      }).syncContentShops();
     },
     async startCombinedPdfListsJob(tenantId, chatId, languageCode) {
       await ensureQueueWorker();
 
-      const existingJob = await findActiveCombinedPdfJobForTenant({
+      const existingJob = await findActivePdfJobForTenant({
         boss,
         schema: bossSchema,
+        queueName: COMBINED_PDF_QUEUE_NAME,
         tenantId
       });
 
@@ -146,6 +164,88 @@ export function createBackendFlowsService(): BackendFlowsService {
         createdAt
       };
     },
+    async startWaitingOrdersPdfJob(tenantId, chatId, languageCode) {
+      await ensureQueueWorker();
+
+      const existingJob = await findActivePdfJobForTenant({
+        boss,
+        schema: bossSchema,
+        queueName: WAITING_ORDERS_PDF_QUEUE_NAME,
+        tenantId
+      });
+
+      if (existingJob) {
+        return {
+          jobId: existingJob.id,
+          status: existingJob.state === "active" ? "running" : "queued",
+          createdAt: parseDateOrNow(existingJob.createdOn)
+        };
+      }
+
+      const jobId = crypto.randomUUID();
+      const createdAt = new Date();
+      const sentJobId = await boss.send(
+        WAITING_ORDERS_PDF_QUEUE_NAME,
+        { tenantId, chatId, languageCode },
+        {
+          id: jobId,
+          retryLimit: 0,
+          expireInSeconds: COMBINED_PDF_EXPIRE_SECONDS,
+          retentionSeconds: COMBINED_PDF_DELETE_AFTER_SECONDS
+        }
+      );
+
+      if (!sentJobId) {
+        throw new Error("Unable to enqueue waiting-orders PDF flow job");
+      }
+
+      return {
+        jobId,
+        status: "queued",
+        createdAt
+      };
+    },
+    async startSyncContentShopsJob(tenantId, chatId, languageCode) {
+      await ensureQueueWorker();
+
+      const existingJob = await findActivePdfJobForTenant({
+        boss,
+        schema: bossSchema,
+        queueName: SYNC_CONTENT_QUEUE_NAME,
+        tenantId
+      });
+
+      if (existingJob) {
+        return {
+          jobId: existingJob.id,
+          status: existingJob.state === "active" ? "running" : "queued",
+          createdAt: parseDateOrNow(existingJob.createdOn)
+        };
+      }
+
+      const jobId = crypto.randomUUID();
+      const createdAt = new Date();
+      const sentJobId = await boss.send(
+        SYNC_CONTENT_QUEUE_NAME,
+        { tenantId, chatId, languageCode },
+        {
+          id: jobId,
+          retryLimit: 0,
+          expireInSeconds: COMBINED_PDF_EXPIRE_SECONDS,
+          retentionSeconds: COMBINED_PDF_DELETE_AFTER_SECONDS
+        }
+      );
+
+      if (!sentJobId) {
+        throw new Error("Unable to enqueue sync-content-shops flow job");
+      }
+
+      return {
+        jobId,
+        status: "queued",
+        createdAt
+      };
+    },
     async getCombinedPdfListsJob(tenantId, jobId) {
       await ensureQueueWorker();
 
@@ -168,10 +268,76 @@ async function initializeBossWorker(input: {
 }) {
   await input.boss.start();
 
-  const existingQueue = await input.boss.getQueue(COMBINED_PDF_QUEUE_NAME);
+  await registerPdfWorker({
+    boss: input.boss,
+    logger: input.logger,
+    queueName: COMBINED_PDF_QUEUE_NAME,
+    flowLabel: "combined-pdf",
+    createResult: async ({ tenantId, jobId }) =>
+      createGetCombinedPdfListsService({
+        db: input.db,
+        tenantId,
+        onWbApiDebug(event) {
+          input.logger.info(
+            {
+              tenantId,
+              jobId,
+              event
+            },
+            "WB combined-pdf API debug"
+          );
+        }
+      }).getCombinedPdfLists(),
+    notifySuccess: (chatId, result, languageCode) =>
+      input.telegramDelivery.sendCombinedPdfGenerated(chatId, result, languageCode),
+    notifyFailure: (chatId, errorMessage, languageCode) =>
+      input.telegramDelivery.sendCombinedPdfFailed(chatId, errorMessage, languageCode)
+  });
+
+  await registerPdfWorker({
+    boss: input.boss,
+    logger: input.logger,
+    queueName: WAITING_ORDERS_PDF_QUEUE_NAME,
+    flowLabel: "waiting-orders-pdf",
+    createResult: async ({ tenantId, jobId }) =>
+      createGetWaitingOrdersPdfListsService({
+        db: input.db,
+        tenantId,
+        onWbApiDebug(event) {
+          input.logger.info(
+            {
+              tenantId,
+              jobId,
+              event
+            },
+            "WB waiting-orders-pdf API debug"
+          );
+        }
+      }).getWaitingOrdersPdfLists(),
+    notifySuccess: (chatId, result, languageCode) =>
+      input.telegramDelivery.sendWaitingOrdersPdfGenerated(chatId, result, languageCode),
+    notifyFailure: (chatId, errorMessage, languageCode) =>
+      input.telegramDelivery.sendWaitingOrdersPdfFailed(chatId, errorMessage, languageCode)
+  });
+
+  await registerSyncContentWorker({
+    boss: input.boss,
+    logger: input.logger,
+    db: input.db,
+    telegramDelivery: input.telegramDelivery
+  });
+}
+
+async function registerSyncContentWorker(input: {
+  boss: PgBoss;
+  logger: ReturnType<typeof createLogger>;
+  db: ReturnType<typeof getDatabase>;
+  telegramDelivery: ReturnType<typeof createTelegramDeliveryService>;
+}) {
+  const existingQueue = await input.boss.getQueue(SYNC_CONTENT_QUEUE_NAME);
 
   if (!existingQueue) {
-    await input.boss.createQueue(COMBINED_PDF_QUEUE_NAME, {
+    await input.boss.createQueue(SYNC_CONTENT_QUEUE_NAME, {
       retryLimit: 0,
       expireInSeconds: COMBINED_PDF_EXPIRE_SECONDS,
       retentionSeconds: COMBINED_PDF_DELETE_AFTER_SECONDS
@@ -179,7 +345,7 @@ async function initializeBossWorker(input: {
   }
 
   await input.boss.work(
-    COMBINED_PDF_QUEUE_NAME,
+    SYNC_CONTENT_QUEUE_NAME,
     {
       batchSize: 1,
       pollingIntervalSeconds: 1
@@ -194,26 +360,155 @@ async function initializeBossWorker(input: {
       const startedAtMs = Date.now();
 
       if (!payload) {
-        throw new Error("Combined PDF job payload is invalid");
+        throw new Error("sync-content-shops job payload is invalid");
       }
 
       const { tenantId, chatId, languageCode } = payload;
 
       try {
-        const result = await createGetCombinedPdfListsService({
+        const result = await createSyncContentShopsServiceWithProgressLogging({
           db: input.db,
+          logger: input.logger,
           tenantId,
-          onWbApiDebug(event) {
-            input.logger.info(
+          jobId
+        }).syncContentShops();
+
+        input.logger.info(
+          {
+            tenantId,
+            jobId,
+            processedShops: result.processedShops,
+            successCount: result.successCount,
+            failureCount: result.failureCount,
+            totalCardsUpserted: result.totalCardsUpserted,
+            durationMs: Date.now() - startedAtMs
+          },
+          "sync-content-shops flow completed"
+        );
+
+        await input.telegramDelivery.sendSyncContentShopsCompleted(chatId, result, languageCode);
+
+        return {
+          summary: {
+            processedShops: result.processedShops,
+            successCount: result.successCount,
+            failureCount: result.failureCount,
+            totalCardsUpserted: result.totalCardsUpserted
+          }
+        };
+      } catch (error) {
+        await input.telegramDelivery
+          .sendSyncContentShopsFailed(chatId, toErrorMessage(error), languageCode)
+          .catch((notificationError) => {
+            input.logger.error(
               {
                 tenantId,
                 jobId,
-                event
+                error: toErrorMessage(notificationError)
               },
-              "WB combined-pdf API debug"
+              "failed to notify telegram chat about sync-content-shops failure"
             );
-          }
-        }).getCombinedPdfLists();
+          });
+
+        input.logger.error(
+          {
+            tenantId,
+            jobId,
+            error: toErrorMessage(error),
+            durationMs: Date.now() - startedAtMs
+          },
+          "sync-content-shops flow failed"
+        );
+
+        throw error;
+      }
+    }
+  );
+
+  input.logger.info(
+    {
+      queueName: SYNC_CONTENT_QUEUE_NAME
+    },
+    "pg-boss worker initialized"
+  );
+}
+
+function createSyncContentShopsServiceWithProgressLogging(input: {
+  db: ReturnType<typeof getDatabase>;
+  logger: ReturnType<typeof createLogger>;
+  tenantId: string;
+  jobId?: string;
+}) {
+  return createSyncContentShopsService({
+    db: input.db,
+    tenantId: input.tenantId,
+    onWbCardsListResponse(event) {
+      input.logger.info(
+        {
+          tenantId: input.tenantId,
+          jobId: input.jobId,
+          shopId: event.shopId,
+          shopName: event.shopName,
+          page: event.page,
+          apiBaseUrl: event.apiBaseUrl,
+          responseStatus: event.responseStatus,
+          responseUrl: event.responseUrl,
+          requestLimit: event.requestBody.settings?.cursor?.limit ?? null,
+          requestCursorUpdatedAt: event.requestBody.settings?.cursor?.updatedAt ?? null,
+          requestCursorNmId: event.requestBody.settings?.cursor?.nmID ?? null,
+          cardsCount: event.responseData.cards?.length ?? 0,
+          responseCursorUpdatedAt: event.responseData.cursor?.updatedAt ?? null,
+          responseCursorNmId: event.responseData.cursor?.nmID ?? null,
+          responseCursorTotal: event.responseData.cursor?.total ?? null
+        },
+        "WB sync-content page fetched"
+      );
+    }
+  });
+}
+
+async function registerPdfWorker(input: {
+  boss: PgBoss;
+  logger: ReturnType<typeof createLogger>;
+  queueName: string;
+  flowLabel: "combined-pdf" | "waiting-orders-pdf";
+  createResult: (payload: { tenantId: string; jobId: string }) => Promise<GetCombinedPdfListsResult>;
+  notifySuccess: (chatId: number, result: GetCombinedPdfListsResult, languageCode: string | null) => Promise<void>;
+  notifyFailure: (chatId: number, errorMessage: string, languageCode: string | null) => Promise<void>;
+}) {
+  const existingQueue = await input.boss.getQueue(input.queueName);
+
+  if (!existingQueue) {
+    await input.boss.createQueue(input.queueName, {
+      retryLimit: 0,
+      expireInSeconds: COMBINED_PDF_EXPIRE_SECONDS,
+      retentionSeconds: COMBINED_PDF_DELETE_AFTER_SECONDS
+    });
+  }
+
+  await input.boss.work(
+    input.queueName,
+    {
+      batchSize: 1,
+      pollingIntervalSeconds: 1
+    },
+    async ([job]: Array<{ id: string; data: CombinedPdfJobPayload }>) => {
+      if (!job) {
+        return;
+      }
+
+      const payload = readJobPayload(job as CombinedPdfBossJob);
+      const jobId = String(job.id);
+      const startedAtMs = Date.now();
+
+      if (!payload) {
+        throw new Error(`${input.flowLabel} job payload is invalid`);
+      }
+
+      const { tenantId, chatId, languageCode } = payload;
+
+      try {
+        const result = await input.createResult({ tenantId, jobId });
 
         input.logger.info(
           {
@@ -226,10 +521,10 @@ async function initializeBossWorker(input: {
             totalOrdersCollected: result.totalOrdersCollected,
             durationMs: Date.now() - startedAtMs
           },
-          "combined-pdf flow completed"
+          `${input.flowLabel} flow completed`
         );
 
-        await input.telegramDelivery.sendCombinedPdfGenerated(chatId, result, languageCode);
+        await input.notifySuccess(chatId, result, languageCode);
 
         return {
           summary: {
@@ -241,8 +536,8 @@ async function initializeBossWorker(input: {
           }
         };
       } catch (error) {
-        await input.telegramDelivery
-          .sendCombinedPdfFailed(chatId, toErrorMessage(error), languageCode)
+        await input
+          .notifyFailure(chatId, toErrorMessage(error), languageCode)
           .catch((notificationError) => {
             input.logger.error(
               {
@@ -250,7 +545,7 @@ async function initializeBossWorker(input: {
                 jobId,
                 error: toErrorMessage(notificationError)
               },
-              "failed to notify telegram chat about combined-pdf failure"
+              `failed to notify telegram chat about ${input.flowLabel} failure`
             );
           });
 
@@ -261,7 +556,7 @@ async function initializeBossWorker(input: {
             error: toErrorMessage(error),
             durationMs: Date.now() - startedAtMs
           },
-          "combined-pdf flow failed"
+          `${input.flowLabel} flow failed`
         );
 
         throw error;
@@ -271,7 +566,7 @@ async function initializeBossWorker(input: {
 
   input.logger.info(
     {
-      queueName: COMBINED_PDF_QUEUE_NAME
+      queueName: input.queueName
     },
     "pg-boss worker initialized"
   );
@@ -421,9 +716,10 @@ function resolveBossSchema(): string {
   return /^[a-z_][a-z0-9_]*$/u.test(schema) ? schema : DEFAULT_PG_BOSS_SCHEMA;
 }
 
-async function findActiveCombinedPdfJobForTenant(input: {
+async function findActivePdfJobForTenant(input: {
   boss: PgBoss;
   schema: string;
+  queueName: string;
   tenantId: string;
 }): Promise<{ id: string; state: BossJobState; createdOn: Date | string | undefined } | null> {
   const query = `
@@ -436,7 +732,7 @@ async function findActiveCombinedPdfJobForTenant(input: {
     LIMIT 1
   `;
 
-  const result = await input.boss.getDb().executeSql(query, [COMBINED_PDF_QUEUE_NAME, input.tenantId]);
+  const result = await input.boss.getDb().executeSql(query, [input.queueName, input.tenantId]);
   const row = (result.rows as Array<{ id?: unknown; state?: unknown; createdOn?: unknown }>)[0];
 
   if (!row || typeof row.id !== "string") {

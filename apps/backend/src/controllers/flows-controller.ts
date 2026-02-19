@@ -7,7 +7,6 @@ import {
   combinedPdfListsJobAcceptedSchema,
   combinedPdfListsJobStatusSchema,
   errorResponseSchema,
-  notImplementedResponseSchema,
   processAllShopsResultSchema,
   syncContentShopsResultSchema
 } from "../openapi/schemas.js";
@@ -54,6 +53,33 @@ const syncContentShopsRoute = createRoute({
       content: {
         "application/json": {
           schema: syncContentShopsResultSchema
+        }
+      }
+    },
+    500: {
+      description: "Internal server error",
+      content: {
+        "application/json": {
+          schema: errorResponseSchema
+        }
+      }
+    }
+  }
+});
+
+const syncContentShopsAsyncRoute = createRoute({
+  method: "post",
+  path: "/flows/sync-content-shops/async",
+  tags: ["Flows"],
+  request: {
+    headers: telegramContextHeadersSchema
+  },
+  responses: {
+    202: {
+      description: "Start sync content shops job",
+      content: {
+        "application/json": {
+          schema: combinedPdfListsJobAcceptedSchema
         }
       }
     },
@@ -141,11 +167,19 @@ const getWaitingOrdersPdfRoute = createRoute({
     headers: telegramContextHeadersSchema
   },
   responses: {
-    501: {
-      description: "Flow is not implemented",
+    202: {
+      description: "Start waiting-orders PDF generation job",
       content: {
         "application/json": {
-          schema: notImplementedResponseSchema
+          schema: combinedPdfListsJobAcceptedSchema
+        }
+      }
+    },
+    500: {
+      description: "Internal server error",
+      content: {
+        "application/json": {
+          schema: errorResponseSchema
         }
       }
     }
@@ -184,6 +218,21 @@ export function registerFlowsController(
     }
   });
 
+  app.openapi(syncContentShopsAsyncRoute, async (c) => {
+    try {
+      const telegramContext = readTelegramRequestContext(c);
+      const tenantContext = await dependencies.tenantService.resolveTenantContext(telegramContext);
+      const result = await dependencies.flowsService.startSyncContentShopsJob(
+        tenantContext.tenantId,
+        telegramContext.chatId,
+        telegramContext.languageCode ?? null
+      );
+      return c.json(result, 202);
+    } catch (error) {
+      return dependencies.handleRouteError(c, error) as never;
+    }
+  });
+
   app.openapi(getCombinedPdfListsRoute, async (c) => {
     try {
       const telegramContext = readTelegramRequestContext(c);
@@ -216,14 +265,14 @@ export function registerFlowsController(
 
   app.openapi(getWaitingOrdersPdfRoute, async (c) => {
     try {
-      await dependencies.tenantService.resolveTenantContext(readTelegramRequestContext(c));
-      return c.json(
-        {
-          code: "FLOW_GET_WAITING_ORDERS_PDF_NOT_IMPLEMENTED",
-          error: "Flow get_waiting_orders_pdf is not implemented yet"
-        },
-        501
+      const telegramContext = readTelegramRequestContext(c);
+      const tenantContext = await dependencies.tenantService.resolveTenantContext(telegramContext);
+      const result = await dependencies.flowsService.startWaitingOrdersPdfJob(
+        tenantContext.tenantId,
+        telegramContext.chatId,
+        telegramContext.languageCode ?? null
       );
+      return c.json(result, 202);
     } catch (error) {
       return dependencies.handleRouteError(c, error) as never;
     }

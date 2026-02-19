@@ -438,6 +438,56 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/flows/sync-content-shops/async": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: {
+            parameters: {
+                query?: never;
+                header: {
+                    "x-telegram-chat-id": string;
+                    "x-telegram-chat-type": "private" | "group" | "supergroup" | "channel";
+                    "x-telegram-user-id": string;
+                    "x-telegram-owner-user-id": string;
+                    "x-telegram-language-code"?: string;
+                };
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description Start sync content shops job */
+                202: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["CombinedPdfListsJobAccepted"];
+                    };
+                };
+                /** @description Internal server error */
+                500: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ErrorResponse"];
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/flows/get-combined-pdf-lists": {
         parameters: {
             query?: never;
@@ -573,13 +623,22 @@ export interface paths {
             };
             requestBody?: never;
             responses: {
-                /** @description Flow is not implemented */
-                501: {
+                /** @description Start waiting-orders PDF generation job */
+                202: {
                     headers: {
                         [name: string]: unknown;
                     };
                     content: {
-                        "application/json": components["schemas"]["NotImplementedResponse"];
+                        "application/json": components["schemas"]["CombinedPdfListsJobAccepted"];
+                    };
+                };
+                /** @description Internal server error */
+                500: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ErrorResponse"];
                     };
                 };
             };
@@ -736,10 +795,6 @@ export interface components {
             ordersCollected: number;
             missingProductCards: number;
             error: string | null;
-        };
-        NotImplementedResponse: {
-            code: string;
-            error: string;
         };
     };
     responses: never;

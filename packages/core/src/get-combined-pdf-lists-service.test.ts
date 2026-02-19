@@ -2,6 +2,7 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 
 import {
   createGetCombinedPdfListsService,
+  createGetWaitingOrdersPdfListsService,
   type Database,
   type ProductCard,
   type ProductCardRepository,
@@ -286,6 +287,171 @@ describe("get combined pdf lists service", () => {
     });
     expect(pdfBase64ToHeader(result.orderListPdfBase64)).toBe("%PDF");
     expect(pdfBase64ToHeader(result.stickersPdfBase64)).toBe("%PDF");
+  });
+
+  it("filters waiting orders and excludes newest supply for waiting flow", async () => {
+    testState.shops = {
+      async listActiveShops() {
+        return [createShop({ id: "shop-a", name: "Shop A" })];
+      }
+    };
+
+    const requestedNmIds: number[][] = [];
+
+    testState.productCards = {
+      async getByShopIdAndNmIds(shopId: string, nmIds: number[]): Promise<ProductCard[]> {
+        expect(shopId).toBe("shop-a");
+        requestedNmIds.push([...nmIds]);
+
+        return nmIds.map((nmId) => ({
+          shopId,
+          nmId,
+          vendorCode: null,
+          brand: `Brand ${nmId}`,
+          title: `Title ${nmId}`,
+          img: null,
+          ageGroup: "6+",
+          wbCreatedAt: null,
+          wbUpdatedAt: null,
+          syncedAt: new Date("2026-01-01T00:00:00.000Z")
+        }));
+      }
+    };
+
+    const fetchedSupplyIds: string[] = [];
+    const statusBatches: number[][] = [];
+
+    testState.createClient = () =>
+      createClient({
+        async GET(path, options) {
+          if (path === "/api/v3/supplies") {
+            return {
+              data: {
+                next: 0,
+                supplies: [
+                  { id: "SUP-OLD", done: true, name: "pref_1", closedAt: "2026-01-03T00:00:00.000Z" },
+                  { id: "SUP-OLDER", done: true, name: "pref_2", closedAt: "2026-01-02T00:00:00.000Z" },
+                  { id: "SUP-OLDEST", done: true, name: "pref_3", closedAt: "2026-01-01T00:00:00.000Z" }
+                ]
+              },
+              response: new Response(null, { status: 200 })
+            };
+          }
+
+          if (path === "/api/marketplace/v3/supplies/{supplyId}/order-ids") {
+            const supplyId = (options as { params?: { path?: { supplyId?: string } } })?.params?.path?.supplyId;
+
+            if (typeof supplyId === "string") {
+              fetchedSupplyIds.push(supplyId);
+            }
+
+            return {
+              data: {
+                orderIds:
+                  supplyId === "SUP-OLDER"
+                    ? [9002, 9003]
+                    : supplyId === "SUP-OLDEST"
+                      ? [9004]
+                      : [9001]
+              },
+              response: new Response(null, { status: 200 })
+            };
+          }
+
+          if (path === "/api/v3/orders") {
+            return {
+              data: {
+                next: 0,
+                orders: [
+                  { id: 9001, nmId: 2001 },
+                  { id: 9002, nmId: 2002 },
+                  { id: 9003, nmId: 2003 },
+                  { id: 9004, nmId: 2004 }
+                ]
+              },
+              response: new Response(null, { status: 200 })
+            };
+          }
+
+          throw new Error(`Unexpected GET ${path}`);
+        },
+
+        async POST(path, options) {
+          if (path === "/api/v3/orders/status") {
+            const batch =
+              (options as {
+                body?: {
+                  orders?: number[];
+                };
+              })?.body?.orders ?? [];
+            statusBatches.push([...batch]);
+
+            return {
+              data: {
+                orders: [
+                  { id: 9002, wbStatus: "waiting" },
+                  { id: 9003, wbStatus: "sorted" },
+                  { id: 9004, wbStatus: "waiting" }
+                ]
+              },
+              response: new Response(null, { status: 200 })
+            };
+          }
+
+          if (path === "/api/v3/orders/stickers") {
+            return {
+              data: {
+                stickers: [
+                  {
+                    orderId: 9002,
+                    partA: 111,
+                    partB: 222,
+                    file: "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAAAAAA6fptVAAAACklEQVR4nGNgAAAAAgABSK+kcQAAAABJRU5ErkJggg=="
+                  },
+                  {
+                    orderId: 9004,
+                    partA: 333,
+                    partB: 444,
+                    file: "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAAAAAA6fptVAAAACklEQVR4nGNgAAAAAgABSK+kcQAAAABJRU5ErkJggg=="
+                  }
+                ]
+              },
+              response: new Response(null, { status: 200 })
+            };
+          }
+
+          throw new Error(`Unexpected POST ${path}`);
+        }
+      });
+
+    const service = createGetWaitingOrdersPdfListsService({
+      tenantId: "tenant-1",
+      db: {} as Database,
+      now: () => new Date("2026-02-19T11:15:00.000Z"),
+      fetchImage: async () => {
+        throw new Error("image download not expected");
+      }
+    });
+
+    const result = await service.getWaitingOrdersPdfLists();
+
+    expect(result.successCount).toBe(1);
+    expect(result.totalOrdersCollected).toBe(2);
+    expect(result.results[0]).toMatchObject({
+      shopId: "shop-a",
+      status: "success",
+      supplyIds: ["SUP-OLDER", "SUP-OLDEST"],
+      orderIds: [9002, 9004],
+      ordersCollected: 2,
+      missingProductCards: 0
+    });
+    expect(result.orderListFileName).toBe("Лист-подбора-ожидающие_19_февраля.pdf");
+    expect(result.stickersFileName).toBe("Стикеры-ожидающие_19_февраля.pdf");
+    expect(pdfBase64ToHeader(result.orderListPdfBase64)).toBe("%PDF");
+    expect(pdfBase64ToHeader(result.stickersPdfBase64)).toBe("%PDF");
+    expect(requestedNmIds).toEqual([[2002, 2004]]);
+    expect(fetchedSupplyIds).toEqual(["SUP-OLDER", "SUP-OLDEST"]);
+    expect(statusBatches).toEqual([[9002, 9003, 9004]]);
   });
 
   it("keeps processing other shops when one shop fails", async () => {

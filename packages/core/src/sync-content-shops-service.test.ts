@@ -174,6 +174,7 @@ describe("sync content shops service", () => {
       tenantId: "tenant-1",
       pageLimit: 2,
       maxPagesPerShop: 10,
+      betweenPagesDelayMs: 0,
       now: () => new Date("2026-01-10T00:00:00.000Z")
     });
 
@@ -258,5 +259,127 @@ describe("sync content shops service", () => {
 
     expect(result.successCount).toBe(1);
     expect(result.failureCount).toBe(0);
+  });
+
+  it("always performs full sync from the first page and applies delay between pages", async () => {
+    testState.shops = {
+      async listActiveShops() {
+        return [
+          {
+            id: "shop-full",
+            name: "Full Sync Shop",
+            wbToken: "token-full",
+            wbSandboxToken: null,
+            useSandbox: false,
+            isActive: true,
+            supplyPrefix: "игрушки_",
+            tokenUpdatedAt: new Date("2026-01-01T00:00:00.000Z"),
+            createdAt: new Date("2026-01-01T00:00:00.000Z"),
+            updatedAt: new Date("2026-01-01T00:00:00.000Z")
+          } satisfies Shop
+        ];
+      }
+    };
+
+    testState.productCards = {
+      async upsertMany(cards) {
+        return cards.length;
+      },
+      async getByShopIdAndNmIds() {
+        return [];
+      }
+    };
+
+    let storedState: SyncState | null = {
+      shopId: "shop-full",
+      cursorUpdatedAt: new Date("2030-01-01T00:00:00.000Z"),
+      cursorNmId: 999999,
+      lastSyncedAt: new Date("2030-01-01T00:00:00.000Z"),
+      lastStatus: "success",
+      lastError: null,
+      updatedAt: new Date("2030-01-01T00:00:00.000Z")
+    };
+
+    testState.syncState = {
+      async getByShopId() {
+        return storedState;
+      },
+      async upsert(input: UpsertSyncStateInput) {
+        storedState = {
+          ...input
+        };
+      }
+    };
+
+    const sleepCalls: number[] = [];
+    let call = 0;
+
+    testState.createClient = () => ({
+      async POST(_path, { body }) {
+        call += 1;
+
+        if (call === 1) {
+          expect(body.settings?.cursor?.updatedAt).toBeUndefined();
+          expect(body.settings?.cursor?.nmID).toBeUndefined();
+
+          return {
+            data: {
+              cards: [
+                {
+                  nmID: 20,
+                  title: "Title 20",
+                  updatedAt: "2026-01-02T00:00:00.000Z"
+                }
+              ],
+              cursor: {
+                updatedAt: "2026-01-02T00:00:00.000Z",
+                nmID: 20,
+                total: 2
+              }
+            },
+            response: new Response(null, { status: 200 })
+          };
+        }
+
+        expect(body.settings?.cursor?.updatedAt).toBe("2026-01-02T00:00:00.000Z");
+        expect(body.settings?.cursor?.nmID).toBe(20);
+
+        return {
+          data: {
+            cards: [
+              {
+                nmID: 21,
+                title: "Title 21",
+                updatedAt: "2026-01-03T00:00:00.000Z"
+              }
+            ],
+            cursor: {
+              updatedAt: "2026-01-03T00:00:00.000Z",
+              nmID: 21,
+              total: 1
+            }
+          },
+          response: new Response(null, { status: 200 })
+        };
+      }
+    });
+
+    const service = createSyncContentShopsService({
+      tenantId: "tenant-1",
+      pageLimit: 2,
+      maxPagesPerShop: 10,
+      betweenPagesDelayMs: 777,
+      sleep: async (ms) => {
+        sleepCalls.push(ms);
+      }
+    });
+
+    const result = await service.syncContentShops();
+
+    expect(result.successCount).toBe(1);
+    expect(call).toBe(2);
+    expect(sleepCalls).toEqual([777]);
+    expect(storedState?.lastStatus).toBe("success");
+    expect(storedState?.cursorNmId).toBe(21);
   });
 });

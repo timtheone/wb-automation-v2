@@ -587,21 +587,6 @@
           "missingProductCards",
           "error"
         ]
-      },
-      "NotImplementedResponse": {
-        "type": "object",
-        "properties": {
-          "code": {
-            "type": "string"
-          },
-          "error": {
-            "type": "string"
-          }
-        },
-        "required": [
-          "code",
-          "error"
-        ]
       }
     },
     "parameters": {}
@@ -1313,6 +1298,87 @@
         }
       }
     },
+    "/flows/sync-content-shops/async": {
+      "post": {
+        "tags": [
+          "Flows"
+        ],
+        "parameters": [
+          {
+            "schema": {
+              "type": "string",
+              "pattern": "^-?\\d+$"
+            },
+            "required": true,
+            "name": "x-telegram-chat-id",
+            "in": "header"
+          },
+          {
+            "schema": {
+              "type": "string",
+              "enum": [
+                "private",
+                "group",
+                "supergroup",
+                "channel"
+              ]
+            },
+            "required": true,
+            "name": "x-telegram-chat-type",
+            "in": "header"
+          },
+          {
+            "schema": {
+              "type": "string",
+              "pattern": "^-?\\d+$"
+            },
+            "required": true,
+            "name": "x-telegram-user-id",
+            "in": "header"
+          },
+          {
+            "schema": {
+              "type": "string",
+              "pattern": "^-?\\d+$"
+            },
+            "required": true,
+            "name": "x-telegram-owner-user-id",
+            "in": "header"
+          },
+          {
+            "schema": {
+              "type": "string",
+              "minLength": 1
+            },
+            "required": false,
+            "name": "x-telegram-language-code",
+            "in": "header"
+          }
+        ],
+        "responses": {
+          "202": {
+            "description": "Start sync content shops job",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CombinedPdfListsJobAccepted"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal server error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/flows/get-combined-pdf-lists": {
       "post": {
         "tags": [
@@ -1551,12 +1617,22 @@
           }
         ],
         "responses": {
-          "501": {
-            "description": "Flow is not implemented",
+          "202": {
+            "description": "Start waiting-orders PDF generation job",
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/NotImplementedResponse"
+                  "$ref": "#/components/schemas/CombinedPdfListsJobAccepted"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal server error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
                 }
               }
             }

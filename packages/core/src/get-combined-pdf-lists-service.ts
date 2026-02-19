@@ -15,6 +15,7 @@ import { formatEmptyResponseMessage, toErrorMessage } from "./error-utils.js";
 
 const DEFAULT_SUPPLY_PAGE_LIMIT = 1_000;
 const DEFAULT_MAX_SUPPLIES_PER_SHOP = 1;
+const DEFAULT_WAITING_MAX_SUPPLIES_PER_SHOP = 6;
 const DEFAULT_ORDERS_LOOKBACK_DAYS = 30;
 const DEFAULT_MAX_EMBEDDED_IMAGES = 1_000;
 
@@ -63,6 +64,9 @@ type SupplyOrderIdsResponse =
 type OrdersListResponse = FbsPaths["/api/v3/orders"]["get"]["responses"][200]["content"]["application/json"];
 type OrderStickerResponse =
   FbsPaths["/api/v3/orders/stickers"]["post"]["responses"][200]["content"]["application/json"];
+type OrderStatusesResponse = FbsPaths["/api/v3/orders/status"]["post"]["responses"][200]["content"]["application/json"];
+
+type CombinedPdfFlowMode = "latest" | "waiting";
 
 interface CombinedRow {
   shopId: string;
@@ -146,6 +150,16 @@ type GetCombinedPdfListsWbDebugEvent =
       sampleStickers: Array<{ orderId: number | null; partA: string | null; partB: string | null; hasFile: boolean }>;
     }
   | {
+      step: "order_status_batch";
+      shopId: string;
+      shopName: string;
+      batchSize: number;
+      responseStatus: number;
+      responseUrl: string;
+      statusesCount: number;
+      waitingCount: number;
+    }
+  | {
       step: "shop_summary";
       shopId: string;
       shopName: string;
@@ -196,6 +210,7 @@ export interface GetCombinedPdfListsResult {
 type GetCombinedPdfListsOptions = {
   tenantId: string;
   db: Database;
+  mode?: CombinedPdfFlowMode;
   now?: () => Date;
   supplyPageLimit?: number;
   maxSuppliesPerShop?: number;
@@ -209,12 +224,34 @@ export interface GetCombinedPdfListsService {
   getCombinedPdfLists(): Promise<GetCombinedPdfListsResult>;
 }
 
+export interface GetWaitingOrdersPdfListsService {
+  getWaitingOrdersPdfLists(): Promise<GetCombinedPdfListsResult>;
+}
+
+export function createGetWaitingOrdersPdfListsService(
+  options: Omit<GetCombinedPdfListsOptions, "mode">
+): GetWaitingOrdersPdfListsService {
+  const service = createGetCombinedPdfListsService({
+    ...options,
+    mode: "waiting"
+  });
+
+  return {
+    async getWaitingOrdersPdfLists() {
+      return service.getCombinedPdfLists();
+    }
+  };
+}
+
 export function createGetCombinedPdfListsService(
   options: GetCombinedPdfListsOptions
 ): GetCombinedPdfListsService {
+  const mode = options.mode ?? "latest";
   const now = options.now ?? (() => new Date());
   const supplyPageLimit = options.supplyPageLimit ?? DEFAULT_SUPPLY_PAGE_LIMIT;
-  const maxSuppliesPerShop = options.maxSuppliesPerShop ?? DEFAULT_MAX_SUPPLIES_PER_SHOP;
+  const maxSuppliesPerShop =
+    options.maxSuppliesPerShop ??
+    (mode === "waiting" ? DEFAULT_WAITING_MAX_SUPPLIES_PER_SHOP : DEFAULT_MAX_SUPPLIES_PER_SHOP);
   const ordersLookbackDays = options.ordersLookbackDays ?? DEFAULT_ORDERS_LOOKBACK_DAYS;
   const maxEmbeddedImages = options.maxEmbeddedImages ?? DEFAULT_MAX_EMBEDDED_IMAGES;
   const fetchImage = options.fetchImage ?? defaultFetchImage;
@@ -245,19 +282,31 @@ export function createGetCombinedPdfListsService(
             supplyPrefix: shop.supplyPrefix,
             supplyPageLimit,
             maxSuppliesPerShop,
+            skipNewestSupply: mode === "waiting",
             emitWbApiDebug
           });
 
+          const suppliesForRows =
+            mode === "waiting"
+              ? await filterSuppliesByWaitingOrderStatus({
+                  fbsClient,
+                  shopId: shop.id,
+                  shopName: shop.name,
+                  supplies: selectedSupplies,
+                  emitWbApiDebug
+                })
+              : selectedSupplies;
+
           const uniqueOrderIds = uniqueSorted(
-            selectedSupplies.flatMap((supply) => supply.orderIds)
+            suppliesForRows.flatMap((supply) => supply.orderIds)
           );
 
-          if (selectedSupplies.length === 0 || uniqueOrderIds.length === 0) {
+          if (suppliesForRows.length === 0 || uniqueOrderIds.length === 0) {
             results.push({
               shopId: shop.id,
               shopName: shop.name,
               status: "skipped",
-              supplyIds: selectedSupplies.map((supply) => supply.supplyId),
+              supplyIds: suppliesForRows.map((supply) => supply.supplyId),
               orderIds: uniqueOrderIds,
               ordersCollected: 0,
               missingProductCards: 0,
@@ -295,7 +344,7 @@ export function createGetCombinedPdfListsService(
 
           let missingProductCards = 0;
 
-          for (const supply of selectedSupplies) {
+          for (const supply of suppliesForRows) {
             for (const orderId of supply.orderIds) {
               const orderFacts = orderFactsById.get(orderId);
               const nmId = orderFacts?.nmId ?? null;
@@ -329,7 +378,7 @@ export function createGetCombinedPdfListsService(
             shopId: shop.id,
             shopName: shop.name,
             status: "success",
-            supplyIds: selectedSupplies.map((supply) => supply.supplyId),
+            supplyIds: suppliesForRows.map((supply) => supply.supplyId),
             orderIds: uniqueOrderIds,
             ordersCollected: uniqueOrderIds.length,
             missingProductCards,
@@ -340,7 +389,7 @@ export function createGetCombinedPdfListsService(
             step: "shop_summary",
             shopId: shop.id,
             shopName: shop.name,
-            selectedSupplyIds: selectedSupplies.map((supply) => supply.supplyId),
+            selectedSupplyIds: suppliesForRows.map((supply) => supply.supplyId),
             uniqueOrderIdsCount: uniqueOrderIds.length,
             knownOrdersWithNmIdCount: nmIds.length,
             stickersResolvedCount: stickersByOrderId.size,
@@ -377,8 +426,14 @@ export function createGetCombinedPdfListsService(
         skippedCount,
         failureCount: results.length - successCount - skippedCount,
         totalOrdersCollected: rows.length,
-        orderListFileName: `Лист-подбора_${formatRuFileDate(finishedAt)}.pdf`,
-        stickersFileName: `Стикеры_${formatRuFileDate(finishedAt)}.pdf`,
+        orderListFileName:
+          mode === "waiting"
+            ? `Лист-подбора-ожидающие_${formatRuFileDate(finishedAt)}.pdf`
+            : `Лист-подбора_${formatRuFileDate(finishedAt)}.pdf`,
+        stickersFileName:
+          mode === "waiting"
+            ? `Стикеры-ожидающие_${formatRuFileDate(finishedAt)}.pdf`
+            : `Стикеры_${formatRuFileDate(finishedAt)}.pdf`,
         orderListPdfBase64: orderListPdfBuffer.toString("base64"),
         stickersPdfBase64: stickersPdfBuffer.toString("base64"),
         results
@@ -394,6 +449,7 @@ async function getLatestDoneSuppliesWithOrders(input: {
   supplyPrefix: string;
   supplyPageLimit: number;
   maxSuppliesPerShop: number;
+  skipNewestSupply: boolean;
   emitWbApiDebug: (event: GetCombinedPdfListsWbDebugEvent) => void;
 }): Promise<SupplySelection[]> {
   const matchingSupplies: Array<{ id: string; closedAt: Date | null; createdAt: Date | null }> = [];
@@ -494,11 +550,14 @@ async function getLatestDoneSuppliesWithOrders(input: {
     next = nextCursor;
   }
 
-  const selectedSupplyIds = matchingSupplies
+  const sortedSupplyIds = matchingSupplies
     .toSorted(compareSuppliesByRecency)
     .map((supply) => supply.id)
-    .filter((id, index, values) => values.indexOf(id) === index)
-    .slice(0, input.maxSuppliesPerShop);
+    .filter((id, index, values) => values.indexOf(id) === index);
+
+  const selectedSupplyIds = input.skipNewestSupply
+    ? sortedSupplyIds.slice(1, input.maxSuppliesPerShop + 1)
+    : sortedSupplyIds.slice(0, input.maxSuppliesPerShop);
 
   const selections: SupplySelection[] = [];
 
@@ -689,6 +748,72 @@ async function getStickersByOrderId(input: {
   return byOrderId;
 }
 
+async function filterSuppliesByWaitingOrderStatus(input: {
+  fbsClient: WbFbsClient;
+  shopId: string;
+  shopName: string;
+  supplies: SupplySelection[];
+  emitWbApiDebug: (event: GetCombinedPdfListsWbDebugEvent) => void;
+}): Promise<SupplySelection[]> {
+  const uniqueOrderIds = uniqueSorted(input.supplies.flatMap((supply) => supply.orderIds));
+
+  if (uniqueOrderIds.length === 0) {
+    return [];
+  }
+
+  const statusByOrderId = await getOrderStatusesByOrderId({
+    fbsClient: input.fbsClient,
+    shopId: input.shopId,
+    shopName: input.shopName,
+    orderIds: uniqueOrderIds,
+    emitWbApiDebug: input.emitWbApiDebug
+  });
+
+  return input.supplies
+    .map((supply) => ({
+      supplyId: supply.supplyId,
+      orderIds: supply.orderIds.filter((orderId) => statusByOrderId.get(orderId) === "waiting")
+    }))
+    .filter((supply) => supply.orderIds.length > 0);
+}
+
+async function getOrderStatusesByOrderId(input: {
+  fbsClient: WbFbsClient;
+  shopId: string;
+  shopName: string;
+  orderIds: number[];
+  emitWbApiDebug: (event: GetCombinedPdfListsWbDebugEvent) => void;
+}): Promise<Map<number, string>> {
+  const byOrderId = new Map<number, string>();
+
+  for (const batch of toBatches(input.orderIds, 1_000)) {
+    const response = await input.fbsClient.POST("/api/v3/orders/status", {
+      body: {
+        orders: batch
+      }
+    });
+
+    if (response.data === undefined) {
+      throw new Error(formatEmptyResponseMessage(response.response));
+    }
+
+    collectOrderStatuses(byOrderId, response.data);
+
+    input.emitWbApiDebug({
+      step: "order_status_batch",
+      shopId: input.shopId,
+      shopName: input.shopName,
+      batchSize: batch.length,
+      responseStatus: response.response.status,
+      responseUrl: response.response.url,
+      statusesCount: (response.data.orders ?? []).length,
+      waitingCount: (response.data.orders ?? []).filter((order) => order.wbStatus === "waiting").length
+    });
+  }
+
+  return byOrderId;
+}
+
 async function getCardsByNmId(input: {
   shopId: string;
   nmIds: number[];
@@ -753,6 +878,18 @@ function collectStickerFacts(destination: Map<number, StickerFacts>, response: O
       partB: normalizeStickerPart(sticker.partB),
       file: typeof sticker.file === "string" ? sticker.file : null
     });
+  }
+}
+
+function collectOrderStatuses(destination: Map<number, string>, response: OrderStatusesResponse): void {
+  for (const order of response.orders ?? []) {
+    const orderId = normalizeInteger(order.id);
+
+    if (orderId === null || typeof order.wbStatus !== "string") {
+      continue;
+    }
+
+    destination.set(orderId, order.wbStatus);
   }
 }
 

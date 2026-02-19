@@ -204,6 +204,12 @@ describe("tenant isolation via backend controllers", () => {
     });
     expect(syncResponse.status).toBe(200);
 
+    const syncAsyncResponse = await app.request("/flows/sync-content-shops/async", {
+      method: "POST",
+      headers: secondTenantHeaders
+    });
+    expect(syncAsyncResponse.status).toBe(202);
+
     const combinedResponse = await app.request("/flows/get-combined-pdf-lists", {
       method: "POST",
       headers: groupHeaders
@@ -217,10 +223,18 @@ describe("tenant isolation via backend controllers", () => {
     });
     expect(combinedStatusResponse.status).toBe(200);
 
+    const waitingResponse = await app.request("/flows/get-waiting-orders-pdf", {
+      method: "POST",
+      headers: secondTenantHeaders
+    });
+    expect(waitingResponse.status).toBe(202);
+
     expect(flowsService.processCalls).toEqual(["tenant-9000"]);
     expect(flowsService.syncCalls).toEqual(["tenant-42"]);
+    expect(flowsService.syncAsyncStartCalls).toEqual([{ tenantId: "tenant-42", chatId: 78 }]);
     expect(flowsService.combinedStartCalls).toEqual([{ tenantId: "tenant-9000", chatId: 77 }]);
     expect(flowsService.combinedStatusCalls).toEqual(["tenant-9000"]);
+    expect(flowsService.waitingStartCalls).toEqual([{ tenantId: "tenant-42", chatId: 78 }]);
   });
 });
 
@@ -414,8 +428,10 @@ class InMemoryTenantShopsService implements BackendShopsService {
 class RecordingFlowsService implements BackendFlowsService {
   readonly processCalls: string[] = [];
   readonly syncCalls: string[] = [];
+  readonly syncAsyncStartCalls: Array<{ tenantId: string; chatId: number }> = [];
   readonly combinedStartCalls: Array<{ tenantId: string; chatId: number }> = [];
   readonly combinedStatusCalls: string[] = [];
+  readonly waitingStartCalls: Array<{ tenantId: string; chatId: number }> = [];
 
   async processAllShops(tenantId: string) {
     this.processCalls.push(tenantId);
@@ -466,6 +482,26 @@ class RecordingFlowsService implements BackendFlowsService {
       finishedAt: null,
       error: null,
       result: null
+    };
+  }
+
+  async startWaitingOrdersPdfJob(tenantId: string, chatId: number, _languageCode: string | null) {
+    this.waitingStartCalls.push({ tenantId, chatId });
+
+    return {
+      jobId: "job-2",
+      status: "queued" as const,
+      createdAt: new Date("2026-01-01T00:00:00.000Z")
+    };
+  }
+
+  async startSyncContentShopsJob(tenantId: string, chatId: number, _languageCode: string | null) {
+    this.syncAsyncStartCalls.push({ tenantId, chatId });
+
+    return {
+      jobId: "job-3",
+      status: "queued" as const,
+      createdAt: new Date("2026-01-01T00:00:00.000Z")
     };
   }
 }

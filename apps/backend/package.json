@@ -7,6 +7,7 @@
     "dev": "bun --env-file ../../.env --hot src/index.ts",
     "start": "bun --env-file ../../.env src/index.ts",
     "sync:content:run": "bun --env-file ../../.env src/run-sync-content-job.ts",
+    "wb:token:expiration:run": "bun --env-file ../../.env src/run-wb-token-expiration-job.ts",
     "openapi:write": "bun --env-file ../../.env src/write-openapi.ts",
     "typecheck": "tsc -p tsconfig.json --noEmit"
   },
