@@ -113,8 +113,28 @@ export function createBackendFlowsService(): BackendFlowsService {
   };
 
   return {
-    processAllShops(tenantId) {
-      return createProcessAllShopsService({ db, tenantId }).processAllShops();
+    async processAllShops(tenantId) {
+      const startedAtMs = Date.now();
+
+      const result = await createProcessAllShopsServiceWithProgressLogging({
+        db,
+        logger,
+        tenantId
+      }).processAllShops();
+
+      logger.info(
+        {
+          tenantId,
+          processedShops: result.processedShops,
+          successCount: result.successCount,
+          skippedCount: result.skippedCount,
+          failureCount: result.failureCount,
+          durationMs: Date.now() - startedAtMs
+        },
+        "process-all-shops flow completed"
+      );
+
+      return result;
     },
     syncContentShops(tenantId) {
       return createSyncContentShopsServiceWithProgressLogging({
@@ -462,6 +482,26 @@ function createSyncContentShopsServiceWithProgressLogging(input: {
           responseCursorTotal: event.responseData.cursor?.total ?? null
         },
         "WB sync-content page fetched"
+      );
+    }
+  });
+}
+
+function createProcessAllShopsServiceWithProgressLogging(input: {
+  db: ReturnType<typeof getDatabase>;
+  logger: ReturnType<typeof createLogger>;
+  tenantId: string;
+}) {
+  return createProcessAllShopsService({
+    db: input.db,
+    tenantId: input.tenantId,
+    onWbApiDebug(event) {
+      input.logger.info(
+        {
+          tenantId: input.tenantId,
+          event
+        },
+        "WB process-all-shops API debug"
       );
     }
   });

@@ -185,6 +185,8 @@ describe("process all shops service", () => {
   it("marks shop as skipped when every order requires metadata", async () => {
     testState.shops = createSingleShopRepo();
 
+    const debugEvents: Array<{ step?: string; responseData?: Record<string, unknown> }> = [];
+
     testState.createClient = () =>
       createClient({
         async GET(path) {
@@ -203,7 +205,13 @@ describe("process all shops service", () => {
 
     const service = createProcessAllShopsService({
       tenantId: "tenant-1",
-      db: {} as Database
+      db: {} as Database,
+      onWbApiDebug(event) {
+        debugEvents.push({
+          step: event.step,
+          responseData: event.responseData
+        });
+      }
     });
 
     const result = await service.processAllShops();
@@ -211,6 +219,9 @@ describe("process all shops service", () => {
     expect(result.successCount).toBe(0);
     expect(result.skippedCount).toBe(1);
     expect(result.results[0]?.status).toBe("skipped");
+    expect(debugEvents.some((event) => event.step === "orders_new")).toBe(true);
+    expect(debugEvents.some((event) => event.step === "orders_new_no_eligible")).toBe(true);
+    expect(debugEvents.find((event) => event.step === "orders_new")?.responseData?.totalOrders).toBe(1);
   });
 
   it("uses sandbox FBS endpoint and sandbox token when shop is configured for sandbox", async () => {

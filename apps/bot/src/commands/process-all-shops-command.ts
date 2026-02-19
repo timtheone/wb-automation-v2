@@ -3,11 +3,18 @@ import { InputFile, type Bot } from "grammy";
 import type { BackendClient } from "../backend-client.js";
 import type { BotContext, ProcessAllShopsResultDto } from "../bot-types.js";
 import type { BotTranslator } from "../i18n/index.js";
+import { logger } from "../logger.js";
 import { formatIsoDate, getTelegramContextHeaders, replyWithError, requireResponseData } from "./shared.js";
 
 export function registerProcessAllShopsCommand(bot: Bot<BotContext>, backend: BackendClient) {
   bot.command("process_all_shops", async (ctx) => {
     await ctx.reply(ctx.t.flows.processAll.running());
+
+    const logContext = {
+      updateId: ctx.update.update_id,
+      chatId: ctx.chat?.id,
+      userId: ctx.from?.id
+    };
 
     try {
       const response = await backend.POST("/flows/process-all-shops", {
@@ -16,30 +23,86 @@ export function registerProcessAllShopsCommand(bot: Bot<BotContext>, backend: Ba
         }
       });
       const result = requireResponseData(response.data, "POST /flows/process-all-shops");
+      logger.info(
+        {
+          ...logContext,
+          processedShops: result.processedShops,
+          successCount: result.successCount,
+          skippedCount: result.skippedCount,
+          failureCount: result.failureCount,
+          shops: result.results.map((item) => ({
+            shopId: item.shopId,
+            shopName: item.shopName,
+            status: item.status,
+            ordersInNew: item.ordersInNew,
+            ordersAttached: item.ordersAttached,
+            hasBarcodeFile: Boolean(item.barcodeFile),
+            error: item.error
+          }))
+        },
+        "process_all_shops completed"
+      );
       await ctx.reply(formatProcessAllShopsResult(ctx.t, result));
-      await sendProcessAllShopsQrCodes(ctx, result);
+      await sendProcessAllShopsQrCodes(ctx, result, logContext);
     } catch (error) {
       await replyWithError(ctx, error);
     }
   });
 }
 
-async function sendProcessAllShopsQrCodes(ctx: BotContext, result: ProcessAllShopsResultDto): Promise<void> {
+async function sendProcessAllShopsQrCodes(
+  ctx: BotContext,
+  result: ProcessAllShopsResultDto,
+  logContext: { updateId: number; chatId: number | undefined; userId: number | undefined }
+): Promise<void> {
+  let sentCount = 0;
+
   for (const item of result.results) {
     if (item.status !== "success" || !item.barcodeFile) {
+      logger.info(
+        {
+          ...logContext,
+          shopId: item.shopId,
+          shopName: item.shopName,
+          status: item.status,
+          hasBarcodeFile: Boolean(item.barcodeFile)
+        },
+        "process_all_shops qr skipped"
+      );
       continue;
     }
 
     const photoBuffer = Buffer.from(item.barcodeFile, "base64");
 
     if (photoBuffer.length === 0) {
+      logger.warn(
+        {
+          ...logContext,
+          shopId: item.shopId,
+          shopName: item.shopName
+        },
+        "process_all_shops qr has empty decoded payload"
+      );
       continue;
     }
 
     await ctx.replyWithPhoto(new InputFile(photoBuffer, `${item.shopId}-qr.png`), {
       caption: String(ctx.t.flows.processAll.qrCodeCaption({ shopName: item.shopName }))
     });
+    sentCount += 1;
+
+    logger.info(
+      {
+        ...logContext,
+        shopId: item.shopId,
+        shopName: item.shopName,
+        payloadBytes: photoBuffer.length
+      },
+      "process_all_shops qr sent"
+    );
   }
+
+  logger.info({ ...logContext, qrSentCount: sentCount }, "process_all_shops qr delivery completed");
 }
 
 function formatProcessAllShopsResult(t: BotTranslator, result: ProcessAllShopsResultDto): string {

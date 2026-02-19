@@ -1,4 +1,5 @@
 import { BackendApiHttpError } from "../backend-client.js";
+import { logger } from "../logger.js";
 import type { BotContext } from "../bot-types.js";
 import type { BotTranslator } from "../i18n/index.js";
 
@@ -52,8 +53,23 @@ export async function getTelegramContextHeaders(ctx: BotContext): Promise<Telegr
 
 export async function replyWithError(ctx: BotContext, error: unknown) {
   const pending = ctx.session.pendingAction;
+  const logContext = {
+    updateId: ctx.update.update_id,
+    chatId: ctx.chat?.id,
+    userId: ctx.from?.id
+  };
 
   if (error instanceof BackendApiHttpError) {
+    logger.warn(
+      {
+        ...logContext,
+        status: error.status,
+        url: error.url,
+        message: error.message
+      },
+      "bot command backend request failed"
+    );
+
     await ctx.reply(
       ctx.t.errors.requestFailed({
         status: error.status,
@@ -64,9 +80,26 @@ export async function replyWithError(ctx: BotContext, error: unknown) {
   }
 
   if (error instanceof BotCommandError) {
+    logger.warn(
+      {
+        ...logContext,
+        code: error.code,
+        message: error.message
+      },
+      "bot command validation failed"
+    );
+
     await ctx.reply(resolveBotCommandErrorMessage(ctx.t, error));
     return;
   }
+
+  logger.error(
+    {
+      ...logContext,
+      message: toErrorMessage(error)
+    },
+    "bot command failed with unexpected error"
+  );
 
   await ctx.reply(ctx.t.errors.unexpected({ message: toErrorMessage(error) }));
 

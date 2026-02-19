@@ -39,6 +39,9 @@ function createContext() {
   );
 
   const ctx = {
+    update: {
+      update_id: 12345
+    },
     chat: {
       id: 100,
       type: "private"

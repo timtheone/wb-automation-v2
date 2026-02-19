@@ -42,6 +42,33 @@ export interface ProcessAllShopsResult {
   results: ProcessAllShopsResultItem[];
 }
 
+export interface ProcessAllShopsWbApiDebugEvent {
+  shopId: string;
+  shopName: string;
+  useSandbox: boolean;
+  step:
+    | "orders_new"
+    | "orders_new_no_eligible"
+    | "supplies_list"
+    | "supplies_open_found"
+    | "supplies_open_not_found"
+    | "supply_create"
+    | "supply_add_orders"
+    | "supply_deliver"
+    | "supply_poll"
+    | "supply_poll_timeout"
+    | "supply_barcode"
+    | "shop_failed";
+  requestMethod?: "GET" | "POST" | "PATCH";
+  requestPath?: string;
+  requestQuery?: Record<string, unknown>;
+  requestBody?: Record<string, unknown>;
+  responseStatus?: number;
+  responseUrl?: string;
+  responseData?: Record<string, unknown>;
+  error?: string;
+}
+
 type ProcessAllShopsOptions = {
   tenantId: string;
   db: Database;
@@ -50,6 +77,7 @@ type ProcessAllShopsOptions = {
   supplyPageLimit?: number;
   maxPollAttempts?: number;
   pollIntervalMs?: number;
+  onWbApiDebug?: (event: ProcessAllShopsWbApiDebugEvent) => void;
 };
 
 export interface ProcessAllShopsService {
@@ -62,6 +90,7 @@ export function createProcessAllShopsService(options: ProcessAllShopsOptions): P
   const supplyPageLimit = options.supplyPageLimit ?? DEFAULT_SUPPLY_PAGE_LIMIT;
   const maxPollAttempts = options.maxPollAttempts ?? DEFAULT_POLL_ATTEMPTS;
   const pollIntervalMs = options.pollIntervalMs ?? DEFAULT_POLL_INTERVAL_MS;
+  const onWbApiDebug = options.onWbApiDebug;
   const shops = createShopRepository({
     tenantId: options.tenantId,
     db: options.db
@@ -74,10 +103,26 @@ export function createProcessAllShopsService(options: ProcessAllShopsOptions): P
       const results: ProcessAllShopsResultItem[] = [];
 
       for (const shop of activeShops) {
+        const debugContext: ProcessAllShopsDebugContext = {
+          shopId: shop.id,
+          shopName: shop.name,
+          useSandbox: shop.useSandbox,
+          onWbApiDebug
+        };
+
         try {
           const credentials = resolveFbsCredentials(shop);
           const fbsClient = createWbFbsClient(credentials);
           const newOrdersResult = await fbsClient.GET("/api/v3/orders/new");
+
+          emitWbApiDebug(debugContext, {
+            step: "orders_new",
+            requestMethod: "GET",
+            requestPath: "/api/v3/orders/new",
+            responseStatus: newOrdersResult.response.status,
+            responseUrl: newOrdersResult.response.url,
+            responseData: summarizeOrdersNewResponse(newOrdersResult.data)
+          });
 
           if (newOrdersResult.data === undefined) {
             throw new Error(formatEmptyResponseMessage(newOrdersResult.response));
@@ -94,6 +139,14 @@ export function createProcessAllShopsService(options: ProcessAllShopsOptions): P
           const skippedByMeta = allOrders.length - eligibleOrders.length;
 
           if (eligibleOrderIds.length === 0) {
+            emitWbApiDebug(debugContext, {
+              step: "orders_new_no_eligible",
+              responseData: {
+                totalOrders: allOrders.length,
+                ordersSkippedByMeta: skippedByMeta
+              }
+            });
+
             results.push({
               shopId: shop.id,
               shopName: shop.name,
@@ -113,23 +166,49 @@ export function createProcessAllShopsService(options: ProcessAllShopsOptions): P
             fbsClient,
             supplyPrefix: shop.supplyPrefix,
             now,
-            supplyPageLimit
+            supplyPageLimit,
+            debugContext
           });
 
           for (const batch of toBatches(eligibleOrderIds, SUPPLY_ORDER_BATCH_SIZE)) {
             const body: AddOrdersBody = { orders: batch };
-            await fbsClient.PATCH("/api/marketplace/v3/supplies/{supplyId}/orders", {
+            const addOrdersResult = await fbsClient.PATCH("/api/marketplace/v3/supplies/{supplyId}/orders", {
               params: {
                 path: { supplyId }
               },
               body
             });
+
+            emitWbApiDebug(debugContext, {
+              step: "supply_add_orders",
+              requestMethod: "PATCH",
+              requestPath: "/api/marketplace/v3/supplies/{supplyId}/orders",
+              requestBody: {
+                supplyId,
+                batchSize: batch.length,
+                firstOrderId: batch[0] ?? null,
+                lastOrderId: batch[batch.length - 1] ?? null
+              },
+              responseStatus: addOrdersResult.response.status,
+              responseUrl: addOrdersResult.response.url
+            });
           }
 
-          await fbsClient.PATCH("/api/v3/supplies/{supplyId}/deliver", {
+          const deliverResult = await fbsClient.PATCH("/api/v3/supplies/{supplyId}/deliver", {
             params: {
               path: { supplyId }
             }
+          });
+
+          emitWbApiDebug(debugContext, {
+            step: "supply_deliver",
+            requestMethod: "PATCH",
+            requestPath: "/api/v3/supplies/{supplyId}/deliver",
+            requestBody: {
+              supplyId
+            },
+            responseStatus: deliverResult.response.status,
+            responseUrl: deliverResult.response.url
           });
 
           await waitUntilSupplyClosed({
@@ -137,7 +216,8 @@ export function createProcessAllShopsService(options: ProcessAllShopsOptions): P
             supplyId,
             maxPollAttempts,
             pollIntervalMs,
-            sleep
+            sleep,
+            debugContext
           });
 
           const barcodeResult = await fbsClient.GET("/api/v3/supplies/{supplyId}/barcode", {
@@ -145,6 +225,19 @@ export function createProcessAllShopsService(options: ProcessAllShopsOptions): P
               path: { supplyId },
               query: { type: "png" }
             }
+          });
+
+          emitWbApiDebug(debugContext, {
+            step: "supply_barcode",
+            requestMethod: "GET",
+            requestPath: "/api/v3/supplies/{supplyId}/barcode",
+            requestQuery: {
+              supplyId,
+              type: "png"
+            },
+            responseStatus: barcodeResult.response.status,
+            responseUrl: barcodeResult.response.url,
+            responseData: summarizeBarcodeResponse(barcodeResult.data)
           });
 
           if (barcodeResult.data === undefined) {
@@ -164,6 +257,11 @@ export function createProcessAllShopsService(options: ProcessAllShopsOptions): P
             error: null
           });
         } catch (error) {
+          emitWbApiDebug(debugContext, {
+            step: "shop_failed",
+            error: toErrorMessage(error)
+          });
+
           results.push({
             shopId: shop.id,
             shopName: shop.name,
@@ -200,6 +298,7 @@ async function resolveSupplyId(input: {
   supplyPrefix: string;
   now: () => Date;
   supplyPageLimit: number;
+  debugContext: ProcessAllShopsDebugContext;
 }): Promise<string> {
   const existingSupplyId = await findOpenSupplyId(input);
 
@@ -211,6 +310,18 @@ async function resolveSupplyId(input: {
     name: `${input.supplyPrefix}${formatSupplyTimestamp(input.now())}`
   };
   const createdResult = await input.fbsClient.POST("/api/v3/supplies", { body });
+
+  emitWbApiDebug(input.debugContext, {
+    step: "supply_create",
+    requestMethod: "POST",
+    requestPath: "/api/v3/supplies",
+    requestBody: {
+      name: body.name
+    },
+    responseStatus: createdResult.response.status,
+    responseUrl: createdResult.response.url,
+    responseData: summarizeCreateSupplyResponse(createdResult.data)
+  });
 
   if (createdResult.data === undefined) {
     throw new Error(formatEmptyResponseMessage(createdResult.response));
@@ -227,6 +338,7 @@ async function findOpenSupplyId(input: {
   fbsClient: WbFbsClient;
   supplyPrefix: string;
   supplyPageLimit: number;
+  debugContext: ProcessAllShopsDebugContext;
 }): Promise<string | null> {
   let next = 0;
   const seenCursors = new Set<number>();
@@ -247,6 +359,19 @@ async function findOpenSupplyId(input: {
       }
     });
 
+    emitWbApiDebug(input.debugContext, {
+      step: "supplies_list",
+      requestMethod: "GET",
+      requestPath: "/api/v3/supplies",
+      requestQuery: {
+        limit: input.supplyPageLimit,
+        next
+      },
+      responseStatus: suppliesResult.response.status,
+      responseUrl: suppliesResult.response.url,
+      responseData: summarizeSuppliesListResponse(suppliesResult.data)
+    });
+
     if (suppliesResult.data === undefined) {
       throw new Error(formatEmptyResponseMessage(suppliesResult.response));
     }
@@ -260,12 +385,28 @@ async function findOpenSupplyId(input: {
     );
 
     if (openSupply?.id) {
+      emitWbApiDebug(input.debugContext, {
+        step: "supplies_open_found",
+        responseData: {
+          supplyId: openSupply.id,
+          supplyName: openSupply.name,
+          cursorNext: suppliesResult.data.next ?? null
+        }
+      });
+
       return openSupply.id;
     }
 
     const nextCursor = suppliesResult.data.next;
 
     if (typeof nextCursor !== "number" || nextCursor <= 0) {
+      emitWbApiDebug(input.debugContext, {
+        step: "supplies_open_not_found",
+        responseData: {
+          cursorNext: nextCursor ?? null
+        }
+      });
+
       return null;
     }
 
@@ -279,12 +420,27 @@ async function waitUntilSupplyClosed(input: {
   maxPollAttempts: number;
   pollIntervalMs: number;
   sleep: (ms: number) => Promise<void>;
+  debugContext: ProcessAllShopsDebugContext;
 }) {
   for (let attempt = 1; attempt <= input.maxPollAttempts; attempt += 1) {
     const supplyResult = await input.fbsClient.GET("/api/v3/supplies/{supplyId}", {
       params: {
         path: { supplyId: input.supplyId }
       }
+    });
+
+    emitWbApiDebug(input.debugContext, {
+      step: "supply_poll",
+      requestMethod: "GET",
+      requestPath: "/api/v3/supplies/{supplyId}",
+      requestQuery: {
+        supplyId: input.supplyId,
+        attempt,
+        maxPollAttempts: input.maxPollAttempts
+      },
+      responseStatus: supplyResult.response.status,
+      responseUrl: supplyResult.response.url,
+      responseData: summarizeSupplyPollResponse(supplyResult.data)
     });
 
     if (supplyResult.data === undefined) {
@@ -299,6 +455,14 @@ async function waitUntilSupplyClosed(input: {
       await input.sleep(input.pollIntervalMs);
     }
   }
+
+  emitWbApiDebug(input.debugContext, {
+    step: "supply_poll_timeout",
+    responseData: {
+      supplyId: input.supplyId,
+      maxPollAttempts: input.maxPollAttempts
+    }
+  });
 
   throw new Error(`Timed out waiting for supply ${input.supplyId} to close`);
 }
@@ -344,4 +508,145 @@ function pad2(value: number): string {
 
 async function defaultSleep(ms: number): Promise<void> {
   await new Promise((resolve) => setTimeout(resolve, ms));
+}
+
+type ProcessAllShopsDebugContext = {
+  shopId: string;
+  shopName: string;
+  useSandbox: boolean;
+  onWbApiDebug?: (event: ProcessAllShopsWbApiDebugEvent) => void;
+};
+
+function emitWbApiDebug(
+  context: ProcessAllShopsDebugContext,
+  event: Omit<ProcessAllShopsWbApiDebugEvent, "shopId" | "shopName" | "useSandbox">
+) {
+  if (!context.onWbApiDebug) {
+    return;
+  }
+
+  context.onWbApiDebug({
+    ...event,
+    shopId: context.shopId,
+    shopName: context.shopName,
+    useSandbox: context.useSandbox
+  });
+}
+
+function summarizeOrdersNewResponse(data: unknown): Record<string, unknown> {
+  if (!data || typeof data !== "object") {
+    return {
+      hasData: false
+    };
+  }
+
+  const payload = data as {
+    orders?: Array<{
+      id?: unknown;
+      requiredMeta?: unknown;
+    }>;
+  };
+
+  const orders = Array.isArray(payload.orders) ? payload.orders : [];
+
+  return {
+    hasData: true,
+    totalOrders: orders.length,
+    orders: orders.slice(0, 25).map((order) => ({
+      id: typeof order.id === "number" ? order.id : null,
+      requiredMeta: Array.isArray(order.requiredMeta)
+        ? order.requiredMeta.filter((value): value is string => typeof value === "string")
+        : []
+    }))
+  };
+}
+
+function summarizeSuppliesListResponse(data: unknown): Record<string, unknown> {
+  if (!data || typeof data !== "object") {
+    return {
+      hasData: false
+    };
+  }
+
+  const payload = data as {
+    next?: unknown;
+    supplies?: Array<{
+      id?: unknown;
+      name?: unknown;
+      done?: unknown;
+    }>;
+  };
+
+  const supplies = Array.isArray(payload.supplies) ? payload.supplies : [];
+
+  return {
+    hasData: true,
+    next: typeof payload.next === "number" ? payload.next : null,
+    suppliesCount: supplies.length,
+    supplies: supplies.slice(0, 25).map((supply) => ({
+      id: typeof supply.id === "string" ? supply.id : null,
+      name: typeof supply.name === "string" ? supply.name : null,
+      done: typeof supply.done === "boolean" ? supply.done : null
+    }))
+  };
+}
+
+function summarizeCreateSupplyResponse(data: unknown): Record<string, unknown> {
+  if (!data || typeof data !== "object") {
+    return {
+      hasData: false
+    };
+  }
+
+  const payload = data as {
+    id?: unknown;
+  };
+
+  return {
+    hasData: true,
+    id: typeof payload.id === "string" ? payload.id : null
+  };
+}
+
+function summarizeSupplyPollResponse(data: unknown): Record<string, unknown> {
+  if (!data || typeof data !== "object") {
+    return {
+      hasData: false
+    };
+  }
+
+  const payload = data as {
+    id?: unknown;
+    done?: unknown;
+    name?: unknown;
+  };
+
+  return {
+    hasData: true,
+    id: typeof payload.id === "string" ? payload.id : null,
+    name: typeof payload.name === "string" ? payload.name : null,
+    done: typeof payload.done === "boolean" ? payload.done : null
+  };
+}
+
+function summarizeBarcodeResponse(data: unknown): Record<string, unknown> {
+  if (!data || typeof data !== "object") {
+    return {
+      hasData: false
+    };
+  }
+
+  const payload = data as {
+    barcode?: unknown;
+    file?: unknown;
+  };
+
+  const file = typeof payload.file === "string" ? payload.file : null;
+
+  return {
+    hasData: true,
+    barcode: typeof payload.barcode === "string" ? payload.barcode : null,
+    hasFile: file !== null,
+    fileBase64Length: file?.length ?? 0
+  };
 }

@@ -14,6 +14,7 @@ export {
   createProcessAllShopsService,
   type ProcessAllShopsResult,
   type ProcessAllShopsResultItem,
+  type ProcessAllShopsWbApiDebugEvent,
   type ProcessAllShopsService
 } from "./process-all-shops-service.js";
 export {
