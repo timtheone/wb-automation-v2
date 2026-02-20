@@ -340,7 +340,7 @@ describe("process all shops service", () => {
     const result = await service.processAllShops();
 
     expect(result.successCount).toBe(1);
-    expect(createdSupplyNames).toEqual(["toys_20260304_0506"]);
+    expect(createdSupplyNames).toEqual(["toys_04_марта_08:06"]);
   });
 
   it("reuses existing matching open supply and does not create new one", async () => {

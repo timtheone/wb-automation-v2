@@ -493,17 +493,24 @@ function toBatches(values: number[], size: number): number[][] {
 }
 
 function formatSupplyTimestamp(date: Date): string {
-  const year = date.getUTCFullYear();
-  const month = pad2(date.getUTCMonth() + 1);
-  const day = pad2(date.getUTCDate());
-  const hour = pad2(date.getUTCHours());
-  const minute = pad2(date.getUTCMinutes());
+  const parts = new Intl.DateTimeFormat("ru-RU", {
+    day: "2-digit",
+    month: "long",
+    hour: "2-digit",
+    minute: "2-digit",
+    hour12: false,
+    timeZone: "Europe/Moscow"
+  }).formatToParts(date);
+  const day = getDatePart(parts, "day");
+  const month = getDatePart(parts, "month").toLowerCase();
+  const hour = getDatePart(parts, "hour");
+  const minute = getDatePart(parts, "minute");
 
-  return `${year}${month}${day}_${hour}${minute}`;
+  return `${day}_${month}_${hour}:${minute}`;
 }
 
-function pad2(value: number): string {
-  return String(value).padStart(2, "0");
+function getDatePart(parts: Intl.DateTimeFormatPart[], type: Intl.DateTimeFormatPartTypes): string {
+  return parts.find((part) => part.type === type)?.value ?? "";
 }
 
 async function defaultSleep(ms: number): Promise<void> {

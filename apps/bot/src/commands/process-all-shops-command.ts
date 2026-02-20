@@ -86,9 +86,8 @@ async function sendProcessAllShopsQrCodes(
       continue;
     }
 
-    await ctx.replyWithPhoto(new InputFile(photoBuffer, `${item.shopId}-qr.png`), {
-      caption: String(ctx.t.flows.processAll.qrCodeCaption({ shopName: item.shopName }))
-    });
+    await ctx.reply(String(ctx.t.flows.processAll.qrCodeCaption({ shopName: item.shopName })));
+    await ctx.replyWithPhoto(new InputFile(photoBuffer, `${item.shopId}-qr.png`));
     sentCount += 1;
 
     logger.info(

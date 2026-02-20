@@ -100,10 +100,13 @@ describe("registerProcessAllShopsCommand", () => {
         typeof message === "string" ? message.includes("process_all_shops completed") : false
       )
     ).toBe(true);
+    expect(
+      (reply.mock.calls as Array<[unknown]>).some(([message]) =>
+        typeof message === "string" ? message === "QR code for shop Shop One" : false
+      )
+    ).toBe(true);
     expect(replyWithPhoto).toHaveBeenCalledTimes(1);
-
-    const [, options] = (replyWithPhoto.mock.calls as Array<[unknown, { caption?: string } | undefined]>)[0] ?? [];
-    expect(options).toMatchObject({ caption: "QR code for shop Shop One" });
+    expect((replyWithPhoto.mock.calls as Array<[unknown, { caption?: string } | undefined]>)[0]?.[1]).toBeUndefined();
   });
 
   it("does not send QR code photos when barcode file is absent", async () => {
