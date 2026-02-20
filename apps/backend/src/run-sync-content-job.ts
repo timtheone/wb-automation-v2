@@ -1,5 +1,5 @@
 import { createSyncContentShopsService, toErrorMessage } from "@wb-automation-v2/core";
-import { getDatabaseClient } from "@wb-automation-v2/db";
+import { createJobRunRepository, getDatabaseClient } from "@wb-automation-v2/db";
 
 import { createLogger, getBackendLogFilePath } from "./logger.js";
 import { createBackendTenantService } from "./services/tenant-service.js";
@@ -25,6 +25,17 @@ try {
   let aggregateCardsUpserted = 0;
 
   for (const tenantContext of tenantContexts) {
+    const tenantStartedAt = new Date();
+    const jobRunRepository = createJobRunRepository({ tenantId: tenantContext.tenantId });
+    const tenantJobRunId = await jobRunRepository.start({
+      jobType: "sync_content_shops",
+      startedAt: tenantStartedAt,
+      details: {
+        source: "scheduler.sync-content",
+        ownerTelegramUserId: tenantContext.ownerTelegramUserId
+      }
+    });
+
     logger.info(
       {
         tenantId: tenantContext.tenantId,
@@ -51,24 +62,58 @@ try {
       }
     });
 
-    const result = await syncContentShopsService.syncContentShops();
+    try {
+      const result = await syncContentShopsService.syncContentShops();
 
-    aggregateProcessedShops += result.processedShops;
-    aggregateSuccessCount += result.successCount;
-    aggregateFailureCount += result.failureCount;
-    aggregateCardsUpserted += result.totalCardsUpserted;
+      aggregateProcessedShops += result.processedShops;
+      aggregateSuccessCount += result.successCount;
+      aggregateFailureCount += result.failureCount;
+      aggregateCardsUpserted += result.totalCardsUpserted;
 
-    logger.info(
-      {
-        tenantId: tenantContext.tenantId,
-        ownerTelegramUserId: tenantContext.ownerTelegramUserId,
-        processedShops: result.processedShops,
-        successCount: result.successCount,
-        failureCount: result.failureCount,
-        totalCardsUpserted: result.totalCardsUpserted
-      },
-      "tenant sync completed"
-    );
+      const finishedAt = new Date();
+
+      await jobRunRepository.markSuccess({
+        jobRunId: tenantJobRunId,
+        finishedAt,
+        details: {
+          source: "scheduler.sync-content",
+          ownerTelegramUserId: tenantContext.ownerTelegramUserId,
+          processedShops: result.processedShops,
+          successCount: result.successCount,
+          failureCount: result.failureCount,
+          totalCardsUpserted: result.totalCardsUpserted,
+          durationMs: finishedAt.getTime() - tenantStartedAt.getTime()
+        }
+      });
+
+      logger.info(
+        {
+          tenantId: tenantContext.tenantId,
+          ownerTelegramUserId: tenantContext.ownerTelegramUserId,
+          processedShops: result.processedShops,
+          successCount: result.successCount,
+          failureCount: result.failureCount,
+          totalCardsUpserted: result.totalCardsUpserted
+        },
+        "tenant sync completed"
+      );
+    } catch (error) {
+      const finishedAt = new Date();
+      const errorMessage = toErrorMessage(error);
+
+      await jobRunRepository.markFailed({
+        jobRunId: tenantJobRunId,
+        error: errorMessage,
+        finishedAt,
+        details: {
+          source: "scheduler.sync-content",
+          ownerTelegramUserId: tenantContext.ownerTelegramUserId,
+          durationMs: finishedAt.getTime() - tenantStartedAt.getTime()
+        }
+      });
+
+      throw error;
+    }
   }
 
   logger.info(

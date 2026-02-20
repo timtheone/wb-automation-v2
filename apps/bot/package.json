@@ -4,8 +4,8 @@
   "version": "0.1.0",
   "type": "module",
   "scripts": {
-    "dev": "bun --env-file ../../.env --watch src/index.ts",
-    "start": "bun --env-file ../../.env src/index.ts",
+    "dev": "bun --env-file ${ENV_FILE:-../../.env.local} --watch src/index.ts",
+    "start": "bun --env-file ${ENV_FILE:-../../.env} src/index.ts",
     "gen:spec": "pnpm --filter @wb-automation-v2/backend openapi:write ../bot/src/docs/openapi-backend.json",
     "gen:types": "openapi-typescript ./src/docs/openapi-backend.json -o ./src/generated/backend-schema.d.ts",
     "gen": "pnpm gen:spec && pnpm gen:types",

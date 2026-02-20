@@ -2,6 +2,7 @@ import { OpenAPIHono } from "@hono/zod-openapi";
 import { swaggerUI } from "@hono/swagger-ui";
 
 import { registerFlowsController } from "./controllers/flows-controller.js";
+import { readRuntimeEnv } from "./config/env.js";
 import { registerHealthController } from "./controllers/health-controller.js";
 import { registerShopsController } from "./controllers/shops-controller.js";
 import { createRouteErrorHandler } from "./http/error-handler.js";
@@ -14,10 +15,17 @@ export function createApp() {
   const logger = createLogger({ component: "http" });
   const services = createBackendServices();
   const handleRouteError = createRouteErrorHandler(logger);
+  const shouldLogHealthchecks = (readRuntimeEnv("BACKEND_LOG_HEALTHCHECKS") ?? "false").toLowerCase() === "true";
 
   app.use("*", async (c, next) => {
     const startedAtMs = Date.now();
     await next();
+
+    const isHealthcheckRequest = c.req.method === "GET" && c.req.path === "/health";
+
+    if (isHealthcheckRequest && !shouldLogHealthchecks) {
+      return;
+    }
 
     logger.info(
       {

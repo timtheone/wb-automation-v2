@@ -1,3 +1,24 @@
+x-app-image: &app-image
+  build:
+    context: .
+    dockerfile: Dockerfile
+  image: wb-automation-v2-app:latest
+  working_dir: /app
+
+x-backend-runtime-env: &backend-runtime-env
+  DATABASE_URL: "postgres://${POSTGRES_USER:-wb-automation-db-dev-user}:${POSTGRES_PASSWORD:-wb-automation-db-dev-pass}@postgres:5432/${POSTGRES_DB:-wb_automation_v2}"
+  PG_BOSS_SCHEMA: "${PG_BOSS_SCHEMA:-pgboss}"
+  BOT_TOKEN: "${BOT_TOKEN:?BOT_TOKEN is required}"
+  BACKEND_LOG_LEVEL: "${BACKEND_LOG_LEVEL:-info}"
+  BACKEND_LOG_HEALTHCHECKS: "${BACKEND_LOG_HEALTHCHECKS:-false}"
+  BACKEND_LOG_FILE: "${BACKEND_LOG_FILE:-logs/backend.log}"
+
+x-bot-runtime-env: &bot-runtime-env
+  BOT_TOKEN: "${BOT_TOKEN:?BOT_TOKEN is required}"
+  BACKEND_BASE_URL: "http://backend:3000"
+  BOT_LOG_LEVEL: "${BOT_LOG_LEVEL:-info}"
+  BOT_LOG_FILE: "${BOT_LOG_FILE:-logs/bot.log}"
+
 services:
   postgres:
     image: postgres:17-alpine
@@ -17,5 +38,131 @@ services:
     volumes:
       - postgres_data:/var/lib/postgresql/data
 
+  backend:
+    <<: *app-image
+    container_name: wb-automation-v2-backend
+    restart: unless-stopped
+    depends_on:
+      postgres:
+        condition: service_healthy
+    ports:
+      - "${BACKEND_PORT:-3000}:3000"
+    environment:
+      <<: *backend-runtime-env
+      BACKEND_PORT: "3000"
+    command: ["bash", "./scripts/start-backend.sh"]
+    healthcheck:
+      test: ["CMD", "curl", "--fail", "http://localhost:3000/health"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 15s
+    volumes:
+      - app_logs:/app/logs
+
+  bot:
+    <<: *app-image
+    container_name: wb-automation-v2-bot
+    restart: unless-stopped
+    depends_on:
+      backend:
+        condition: service_healthy
+    environment:
+      <<: *bot-runtime-env
+    command: ["bun", "run", "apps/bot/src/index.ts"]
+    volumes:
+      - app_logs:/app/logs
+
+  scheduler-sync-content:
+    <<: *app-image
+    container_name: wb-automation-v2-scheduler-sync-content
+    restart: unless-stopped
+    depends_on:
+      postgres:
+        condition: service_healthy
+    environment:
+      <<: *backend-runtime-env
+      SCHEDULER_NAME: sync-content-scheduler
+      SCHEDULER_TZ: "${SCHEDULER_TZ:-Europe/Berlin}"
+      TZ: "${SCHEDULER_TZ:-Europe/Berlin}"
+      CRON_EXPRESSION: "${SYNC_CONTENT_CRON:-0 6 * * *}"
+      JOB_COMMAND: "bash ./scripts/run-sync-content-job.sh"
+    command: ["bash", "./scripts/run-cron-scheduler.sh"]
+    volumes:
+      - app_logs:/app/logs
+
+  scheduler-wb-token-expiration:
+    <<: *app-image
+    container_name: wb-automation-v2-scheduler-wb-token-expiration
+    restart: unless-stopped
+    depends_on:
+      postgres:
+        condition: service_healthy
+    environment:
+      <<: *backend-runtime-env
+      SCHEDULER_NAME: wb-token-expiration-scheduler
+      SCHEDULER_TZ: "${SCHEDULER_TZ:-Europe/Berlin}"
+      TZ: "${SCHEDULER_TZ:-Europe/Berlin}"
+      CRON_EXPRESSION: "${WB_TOKEN_EXPIRATION_CRON:-0 9 * * *}"
+      JOB_COMMAND: "bash ./scripts/run-wb-token-expiration-job.sh"
+    command: ["bash", "./scripts/run-cron-scheduler.sh"]
+    volumes:
+      - app_logs:/app/logs
+
+  scheduler-logs-cleanup:
+    <<: *app-image
+    container_name: wb-automation-v2-scheduler-logs-cleanup
+    restart: unless-stopped
+    environment:
+      SCHEDULER_NAME: logs-cleanup-scheduler
+      SCHEDULER_TZ: "${SCHEDULER_TZ:-Europe/Berlin}"
+      TZ: "${SCHEDULER_TZ:-Europe/Berlin}"
+      CRON_EXPRESSION: "${LOG_CLEANUP_CRON:-0 3 * * *}"
+      JOB_COMMAND: "bash ./scripts/run-logs-cleanup-job.sh"
+      LOG_RETENTION_DAYS: "${LOG_RETENTION_DAYS:-30}"
+    command: ["bash", "./scripts/run-cron-scheduler.sh"]
+    volumes:
+      - app_logs:/app/logs
+
+  job-sync-content:
+    <<: *app-image
+    container_name: wb-automation-v2-job-sync-content
+    profiles: ["manual"]
+    restart: "no"
+    depends_on:
+      postgres:
+        condition: service_healthy
+    environment:
+      <<: *backend-runtime-env
+    command: ["bash", "./scripts/run-sync-content-job.sh"]
+    volumes:
+      - app_logs:/app/logs
+
+  job-wb-token-expiration:
+    <<: *app-image
+    container_name: wb-automation-v2-job-wb-token-expiration
+    profiles: ["manual"]
+    restart: "no"
+    depends_on:
+      postgres:
+        condition: service_healthy
+    environment:
+      <<: *backend-runtime-env
+    command: ["bash", "./scripts/run-wb-token-expiration-job.sh"]
+    volumes:
+      - app_logs:/app/logs
+
+  job-logs-cleanup:
+    <<: *app-image
+    container_name: wb-automation-v2-job-logs-cleanup
+    profiles: ["manual"]
+    restart: "no"
+    environment:
+      LOG_RETENTION_DAYS: "${LOG_RETENTION_DAYS:-30}"
+    command: ["bash", "./scripts/run-logs-cleanup-job.sh"]
+    volumes:
+      - app_logs:/app/logs
+
 volumes:
   postgres_data:
+  app_logs:

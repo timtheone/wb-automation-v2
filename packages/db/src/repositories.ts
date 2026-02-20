@@ -1,11 +1,16 @@
 import { and, asc, desc, eq, inArray, sql } from "drizzle-orm";
 
 import { getDatabase, type Database } from "./index.js";
-import { productCards, shops, syncState, tenantChats, tenants } from "./schema.js";
+import { jobRuns, productCards, shops, syncState, tenantChats, tenants } from "./schema.js";
 
 export type SyncStatus = "idle" | "running" | "success" | "failed";
 export type WbTokenType = "production" | "sandbox";
 export type TelegramChatType = "private" | "group" | "supergroup" | "channel";
+export type JobType =
+  | "process_all_shops"
+  | "sync_content_shops"
+  | "get_combined_pdf_lists"
+  | "get_waiting_orders_pdf";
 
 export interface Tenant {
   id: string;
@@ -135,10 +140,37 @@ export interface SyncStateRepository {
   upsert(input: UpsertSyncStateInput): Promise<void>;
 }
 
+export interface StartJobRunInput {
+  jobType: JobType;
+  shopId?: string | null;
+  startedAt?: Date;
+  details?: Record<string, unknown>;
+}
+
+export interface MarkJobRunSuccessInput {
+  jobRunId: number;
+  finishedAt?: Date;
+  details?: Record<string, unknown>;
+}
+
+export interface MarkJobRunFailedInput {
+  jobRunId: number;
+  error: string;
+  finishedAt?: Date;
+  details?: Record<string, unknown>;
+}
+
+export interface JobRunRepository {
+  start(input: StartJobRunInput): Promise<number>;
+  markSuccess(input: MarkJobRunSuccessInput): Promise<void>;
+  markFailed(input: MarkJobRunFailedInput): Promise<void>;
+}
+
 export interface DbRepositories {
   shops: ShopRepository;
   productCards: ProductCardRepository;
   syncState: SyncStateRepository;
+  jobRuns: JobRunRepository;
 }
 
 export interface TenantScopedRepositoryOptions {
@@ -155,7 +187,8 @@ export function createDbRepositories(options: TenantScopedRepositoryOptions): Db
   return {
     shops: createShopRepository(options),
     productCards: createProductCardRepository(options),
-    syncState: createSyncStateRepository(options)
+    syncState: createSyncStateRepository(options),
+    jobRuns: createJobRunRepository(options)
   };
 }
 
@@ -465,6 +498,63 @@ export function createSyncStateRepository(options: TenantScopedRepositoryOptions
               updatedAt: input.updatedAt
             }
           });
+      });
+    }
+  };
+}
+
+export function createJobRunRepository(options: TenantScopedRepositoryOptions): JobRunRepository {
+  const context = createTenantContext(options);
+
+  return {
+    async start(input: StartJobRunInput): Promise<number> {
+      return withTenantScope(context, async (db) => {
+        const [created] = await db
+          .insert(jobRuns)
+          .values({
+            tenantId: context.tenantId,
+            jobType: input.jobType,
+            status: "running",
+            shopId: input.shopId ?? null,
+            startedAt: input.startedAt ?? new Date(),
+            details: input.details,
+            error: null
+          })
+          .returning({ id: jobRuns.id });
+
+        if (!created) {
+          throw new Error("Failed to insert job run");
+        }
+
+        return created.id;
+      });
+    },
+
+    async markSuccess(input: MarkJobRunSuccessInput): Promise<void> {
+      await withTenantScope(context, async (db) => {
+        await db
+          .update(jobRuns)
+          .set({
+            status: "success",
+            finishedAt: input.finishedAt ?? new Date(),
+            details: input.details,
+            error: null
+          })
+          .where(and(eq(jobRuns.id, input.jobRunId), eq(jobRuns.tenantId, context.tenantId)));
+      });
+    },
+
+    async markFailed(input: MarkJobRunFailedInput): Promise<void> {
+      await withTenantScope(context, async (db) => {
+        await db
+          .update(jobRuns)
+          .set({
+            status: "failed",
+            finishedAt: input.finishedAt ?? new Date(),
+            details: input.details,
+            error: input.error
+          })
+          .where(and(eq(jobRuns.id, input.jobRunId), eq(jobRuns.tenantId, context.tenantId)));
       });
     }
   };
