@@ -3,6 +3,8 @@ import { fileURLToPath } from "node:url";
 
 import pino from "pino";
 
+import { readRuntimeEnv } from "./config/env.js";
+
 const moduleDirectory = dirname(fileURLToPath(import.meta.url));
 const workspaceRootDirectory = resolve(moduleDirectory, "../../..");
 const defaultLogFilePath = resolve(workspaceRootDirectory, "logs/backend.log");
@@ -30,12 +32,4 @@ export function createLogger(bindings: Record<string, string>) {
 
 export function getBackendLogFilePath() {
   return logFilePath;
-}
-
-function readRuntimeEnv(key: string): string | undefined {
-  if (typeof Bun !== "undefined") {
-    return Bun.env[key] ?? process.env[key];
-  }
-
-  return process.env[key];
 }

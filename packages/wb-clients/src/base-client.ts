@@ -1,9 +1,6 @@
 import createClient from "openapi-fetch";
 
-export type FetchLike = (
-  input: string | URL | Request,
-  init?: RequestInit
-) => Promise<Response>;
+export type FetchLike = (input: string | URL | Request, init?: RequestInit) => Promise<Response>;
 
 export interface CreateWbBaseClientOptions {
   token: string;
@@ -26,9 +23,7 @@ export class WbApiHttpError extends Error {
   }
 }
 
-export function createWbBaseClient<TPaths extends object>(
-  options: CreateWbBaseClientOptions
-) {
+export function createWbBaseClient<TPaths extends object>(options: CreateWbBaseClientOptions) {
   const client = createClient<TPaths>({
     baseUrl: normalizeBaseUrl(options.baseUrl),
     fetch: options.fetch
@@ -38,14 +33,11 @@ export function createWbBaseClient<TPaths extends object>(
     onRequest({ request }) {
       request.headers.set("Authorization", options.token);
       request.headers.set("Accept", "application/json");
-      return request;
     },
     onResponse({ response }) {
       if (!response.ok) {
         throw new WbApiHttpError(response);
       }
-
-      return response;
     }
   });
 

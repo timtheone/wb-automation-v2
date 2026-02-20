@@ -3,7 +3,7 @@ export interface BotConfig {
   backendBaseUrl: string;
 }
 
-export function readBotConfig(env: NodeJS.ProcessEnv = Bun.env): BotConfig {
+export function readBotConfig(env: NodeJS.ProcessEnv = process.env): BotConfig {
   const token = env.BOT_TOKEN?.trim();
 
   if (!token) {

@@ -31,7 +31,11 @@ services:
       POSTGRES_USER: ${POSTGRES_USER:-wb-automation-db-dev-user}
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-wb-automation-db-dev-pass}
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-wb-automation-db-dev-user} -d ${POSTGRES_DB:-wb_automation_v2}"]
+      test:
+        [
+          "CMD-SHELL",
+          "pg_isready -U ${POSTGRES_USER:-wb-automation-db-dev-user} -d ${POSTGRES_DB:-wb_automation_v2}"
+        ]
       interval: 5s
       timeout: 5s
       retries: 10
@@ -69,7 +73,7 @@ services:
         condition: service_healthy
     environment:
       <<: *bot-runtime-env
-    command: ["bun", "run", "apps/bot/src/index.ts"]
+    command: ["node", "apps/bot/dist/index.js"]
     volumes:
       - app_logs:/app/logs
 

@@ -1,14 +1,11 @@
-import { drizzle } from "drizzle-orm/bun-sql";
+import { drizzle } from "drizzle-orm/node-postgres";
+import { Pool } from "pg";
 import * as schema from "./schema.js";
 
 const DEFAULT_DATABASE_URL =
   "postgres://wb-automation-db-dev-user:wb-automation-db-dev-pass@localhost:5440/wb_automation_v2";
 
 function readRuntimeEnv(key: string): string | undefined {
-  if (typeof Bun !== "undefined") {
-    return Bun.env[key] ?? process.env[key];
-  }
-
   return process.env[key];
 }
 
@@ -17,14 +14,12 @@ export function getDatabaseUrl(): string {
 }
 
 export function createDb(databaseUrl = getDatabaseUrl()) {
-  const db = drizzle({
-    connection: databaseUrl,
-    schema
-  });
+  const client = new Pool({ connectionString: databaseUrl });
+  const db = drizzle(client, { schema });
 
   return {
     db,
-    client: db.$client
+    client
   };
 }
 

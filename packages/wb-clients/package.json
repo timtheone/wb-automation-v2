@@ -3,8 +3,15 @@
   "private": true,
   "version": "0.1.0",
   "type": "module",
-  "exports": "./src/index.ts",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
+    }
+  },
   "scripts": {
+    "build": "tsc -p tsconfig.build.json && mkdir -p dist/generated && cp src/generated/*.d.ts dist/generated/",
     "typecheck": "tsc -p tsconfig.json --noEmit",
     "gen:fbs": "openapi-typescript ./src/docs/openapi-fbs.yaml -o src/generated/fbs-schema.d.ts",
     "gen:products": "openapi-typescript ./src/docs/openapi-products.yaml -o src/generated/products-schema.d.ts",

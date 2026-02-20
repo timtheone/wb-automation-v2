@@ -37,26 +37,26 @@ require_crontab() {
   fi
 }
 
-resolve_bun_bin() {
-  local bun_bin
+resolve_node_bin() {
+  local node_bin
 
-  if [[ -n "${BUN_BIN:-}" ]]; then
-    bun_bin="${BUN_BIN}"
+  if [[ -n "${NODE_BIN:-}" ]]; then
+    node_bin="${NODE_BIN}"
   else
-    bun_bin="$(command -v bun || true)"
+    node_bin="$(command -v node || true)"
   fi
 
-  if [[ -z "${bun_bin}" ]]; then
-    echo "[sync-content-scheduler] bun binary not found. Set BUN_BIN or add bun to PATH." >&2
+  if [[ -z "${node_bin}" ]]; then
+    echo "[sync-content-scheduler] node binary not found. Set NODE_BIN or add node to PATH." >&2
     exit 1
   fi
 
-  if [[ ! -x "${bun_bin}" ]]; then
-    echo "[sync-content-scheduler] bun path is not executable: ${bun_bin}" >&2
+  if [[ ! -x "${node_bin}" ]]; then
+    echo "[sync-content-scheduler] node path is not executable: ${node_bin}" >&2
     exit 1
   fi
 
-  echo "${bun_bin}"
+  echo "${node_bin}"
 }
 
 get_existing_crontab() {
@@ -71,13 +71,13 @@ install_schedule() {
   require_crontab
 
   local cron_expression="${1:-${DEFAULT_CRON_EXPRESSION}}"
-  local bun_bin
-  bun_bin="$(resolve_bun_bin)"
+  local node_bin
+  node_bin="$(resolve_node_bin)"
 
   mkdir -p "${PROJECT_DIR}/logs"
 
   local entry
-  entry="${cron_expression} BUN_BIN='${bun_bin}' bash '${RUN_SCRIPT_PATH}' >> '${LOG_FILE_PATH}' 2>&1 ${CRON_MARKER}"
+  entry="${cron_expression} NODE_BIN='${node_bin}' bash '${RUN_SCRIPT_PATH}' >> '${LOG_FILE_PATH}' 2>&1 ${CRON_MARKER}"
 
   local existing
   existing="$(get_existing_crontab)"
@@ -122,7 +122,7 @@ show_status() {
 }
 
 run_now() {
-  BUN_BIN="$(resolve_bun_bin)" bash "${RUN_SCRIPT_PATH}"
+  NODE_BIN="$(resolve_node_bin)" bash "${RUN_SCRIPT_PATH}"
 }
 
 main() {

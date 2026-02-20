@@ -3,7 +3,13 @@
   "private": true,
   "version": "0.1.0",
   "type": "module",
-  "exports": "./src/index.ts",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
+    }
+  },
   "dependencies": {
     "@wb-automation-v2/db": "workspace:*",
     "@wb-automation-v2/wb-clients": "workspace:*",
@@ -14,6 +20,7 @@
     "@types/pdfkit": "^0.17.5"
   },
   "scripts": {
+    "build": "tsc -p tsconfig.build.json",
     "typecheck": "tsc -p tsconfig.json --noEmit",
     "test": "vitest run"
   }

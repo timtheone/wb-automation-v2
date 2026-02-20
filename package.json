@@ -14,8 +14,7 @@
     "prod:restart:backend": "docker compose --env-file .env restart backend",
     "prod:restart:bot": "docker compose --env-file .env restart bot",
     "prod:logs": "docker compose --env-file .env logs -f backend bot scheduler-sync-content scheduler-wb-token-expiration scheduler-logs-cleanup",
-    "prod:job:sync": "docker compose --env-file .env --profile manual run --rm job-sync-content",
-    "prod:job:sync-content": "pnpm prod:job:sync",
+    "prod:job:sync-content": "docker compose --env-file .env --profile manual run --rm job-sync-content",
     "prod:job:wb-token-expiration": "docker compose --env-file .env --profile manual run --rm job-wb-token-expiration",
     "prod:job:logs-cleanup": "docker compose --env-file .env --profile manual run --rm job-logs-cleanup",
     "db:local:up": "docker compose --env-file .env.local -f local-db.docker-compose.yml up -d --wait postgres",
@@ -26,6 +25,8 @@
     "db:migrate": "WB_ENV=local pnpm --filter @wb-automation-v2/db drizzle:migrate",
     "db:studio": "WB_ENV=local pnpm --filter @wb-automation-v2/db drizzle:studio",
     "wb:gen": "pnpm --filter @wb-automation-v2/wb-clients gen",
+    "build": "pnpm -r --if-present build",
+    "build:clean": "rm -rf apps/*/dist packages/*/dist",
     "lint": "oxlint .",
     "lint:fix": "oxlint --fix .",
     "test": "vitest run",
@@ -36,8 +37,8 @@
     "format:write": "prettier --write ."
   },
   "devDependencies": {
+    "@types/node": "^24.5.2",
     "@vitest/coverage-v8": "^4.0.18",
-    "@types/bun": "^1.3.9",
     "oxlint": "^1.49.0",
     "prettier": "^3.8.1",
     "typescript": "^5.9.3",

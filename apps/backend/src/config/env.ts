@@ -1,8 +1,4 @@
 export function readRuntimeEnv(key: string): string | undefined {
-  if (typeof Bun !== "undefined") {
-    return Bun.env[key] ?? process.env[key];
-  }
-
   return process.env[key];
 }
 

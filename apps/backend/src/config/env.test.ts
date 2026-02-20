@@ -1,10 +1,9 @@
-import { afterEach, describe, expect, it, vi } from "vitest";
+import { afterEach, describe, expect, it } from "vitest";
 
 import { readPositiveNumberEnv, readRuntimeEnv } from "./env.js";
 
 describe("backend env helpers", () => {
   afterEach(() => {
-    vi.unstubAllGlobals();
     delete process.env.TEST_ENV_KEY;
     delete process.env.TEST_NUMERIC_ENV;
   });
@@ -13,17 +12,6 @@ describe("backend env helpers", () => {
     process.env.TEST_ENV_KEY = "value-from-process";
 
     expect(readRuntimeEnv("TEST_ENV_KEY")).toBe("value-from-process");
-  });
-
-  it("prefers Bun.env when Bun runtime is available", () => {
-    process.env.TEST_ENV_KEY = "value-from-process";
-    vi.stubGlobal("Bun", {
-      env: {
-        TEST_ENV_KEY: "value-from-bun"
-      }
-    });
-
-    expect(readRuntimeEnv("TEST_ENV_KEY")).toBe("value-from-bun");
   });
 
   it("parses positive numeric env values and falls back for invalid inputs", () => {

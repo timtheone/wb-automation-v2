@@ -5,18 +5,18 @@ set -euo pipefail
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 PROJECT_DIR="$(cd "${SCRIPT_DIR}/.." && pwd)"
 
-if [[ -n "${BUN_BIN:-}" ]]; then
-  BUN_CMD="${BUN_BIN}"
+if [[ -n "${NODE_BIN:-}" ]]; then
+  NODE_CMD="${NODE_BIN}"
 else
-  BUN_CMD="$(command -v bun || true)"
+  NODE_CMD="$(command -v node || true)"
 fi
 
-if [[ -z "${BUN_CMD}" ]]; then
-  echo "[run-wb-token-expiration-job] bun binary not found. Set BUN_BIN or add bun to PATH." >&2
+if [[ -z "${NODE_CMD}" ]]; then
+  echo "[run-wb-token-expiration-job] node binary not found. Set NODE_BIN or add node to PATH." >&2
   exit 1
 fi
 
 mkdir -p "${PROJECT_DIR}/logs"
 
 cd "${PROJECT_DIR}"
-"${BUN_CMD}" run "apps/backend/src/run-wb-token-expiration-job.ts"
+"${NODE_CMD}" "apps/backend/dist/run-wb-token-expiration-job.js"

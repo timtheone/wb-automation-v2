@@ -47,11 +47,10 @@ export function createBackendClient(options: CreateBackendClientOptions) {
   client.use({
     onRequest({ request }) {
       request.headers.set("Accept", "application/json");
-      return request;
     },
     async onResponse({ response }) {
       if (response.ok) {
-        return response;
+        return;
       }
 
       const details = await parseResponsePayload(response.clone());

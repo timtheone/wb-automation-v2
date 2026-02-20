@@ -4,7 +4,7 @@ import { dirname, resolve } from "node:path";
 import { createApp } from "./app.js";
 import { backendOpenApiDocument } from "./openapi/document.js";
 
-const outputArg = Bun.argv[2] ?? "openapi.json";
+const outputArg = process.argv[2] ?? "openapi.json";
 const outputPath = resolve(process.cwd(), outputArg);
 
 const { app } = createApp();

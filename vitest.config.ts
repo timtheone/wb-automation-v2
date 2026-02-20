@@ -1,6 +1,19 @@
+import { fileURLToPath } from "node:url";
+
 import { defineConfig } from "vitest/config";
 
 export default defineConfig({
+  resolve: {
+    alias: {
+      "@wb-automation-v2/core": fileURLToPath(
+        new URL("./packages/core/src/index.ts", import.meta.url)
+      ),
+      "@wb-automation-v2/db": fileURLToPath(new URL("./packages/db/src/index.ts", import.meta.url)),
+      "@wb-automation-v2/wb-clients": fileURLToPath(
+        new URL("./packages/wb-clients/src/index.ts", import.meta.url)
+      )
+    }
+  },
   test: {
     environment: "node",
     include: ["apps/**/*.test.ts", "packages/**/*.test.ts"],
