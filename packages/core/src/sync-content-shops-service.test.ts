@@ -17,9 +17,7 @@ const testState = vi.hoisted(() => {
     shops: null as Pick<ShopRepository, "listActiveShops"> | null,
     productCards: null as ProductCardRepository | null,
     syncState: null as SyncStateRepository | null,
-    createClient: null as
-      | ((options: { token: string; baseUrl?: string }) => ProductsClient)
-      | null
+    createClient: null as ((options: { token: string; baseUrl?: string }) => ProductsClient) | null
   };
 });
 
@@ -462,7 +460,9 @@ describe("sync content shops service", () => {
     expect(result.successCount).toBe(0);
     expect(result.failureCount).toBe(1);
     expect(result.results[0]?.status).toBe("failed");
-    expect(result.results[0]?.error).toBe("Full content sync reached max pages limit (1) for shop shop-limit");
+    expect(result.results[0]?.error).toBe(
+      "Full content sync reached max pages limit (1) for shop shop-limit"
+    );
     expect(storedState?.lastStatus).toBe("failed");
     expect(storedState?.cursorNmId).toBe(777);
     expect(storedState?.lastSyncedAt?.toISOString()).toBe("2030-01-01T00:00:00.000Z");
@@ -668,15 +668,13 @@ describe("sync content shops service", () => {
     });
 
     const resultPromise = service.syncContentShops();
-    await Promise.resolve();
-    await Promise.resolve();
+    await waitForCondition(() => startedTokens.length === 10);
 
     expect(startedTokens.length).toBe(10);
     expect(maxInFlight).toBe(10);
 
     deferredByToken.get("token-1")?.resolve();
-    await Promise.resolve();
-    await Promise.resolve();
+    await waitForCondition(() => startedTokens.includes("token-11"));
 
     expect(startedTokens).toContain("token-11");
     expect(maxInFlight).toBe(10);
@@ -691,3 +689,23 @@ describe("sync content shops service", () => {
     expect(result.failureCount).toBe(0);
   });
 });
+
+async function waitForCondition(
+  predicate: () => boolean,
+  options: {
+    maxTurns?: number;
+    errorMessage?: string;
+  } = {}
+): Promise<void> {
+  const maxTurns = options.maxTurns ?? 500;
+
+  for (let turn = 0; turn < maxTurns; turn += 1) {
+    if (predicate()) {
+      return;
+    }
+
+    await Promise.resolve();
+  }
+
+  throw new Error(options.errorMessage ?? "Condition was not met in time");
+}
