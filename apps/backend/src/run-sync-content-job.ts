@@ -3,9 +3,11 @@ import { createJobRunRepository, getDatabaseClient } from "@wb-automation-v2/db"
 
 import { createLogger, getBackendLogFilePath } from "./logger.js";
 import { createBackendTenantService } from "./services/tenant-service.js";
+import { createTelegramDeliveryService } from "./services/telegram-delivery-service.js";
 
 const logger = createLogger({ component: "sync-content-job" });
 const tenantService = createBackendTenantService();
+const telegramDelivery = createTelegramDeliveryService();
 
 const startedAt = new Date();
 logger.info({ startedAt: startedAt.toISOString(), logFilePath: getBackendLogFilePath() }, "job started");
@@ -23,6 +25,21 @@ try {
   let aggregateSuccessCount = 0;
   let aggregateFailureCount = 0;
   let aggregateCardsUpserted = 0;
+  const pendingFailureSummaries: Array<{
+    tenantId: string;
+    chatId: number;
+    summary: {
+      processedShops: number;
+      successCount: number;
+      failureCount: number;
+      totalCardsUpserted: number;
+      failedShops: Array<{
+        shopId: string;
+        shopName: string;
+        error: string;
+      }>;
+    };
+  }> = [];
 
   for (const tenantContext of tenantContexts) {
     const tenantStartedAt = new Date();
@@ -97,6 +114,32 @@ try {
         },
         "tenant sync completed"
       );
+
+      const failedShops = result.results.flatMap((item) =>
+        item.status === "failed" && item.error !== null
+          ? [
+              {
+                shopId: item.shopId,
+                shopName: item.shopName,
+                error: item.error
+              }
+            ]
+          : []
+      );
+
+      if (failedShops.length > 0) {
+        pendingFailureSummaries.push({
+          tenantId: tenantContext.tenantId,
+          chatId: tenantContext.ownerTelegramUserId,
+          summary: {
+            processedShops: result.processedShops,
+            successCount: result.successCount,
+            failureCount: result.failureCount,
+            totalCardsUpserted: result.totalCardsUpserted,
+            failedShops
+          }
+        });
+      }
     } catch (error) {
       const finishedAt = new Date();
       const errorMessage = toErrorMessage(error);
@@ -113,6 +156,33 @@ try {
       });
 
       throw error;
+    }
+  }
+
+  for (const pendingSummary of pendingFailureSummaries) {
+    try {
+      await telegramDelivery.sendSyncContentShopsFailureSummary(
+        pendingSummary.chatId,
+        pendingSummary.summary,
+        null
+      );
+      logger.info(
+        {
+          tenantId: pendingSummary.tenantId,
+          chatId: pendingSummary.chatId,
+          failureCount: pendingSummary.summary.failureCount
+        },
+        "sent scheduled sync-content failure summary to telegram"
+      );
+    } catch (notificationError) {
+      logger.error(
+        {
+          tenantId: pendingSummary.tenantId,
+          chatId: pendingSummary.chatId,
+          error: toErrorMessage(notificationError)
+        },
+        "failed to send scheduled sync-content failure summary to telegram"
+      );
     }
   }
 

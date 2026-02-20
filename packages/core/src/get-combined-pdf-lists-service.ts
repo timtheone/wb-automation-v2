@@ -24,6 +24,7 @@ const STICKER_MM_HEIGHT = 40;
 const PDF_FONT_REGULAR_PATH = resolveCoreAssetPath("fonts", "NotoSans-Regular.ttf");
 const PDF_FONT_BOLD_PATH = resolveCoreAssetPath("fonts", "NotoSans-Bold.ttf");
 const ORDER_LIST_TITLE = "Листы подбора:";
+const WAITING_ORDER_LIST_TITLE_SUFFIX = "(ожидающие)";
 const ORDER_LIST_TEXT_FONT_SIZE = 12;
 const ORDER_LIST_TABLE_FONT_SIZE = 9;
 const ORDER_LIST_ORDER_ID_FONT_SIZE = 8;
@@ -412,7 +413,7 @@ export function createGetCombinedPdfListsService(
 
       const sortedRows = rows.toSorted((left, right) => compareRows(left, right));
       const imageByUrl = await preloadImages(sortedRows, fetchImage, maxEmbeddedImages);
-      const orderListPdfBuffer = await renderOrderListPdf(sortedRows, imageByUrl);
+      const orderListPdfBuffer = await renderOrderListPdf(sortedRows, imageByUrl, mode);
       const stickersPdfBuffer = await renderStickersPdf(sortedRows);
       const finishedAt = now();
       const successCount = results.filter((item) => item.status === "success").length;
@@ -1094,7 +1095,11 @@ function loadSharp(): SharpLike | null {
   }
 }
 
-async function renderOrderListPdf(rows: CombinedRow[], imageByUrl: Map<string, Uint8Array>): Promise<Buffer> {
+async function renderOrderListPdf(
+  rows: CombinedRow[],
+  imageByUrl: Map<string, Uint8Array>,
+  mode: CombinedPdfFlowMode
+): Promise<Buffer> {
   return createPdfBuffer(async (doc) => {
     const fonts = resolvePdfFonts();
     const margin = 18;
@@ -1125,11 +1130,21 @@ async function renderOrderListPdf(rows: CombinedRow[], imageByUrl: Map<string, U
 
     const rowsBySupply = groupRowsBySupply(rows);
 
-    doc
-      .fillColor(textColor)
-      .font(fonts.regular)
-      .fontSize(ORDER_LIST_TEXT_FONT_SIZE)
-      .text(ORDER_LIST_TITLE, margin, margin);
+    doc.fillColor(textColor).font(fonts.regular).fontSize(ORDER_LIST_TEXT_FONT_SIZE);
+    if (mode === "waiting") {
+      doc.text(`${ORDER_LIST_TITLE.slice(0, -1)} `, margin, margin, {
+        continued: true,
+        lineBreak: false
+      });
+      doc.font(fonts.bold).text(WAITING_ORDER_LIST_TITLE_SUFFIX, {
+        continued: true,
+        lineBreak: false
+      });
+      doc.font(fonts.regular).text(":", { lineBreak: true });
+    } else {
+      doc.text(ORDER_LIST_TITLE, margin, margin);
+    }
+    doc.x = margin;
     doc.moveDown(0.2);
     doc.font(fonts.regular).fontSize(ORDER_LIST_TEXT_FONT_SIZE);
 

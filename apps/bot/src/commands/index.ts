@@ -19,9 +19,9 @@ export async function registerCommands(bot: Bot<BotContext>, backend: BackendCli
   registerPingCommand(bot);
   registerCancelCommand(bot);
   registerProcessAllShopsCommand(bot, backend);
-  registerSyncContentShopsCommand(bot, backend);
   registerGeneratePdfsCommand(bot, backend);
   registerGenerateWaitingOrdersPdfCommand(bot, backend);
+  registerSyncContentShopsCommand(bot, backend);
   registerShopsCommand(bot, backend);
 
   const en = createTranslator("en");

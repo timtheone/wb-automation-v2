@@ -26,6 +26,21 @@ export interface TelegramDeliveryService {
     languageCode: string | null
   ): Promise<void>;
   sendSyncContentShopsFailed(chatId: number, errorMessage: string, languageCode: string | null): Promise<void>;
+  sendSyncContentShopsFailureSummary(
+    chatId: number,
+    summary: {
+      processedShops: number;
+      successCount: number;
+      failureCount: number;
+      totalCardsUpserted: number;
+      failedShops: Array<{
+        shopId: string;
+        shopName: string;
+        error: string;
+      }>;
+    },
+    languageCode: string | null
+  ): Promise<void>;
   sendWbTokenExpirationWarnings(
     chatId: number,
     warnings: WbTokenExpirationWarning[],
@@ -55,6 +70,9 @@ export function createTelegramDeliveryService(): TelegramDeliveryService {
         throw new Error("BOT_TOKEN is configured in backend environment");
       },
       async sendSyncContentShopsFailed() {
+        throw new Error("BOT_TOKEN is configured in backend environment");
+      },
+      async sendSyncContentShopsFailureSummary() {
         throw new Error("BOT_TOKEN is configured in backend environment");
       },
       async sendWbTokenExpirationWarnings() {
@@ -155,6 +173,27 @@ export function createTelegramDeliveryService(): TelegramDeliveryService {
       const locale = resolveLocale(languageCode);
       await sendMessage(baseUrl, chatId, t(locale, "syncFailed", { errorMessage }));
     },
+    async sendSyncContentShopsFailureSummary(chatId, summary, languageCode) {
+      const locale = await resolveLocaleForChat(baseUrl, chatId, languageCode);
+      const lines = [
+        t(locale, "syncFailuresSummaryHeader", {
+          processedShops: summary.processedShops,
+          successCount: summary.successCount,
+          failureCount: summary.failureCount,
+          totalCardsUpserted: summary.totalCardsUpserted
+        }),
+        ...summary.failedShops.map((failedShop, index) =>
+          t(locale, "syncFailuresSummaryItem", {
+            index: index + 1,
+            shopName: failedShop.shopName,
+            shopId: failedShop.shopId,
+            errorMessage: failedShop.error
+          })
+        )
+      ];
+
+      await sendMessage(baseUrl, chatId, lines.join("\n"));
+    },
     async sendWbTokenExpirationWarnings(chatId, warnings, languageCode = null) {
       if (warnings.length === 0) {
         return;
@@ -190,6 +229,8 @@ type DeliveryTemplateKey =
   | "waitingFailed"
   | "syncDone"
   | "syncFailed"
+  | "syncFailuresSummaryHeader"
+  | "syncFailuresSummaryItem"
   | "tokenExpirationHeader"
   | "tokenExpirationItem";
 
@@ -202,8 +243,11 @@ const DELIVERY_TEXTS: Record<DeliveryLocale, Record<DeliveryTemplateKey, string>
     waitingDone: "Done. Waiting orders collected: {totalOrdersCollected}. Shops processed: {processedShops}.",
     waitingFailed: "Waiting-orders PDF generation failed: {errorMessage}",
     syncDone:
-      "sync_content_shops completed. Processed: {processedShops}. Success: {successCount}. Failed: {failureCount}. Total cards upserted: {totalCardsUpserted}.",
+      "sync_content_shops completed. Processed: {processedShops}. Success: {successCount}. Failed: {failureCount}. New cards added: {totalCardsUpserted}.",
     syncFailed: "sync_content_shops failed: {errorMessage}",
+    syncFailuresSummaryHeader:
+      "sync_content_shops completed with failures. Processed: {processedShops}. Success: {successCount}. Failed: {failureCount}. New cards added: {totalCardsUpserted}. Failed shops:",
+    syncFailuresSummaryItem: "{index}. {shopName} ({shopId}) - {errorMessage}",
     tokenExpirationHeader: "⚠️ WB token expiration warning:",
     tokenExpirationItem: "{index}. {shopName} - expires in {daysLeft} day(s) ({expiresAt})"
   },
@@ -216,8 +260,11 @@ const DELIVERY_TEXTS: Record<DeliveryLocale, Record<DeliveryTemplateKey, string>
       "Готово. Собрано ожидающих заказов: {totalOrdersCollected}. Обработано магазинов: {processedShops}.",
     waitingFailed: "Генерация PDF для ожидающих заказов завершилась ошибкой: {errorMessage}",
     syncDone:
-      "sync_content_shops завершен. Обработано: {processedShops}. Успешно: {successCount}. С ошибкой: {failureCount}. Всего обновлено карточек: {totalCardsUpserted}.",
+      "sync_content_shops завершен. Обработано: {processedShops}. Успешно: {successCount}. С ошибкой: {failureCount}. Новых карточек добавлено: {totalCardsUpserted}.",
     syncFailed: "sync_content_shops завершился ошибкой: {errorMessage}",
+    syncFailuresSummaryHeader:
+      "sync_content_shops завершен с ошибками. Обработано: {processedShops}. Успешно: {successCount}. С ошибкой: {failureCount}. Новых карточек добавлено: {totalCardsUpserted}. Магазины с ошибками:",
+    syncFailuresSummaryItem: "{index}. {shopName} ({shopId}) - {errorMessage}",
     tokenExpirationHeader: "⚠️ Срок действия WB токена скоро истечет:",
     tokenExpirationItem: "{index}. {shopName} - истекает через {daysLeft} дн. ({expiresAt})"
   }

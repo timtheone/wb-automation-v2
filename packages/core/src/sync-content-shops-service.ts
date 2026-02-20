@@ -16,6 +16,7 @@ import { formatEmptyResponseMessage, toErrorMessage } from "./error-utils.js";
 const DEFAULT_PAGE_LIMIT = 100;
 const DEFAULT_MAX_PAGES_PER_SHOP = 10_000;
 const DEFAULT_BETWEEN_PAGES_DELAY_MS = 650;
+const MAX_PARALLEL_SHOPS = 10;
 
 type GetCardsListOperation = ProductsPaths["/content/v2/get/cards/list"]["post"];
 type CardsListBody = GetCardsListOperation["requestBody"]["content"]["application/json"];
@@ -79,6 +80,11 @@ export interface SyncContentShopsService {
   syncContentShops(): Promise<SyncContentShopsResult>;
 }
 
+type ShopSyncWorkerResult = {
+  result: SyncContentShopsResultItem;
+  cardsUpserted: number;
+};
+
 export function createSyncContentShopsService(
   options: SyncContentShopsOptions
 ): SyncContentShopsService {
@@ -97,10 +103,55 @@ export function createSyncContentShopsService(
     async syncContentShops() {
       const startedAt = now();
       const activeShops = await shops.listActiveShops();
-      const results: SyncContentShopsResultItem[] = [];
-      let totalCardsUpserted = 0;
+      const workerResults: ShopSyncWorkerResult[] = new Array(activeShops.length);
+      const inFlight = new Set<Promise<void>>();
+      let nextShopIndex = 0;
 
-      for (const shop of activeShops) {
+      const startWorker = (shopIndex: number) => {
+        const workerPromise = syncSingleShop(activeShops[shopIndex]!)
+          .then((workerResult) => {
+            workerResults[shopIndex] = workerResult;
+          })
+          .finally(() => {
+            inFlight.delete(workerPromise);
+          });
+
+        inFlight.add(workerPromise);
+      };
+
+      while (nextShopIndex < activeShops.length && inFlight.size < MAX_PARALLEL_SHOPS) {
+        startWorker(nextShopIndex);
+        nextShopIndex += 1;
+      }
+
+      while (inFlight.size > 0) {
+        await Promise.race(inFlight);
+
+        while (nextShopIndex < activeShops.length && inFlight.size < MAX_PARALLEL_SHOPS) {
+          startWorker(nextShopIndex);
+          nextShopIndex += 1;
+        }
+      }
+
+      const completedResults = workerResults.filter(
+        (result): result is ShopSyncWorkerResult => result !== undefined
+      );
+      const results = completedResults.map((item) => item.result);
+      const totalCardsUpserted = completedResults.reduce((sum, item) => sum + item.cardsUpserted, 0);
+
+      const successCount = results.filter((item) => item.status === "success").length;
+
+      return {
+        startedAt,
+        finishedAt: now(),
+        processedShops: results.length,
+        successCount,
+        failureCount: results.length - successCount,
+        totalCardsUpserted,
+        results
+      };
+
+      async function syncSingleShop(shop: Shop): Promise<ShopSyncWorkerResult> {
         const prevState = await syncState.getByShopId(shop.id);
 
         await syncState.upsert({
@@ -206,15 +257,17 @@ export function createSyncContentShopsService(
             updatedAt: finishedAt
           });
 
-          totalCardsUpserted += cardsUpserted;
-          results.push({
-            shopId: shop.id,
-            shopName: shop.name,
-            pagesFetched,
+          return {
             cardsUpserted,
-            status: "success",
-            error: null
-          });
+            result: {
+              shopId: shop.id,
+              shopName: shop.name,
+              pagesFetched,
+              cardsUpserted,
+              status: "success",
+              error: null
+            }
+          };
         } catch (error) {
           const errorMessage = toErrorMessage(error);
 
@@ -228,28 +281,19 @@ export function createSyncContentShopsService(
             updatedAt: now()
           });
 
-          results.push({
-            shopId: shop.id,
-            shopName: shop.name,
-            pagesFetched,
+          return {
             cardsUpserted,
-            status: "failed",
-            error: errorMessage
-          });
+            result: {
+              shopId: shop.id,
+              shopName: shop.name,
+              pagesFetched,
+              cardsUpserted,
+              status: "failed",
+              error: errorMessage
+            }
+          };
         }
       }
-
-      const successCount = results.filter((item) => item.status === "success").length;
-
-      return {
-        startedAt,
-        finishedAt: now(),
-        processedShops: results.length,
-        successCount,
-        failureCount: results.length - successCount,
-        totalCardsUpserted,
-        results
-      };
     }
   };
 }

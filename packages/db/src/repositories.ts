@@ -411,8 +411,8 @@ export function createProductCardRepository(options: TenantScopedRepositoryOptio
         updatedAt: card.syncedAt
       }));
 
-      await withTenantScope(context, async (db) => {
-        await db
+      return withTenantScope(context, async (db) => {
+        const upsertedRows = await db
           .insert(productCards)
           .values(rows)
           .onConflictDoUpdate({
@@ -427,11 +427,15 @@ export function createProductCardRepository(options: TenantScopedRepositoryOptio
               wbUpdatedAt: sql`excluded.wb_updated_at`,
               syncedAt: sql`excluded.synced_at`,
               updatedAt: sql`excluded.updated_at`
-            }
+            },
+            setWhere: eq(productCards.tenantId, context.tenantId)
+          })
+          .returning({
+            inserted: sql<boolean>`xmax = 0`
           });
-      });
 
-      return cards.length;
+        return upsertedRows.filter((row) => row.inserted).length;
+      });
     },
 
     async getByShopIdAndNmIds(shopId: string, nmIds: number[]): Promise<ProductCard[]> {

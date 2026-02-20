@@ -575,4 +575,119 @@ describe("sync content shops service", () => {
     expect(states.get("shop-fail")?.lastStatus).toBe("failed");
     expect(states.get("shop-ok")?.lastStatus).toBe("success");
   });
+
+  it("caps shop sync concurrency at 10 and refills free slots immediately", async () => {
+    const shopsList = Array.from({ length: 12 }, (_, index) => ({
+      id: `shop-${index + 1}`,
+      name: `Shop ${index + 1}`,
+      wbToken: `token-${index + 1}`,
+      wbSandboxToken: null,
+      useSandbox: false,
+      isActive: true,
+      supplyPrefix: "игрушки_",
+      tokenUpdatedAt: new Date("2026-01-01T00:00:00.000Z"),
+      createdAt: new Date("2026-01-01T00:00:00.000Z"),
+      updatedAt: new Date("2026-01-01T00:00:00.000Z")
+    })) satisfies Shop[];
+
+    testState.shops = {
+      async listActiveShops() {
+        return shopsList;
+      }
+    };
+
+    testState.productCards = {
+      async upsertMany(cards) {
+        return cards.length;
+      },
+      async getByShopIdAndNmIds() {
+        return [];
+      }
+    };
+
+    testState.syncState = {
+      async getByShopId() {
+        return null;
+      },
+      async upsert() {
+        return;
+      }
+    };
+
+    const deferredByToken = new Map<
+      string,
+      {
+        resolve: () => void;
+        promise: Promise<void>;
+      }
+    >();
+    let inFlight = 0;
+    let maxInFlight = 0;
+    const startedTokens: string[] = [];
+
+    for (const shop of shopsList) {
+      let resolve = () => {};
+      const promise = new Promise<void>((resolver) => {
+        resolve = resolver;
+      });
+      deferredByToken.set(shop.wbToken, { resolve, promise });
+    }
+
+    testState.createClient = ({ token }) => ({
+      async POST() {
+        startedTokens.push(token);
+        inFlight += 1;
+        maxInFlight = Math.max(maxInFlight, inFlight);
+
+        const deferred = deferredByToken.get(token);
+        if (!deferred) {
+          throw new Error(`No deferred configured for token ${token}`);
+        }
+        await deferred.promise;
+        inFlight -= 1;
+
+        return {
+          data: {
+            cards: [],
+            cursor: {
+              updatedAt: "2026-01-03T00:00:00.000Z",
+              nmID: 1,
+              total: 0
+            }
+          },
+          response: new Response(null, { status: 200 })
+        };
+      }
+    });
+
+    const service = createSyncContentShopsService({
+      tenantId: "tenant-1",
+      pageLimit: 100,
+      maxPagesPerShop: 10,
+      betweenPagesDelayMs: 0
+    });
+
+    const resultPromise = service.syncContentShops();
+    await Promise.resolve();
+    await Promise.resolve();
+
+    expect(startedTokens.length).toBe(10);
+    expect(maxInFlight).toBe(10);
+
+    deferredByToken.get("token-1")?.resolve();
+    await Promise.resolve();
+    await Promise.resolve();
+
+    expect(startedTokens).toContain("token-11");
+    expect(maxInFlight).toBe(10);
+
+    for (const deferred of deferredByToken.values()) {
+      deferred.resolve();
+    }
+
+    const result = await resultPromise;
+    expect(result.processedShops).toBe(12);
+    expect(result.successCount).toBe(12);
+    expect(result.failureCount).toBe(0);
+  });
 });
