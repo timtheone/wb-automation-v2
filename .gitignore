@@ -2,7 +2,6 @@ node_modules/
 dist/
 coverage/
 plan.md
-README.md
 logs/
 
 .env
