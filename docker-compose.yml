@@ -8,6 +8,7 @@ x-app-image: &app-image
 x-backend-runtime-env: &backend-runtime-env
   DATABASE_URL: "postgres://${POSTGRES_USER:-wb-automation-db-dev-user}:${POSTGRES_PASSWORD:-wb-automation-db-dev-pass}@postgres:5432/${POSTGRES_DB:-wb_automation_v2}"
   PG_BOSS_SCHEMA: "${PG_BOSS_SCHEMA:-pgboss}"
+  NODE_OPTIONS: "${NODE_OPTIONS:---dns-result-order=ipv4first}"
   BOT_TOKEN: "${BOT_TOKEN:?BOT_TOKEN is required}"
   BACKEND_LOG_LEVEL: "${BACKEND_LOG_LEVEL:-info}"
   BACKEND_LOG_HEALTHCHECKS: "${BACKEND_LOG_HEALTHCHECKS:-false}"
@@ -16,6 +17,7 @@ x-backend-runtime-env: &backend-runtime-env
 x-bot-runtime-env: &bot-runtime-env
   BOT_TOKEN: "${BOT_TOKEN:?BOT_TOKEN is required}"
   BACKEND_BASE_URL: "http://backend:3000"
+  NODE_OPTIONS: "${NODE_OPTIONS:---dns-result-order=ipv4first}"
   BOT_LOG_LEVEL: "${BOT_LOG_LEVEL:-info}"
   BOT_LOG_FILE: "${BOT_LOG_FILE:-logs/bot.log}"
 
