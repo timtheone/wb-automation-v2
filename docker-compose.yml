@@ -128,6 +128,21 @@ services:
     volumes:
       - app_logs:/app/logs
 
+  grafana-alloy:
+    image: grafana/alloy:latest
+    container_name: wb-automation-v2-grafana-alloy
+    profiles: ["grafana-logs"]
+    restart: unless-stopped
+    command: ["run", "--storage.path=/var/lib/alloy/data", "/etc/alloy/config.alloy"]
+    environment:
+      OTEL_EXPORTER_OTLP_ENDPOINT: "${OTEL_EXPORTER_OTLP_ENDPOINT:-}"
+      OTEL_EXPORTER_OTLP_AUTH_HEADER: "${OTEL_EXPORTER_OTLP_AUTH_HEADER:-}"
+      GRAFANA_LOGS_ENVIRONMENT: "${GRAFANA_LOGS_ENVIRONMENT:-production}"
+    volumes:
+      - ./monitoring/alloy/config.alloy:/etc/alloy/config.alloy:ro
+      - app_logs:/var/log/wb:ro
+      - alloy_data:/var/lib/alloy/data
+
   job-sync-content:
     <<: *app-image
     container_name: wb-automation-v2-job-sync-content
@@ -170,3 +185,4 @@ services:
 volumes:
   postgres_data:
   app_logs:
+  alloy_data:

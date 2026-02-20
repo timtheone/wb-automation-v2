@@ -13,6 +13,8 @@
     "prod:migrate": "docker compose --env-file .env run --rm -e WB_ENV=production backend pnpm --filter @wb-automation-v2/db drizzle:migrate",
     "prod:restart:backend": "docker compose --env-file .env restart backend",
     "prod:restart:bot": "docker compose --env-file .env restart bot",
+    "prod:logs:shipper:up": "docker compose --env-file .env --profile grafana-logs up -d grafana-alloy",
+    "prod:logs:shipper:down": "docker compose --env-file .env --profile grafana-logs stop grafana-alloy",
     "prod:logs": "docker compose --env-file .env logs -f backend bot scheduler-sync-content scheduler-wb-token-expiration scheduler-logs-cleanup",
     "prod:job:sync-content": "docker compose --env-file .env --profile manual run --rm job-sync-content",
     "prod:job:wb-token-expiration": "docker compose --env-file .env --profile manual run --rm job-wb-token-expiration",
