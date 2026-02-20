@@ -1,7 +1,8 @@
+x-app-build: &app-build
+  context: .
+  dockerfile: Dockerfile
+
 x-app-image: &app-image
-  build:
-    context: .
-    dockerfile: Dockerfile
   image: wb-automation-v2-app:latest
   working_dir: /app
 
@@ -36,7 +37,7 @@ services:
       test:
         [
           "CMD-SHELL",
-          "pg_isready -U ${POSTGRES_USER:-wb-automation-db-dev-user} -d ${POSTGRES_DB:-wb_automation_v2}"
+          "pg_isready -U ${POSTGRES_USER:-wb-automation-db-dev-user} -d ${POSTGRES_DB:-wb_automation_v2}",
         ]
       interval: 5s
       timeout: 5s
@@ -46,6 +47,7 @@ services:
 
   backend:
     <<: *app-image
+    build: *app-build
     container_name: wb-automation-v2-backend
     restart: unless-stopped
     depends_on:
@@ -135,7 +137,8 @@ services:
     container_name: wb-automation-v2-grafana-alloy
     profiles: ["grafana-logs"]
     restart: unless-stopped
-    command: ["run", "--storage.path=/var/lib/alloy/data", "/etc/alloy/config.alloy"]
+    command:
+      ["run", "--storage.path=/var/lib/alloy/data", "/etc/alloy/config.alloy"]
     environment:
       OTEL_EXPORTER_OTLP_ENDPOINT: "${OTEL_EXPORTER_OTLP_ENDPOINT:-}"
       OTEL_EXPORTER_OTLP_AUTH_HEADER: "${OTEL_EXPORTER_OTLP_AUTH_HEADER:-}"
