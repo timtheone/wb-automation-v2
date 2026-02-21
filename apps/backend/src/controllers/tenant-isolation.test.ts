@@ -218,8 +218,8 @@ describe("tenant isolation via backend controllers", () => {
     const combinedJob = (await combinedResponse.json()) as { jobId: string };
 
     const combinedStatusResponse = await app.request(`/flows/get-combined-pdf-lists/${combinedJob.jobId}`, {
-      method: "GET",
-      headers: groupHeaders
+        method: "GET",
+        headers: groupHeaders
     });
     expect(combinedStatusResponse.status).toBe(200);
 
@@ -305,13 +305,20 @@ class InMemoryTenantShopsService implements BackendShopsService {
     return this.readTenantShops(tenantId);
   }
 
-  async createShop(tenantId: string, input: {
-    name: string;
-    wbToken: string;
-    wbSandboxToken?: string | null;
-    useSandbox?: boolean;
-    supplyPrefix?: string;
-    isActive?: boolean;
+  async checkShopNameExists(tenantId: string, name: string): Promise<boolean> {
+    const shops = this.readTenantShops(tenantId);
+    return shops.some((shop) => shop.name === name);
+  }
+
+  async createShop(
+    tenantId: string,
+    input: {
+      name: string;
+      wbToken: string;
+      wbSandboxToken?: string | null;
+      useSandbox?: boolean;
+      supplyPrefix?: string;
+      isActive?: boolean;
   }): Promise<Shop> {
     const now = new Date();
     this.sequence += 1;
@@ -334,12 +341,12 @@ class InMemoryTenantShopsService implements BackendShopsService {
   }
 
   async updateShop(tenantId: string, input: {
-    id: string;
-    name?: string;
-    wbSandboxToken?: string | null;
-    useSandbox?: boolean;
-    supplyPrefix?: string;
-    isActive?: boolean;
+      id: string;
+      name?: string;
+      wbSandboxToken?: string | null;
+      useSandbox?: boolean;
+      supplyPrefix?: string;
+      isActive?: boolean;
   }): Promise<Shop> {
     const shop = this.getTenantStore(tenantId).get(input.id);
 
@@ -362,9 +369,9 @@ class InMemoryTenantShopsService implements BackendShopsService {
   }
 
   async updateShopToken(tenantId: string, input: {
-    id: string;
-    wbToken: string;
-    tokenType?: "production" | "sandbox";
+      id: string;
+      wbToken: string;
+      tokenType?: "production" | "sandbox";
   }): Promise<Shop> {
     const shop = this.getTenantStore(tenantId).get(input.id);
 

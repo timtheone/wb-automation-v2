@@ -17,6 +17,7 @@ export class ShopNotFoundError extends Error {
 
 export interface ShopService {
   listShops(): Promise<Shop[]>;
+  checkShopNameExists(name: string): Promise<boolean>;
   createShop(input: CreateShopInput): Promise<Shop>;
   updateShop(input: UpdateShopInput): Promise<Shop>;
   updateShopToken(input: UpdateShopTokenInput): Promise<Shop>;
@@ -39,10 +40,17 @@ export function createShopService(options: {
       return shops.listShops();
     },
 
+    async checkShopNameExists(name) {
+      return shops.checkShopNameExists(name);
+    },
+
     async createShop(input) {
       const name = normalizeRequiredString(input.name, "name");
       const wbToken = normalizeRequiredString(input.wbToken, "wbToken");
-      const wbSandboxToken = normalizeNullableOptionalString(input.wbSandboxToken, "wbSandboxToken");
+      const wbSandboxToken = normalizeNullableOptionalString(
+        input.wbSandboxToken,
+        "wbSandboxToken"
+      );
       const useSandbox = input.useSandbox ?? false;
       const supplyPrefix = normalizeOptionalString(input.supplyPrefix) ?? "игрушки_";
 
@@ -72,7 +80,10 @@ export function createShopService(options: {
           throw new ShopNotFoundError(input.id);
         }
 
-        normalizedSandboxToken = normalizeNullableOptionalString(input.wbSandboxToken, "wbSandboxToken");
+        normalizedSandboxToken = normalizeNullableOptionalString(
+          input.wbSandboxToken,
+          "wbSandboxToken"
+        );
         normalizedUseSandbox = input.useSandbox;
 
         const effectiveUseSandbox = normalizedUseSandbox ?? existing.useSandbox;
@@ -173,10 +184,7 @@ function normalizeTokenType(tokenType: WbTokenType | undefined): WbTokenType {
   return tokenType ?? "production";
 }
 
-function assertSandboxConfiguration(input: {
-  useSandbox: boolean;
-  wbSandboxToken: string | null;
-}) {
+function assertSandboxConfiguration(input: { useSandbox: boolean; wbSandboxToken: string | null }) {
   if (input.useSandbox && !input.wbSandboxToken) {
     throw new Error("wbSandboxToken must be provided when useSandbox is true");
   }

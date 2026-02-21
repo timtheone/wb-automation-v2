@@ -1,6 +1,7 @@
 import type { Bot } from "grammy";
 import { describe, expect, it, vi } from "vitest";
 
+import { BackendApiHttpError } from "../backend-client.js";
 import type { BackendClient } from "../backend-client.js";
 import type { BotContext } from "../bot-types.js";
 import { createTranslator } from "../i18n/index.js";
@@ -190,3 +191,218 @@ describe("shops command", () => {
 function setMessageText(ctx: BotContext, text: string) {
   (ctx as { message: { text: string } }).message = { text };
 }
+
+function createDuplicateNameError(): BackendApiHttpError {
+  const mockResponse = {
+    status: 409,
+    statusText: "Conflict",
+    url: "/shops",
+    headers: { get: () => "application/json" },
+    json: async () => ({
+      code: "SHOP_NAME_ALREADY_EXISTS",
+      error: "Shop with this name already exists"
+    }),
+    text: async () => "",
+    clone: function () {
+      return this;
+    }
+  };
+  return new BackendApiHttpError(mockResponse, {
+    code: "SHOP_NAME_ALREADY_EXISTS",
+    error: "Shop with this name already exists"
+  });
+}
+
+describe("shop creation duplicate name handling", () => {
+  it("checks name immediately and prompts for different name when duplicate", async () => {
+    const harness = createHarness();
+    const duplicateNameError = createDuplicateNameError();
+
+    const backend = {
+      POST: vi.fn().mockResolvedValueOnce({
+        data: {
+          shop: {
+            id: "shop-2",
+            name: "Unique Toy Store",
+            wbToken: "prod-token-456",
+            wbSandboxToken: null,
+            useSandbox: false,
+            isActive: true,
+            supplyPrefix: "игрушки_",
+            tokenUpdatedAt: "2026-02-20T10:00:00.000Z",
+            createdAt: "2026-02-20T10:00:00.000Z",
+            updatedAt: "2026-02-20T10:00:00.000Z"
+          }
+        }
+      }),
+      GET: vi
+        .fn()
+        .mockRejectedValueOnce(duplicateNameError)
+        .mockResolvedValueOnce({
+          data: { available: true }
+        })
+        .mockResolvedValueOnce({
+          data: {
+            shops: [
+              {
+                id: "shop-2",
+                name: "Unique Toy Store",
+                wbToken: "prod-token-456",
+                wbSandboxToken: null,
+                useSandbox: false,
+                isActive: true,
+                supplyPrefix: "игрушки_",
+                tokenUpdatedAt: "2026-02-20T10:00:00.000Z",
+                createdAt: "2026-02-20T10:00:00.000Z",
+                updatedAt: "2026-02-20T10:00:00.000Z"
+              }
+            ]
+          }
+        })
+    } as unknown as BackendClient;
+
+    registerShopsCommand(harness.bot, backend);
+
+    const { ctx, reply } = createContext();
+    await harness.callback("shops:create")(ctx);
+
+    const onMessage = harness.event("message:text");
+
+    setMessageText(ctx, "Duplicate Name");
+    await onMessage(ctx);
+
+    expect(backend.GET).toHaveBeenCalledWith("/shops/check-name", {
+      params: {
+        query: { name: "Duplicate Name" },
+        header: expect.objectContaining({
+          "x-telegram-chat-id": "700",
+          "x-telegram-owner-user-id": "800"
+        })
+      }
+    });
+
+    expect(ctx.session.pendingAction).toMatchObject({
+      kind: "create",
+      step: "name",
+      draft: {}
+    });
+
+    expect(reply).toHaveBeenCalledWith(ctx.t.shops.duplicateNameRetry());
+
+    setMessageText(ctx, "Unique Toy Store");
+    await onMessage(ctx);
+
+    expect(backend.GET).toHaveBeenCalledWith("/shops/check-name", {
+      params: {
+        query: { name: "Unique Toy Store" },
+        header: expect.objectContaining({
+          "x-telegram-chat-id": "700",
+          "x-telegram-owner-user-id": "800"
+        })
+      }
+    });
+
+    expect(ctx.session.pendingAction).toMatchObject({ kind: "create", step: "wbToken" });
+
+    setMessageText(ctx, "prod-token-456");
+    await onMessage(ctx);
+    expect(ctx.session.pendingAction).toMatchObject({ kind: "create", step: "supplyPrefix" });
+
+    setMessageText(ctx, "-");
+    await onMessage(ctx);
+    expect(ctx.session.pendingAction).toMatchObject({ kind: "create", step: "useSandbox" });
+
+    setMessageText(ctx, "no");
+    await onMessage(ctx);
+    expect(ctx.session.pendingAction).toMatchObject({ kind: "create", step: "isActive" });
+
+    setMessageText(ctx, "yes");
+    await onMessage(ctx);
+
+    expect(backend.POST).toHaveBeenCalledTimes(1);
+    expect(ctx.session.pendingAction).toBeNull();
+    expect(
+      (reply.mock.calls as Array<[string]>).some(([text]) =>
+        text.includes(ctx.t.shops.shopCreated({ name: "Unique Toy Store" }))
+      )
+    ).toBe(true);
+  });
+});
+
+describe("shop rename duplicate name handling", () => {
+  it("prompts for different name and keeps rename pending when duplicate name error occurs", async () => {
+    const harness = createHarness();
+    const duplicateNameError = createDuplicateNameError();
+
+    const backend = {
+      PATCH: vi
+        .fn()
+        .mockRejectedValueOnce(duplicateNameError)
+        .mockResolvedValueOnce({
+          data: {
+            shop: {
+              id: "shop-1",
+              name: "Unique Name",
+              wbToken: "token-123",
+              wbSandboxToken: null,
+              useSandbox: false,
+              isActive: true,
+              supplyPrefix: "игрушки_",
+              tokenUpdatedAt: "2026-02-20T10:00:00.000Z",
+              createdAt: "2026-02-20T10:00:00.000Z",
+              updatedAt: "2026-02-20T10:00:00.000Z"
+            }
+          }
+        }),
+      GET: vi.fn(async () => ({
+        data: {
+          shops: [
+            {
+              id: "shop-1",
+              name: "Unique Name",
+              wbToken: "token-123",
+              wbSandboxToken: null,
+              useSandbox: false,
+              isActive: true,
+              supplyPrefix: "игрушки_",
+              tokenUpdatedAt: "2026-02-20T10:00:00.000Z",
+              createdAt: "2026-02-20T10:00:00.000Z",
+              updatedAt: "2026-02-20T10:00:00.000Z"
+            }
+          ]
+        }
+      }))
+    } as unknown as BackendClient;
+
+    registerShopsCommand(harness.bot, backend);
+
+    const { ctx, reply } = createContext();
+    ctx.session.pendingAction = {
+      kind: "rename",
+      shopId: "shop-1"
+    };
+
+    const onMessage = harness.event("message:text");
+
+    setMessageText(ctx, "Existing Name");
+    await onMessage(ctx);
+
+    expect(backend.PATCH).toHaveBeenCalledTimes(1);
+    expect(ctx.session.pendingAction).toEqual({
+      kind: "rename",
+      shopId: "shop-1"
+    });
+    expect(reply).toHaveBeenCalledWith(ctx.t.shops.duplicateNameRetry());
+
+    setMessageText(ctx, "Unique Name");
+    await onMessage(ctx);
+
+    expect(backend.PATCH).toHaveBeenCalledTimes(2);
+    expect(ctx.session.pendingAction).toBeNull();
+    expect(
+      (reply.mock.calls as Array<[string]>).some(([text]) =>
+        text.includes(ctx.t.shops.shopRenamed({ name: "Unique Name" }))
+      )
+    ).toBe(true);
+  });
+});

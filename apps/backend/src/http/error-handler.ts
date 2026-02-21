@@ -29,7 +29,10 @@ export function createRouteErrorHandler(logger: Logger): RouteErrorHandler {
     }
 
     if (isUniqueViolation(error)) {
-      return c.json({ code: "SHOP_NAME_ALREADY_EXISTS", error: "Shop with this name already exists" }, 409);
+      return c.json(
+        { code: "SHOP_NAME_ALREADY_EXISTS", error: "Shop with this name already exists" },
+        409
+      );
     }
 
     logger.error(
@@ -46,10 +49,22 @@ export function createRouteErrorHandler(logger: Logger): RouteErrorHandler {
 }
 
 function isUniqueViolation(error: unknown): boolean {
+  return hasPostgresCode(error, "23505") || hasPostgresCode(getErrorCause(error), "23505");
+}
+
+function hasPostgresCode(error: unknown, code: string): boolean {
   if (typeof error !== "object" || error === null) {
     return false;
   }
 
-  const code = (error as { code?: unknown }).code;
-  return code === "23505";
+  const errorCode = (error as { code?: unknown }).code;
+  return errorCode === code;
+}
+
+function getErrorCause(error: unknown): unknown {
+  if (typeof error !== "object" || error === null) {
+    return null;
+  }
+
+  return (error as { cause?: unknown }).cause ?? null;
 }

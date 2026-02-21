@@ -9,6 +9,7 @@ import { getDatabase } from "@wb-automation-v2/db";
 
 export interface BackendShopsService {
   listShops(tenantId: string): Promise<Shop[]>;
+  checkShopNameExists(tenantId: string, name: string): Promise<boolean>;
   createShop(tenantId: string, input: CreateShopInput): Promise<Shop>;
   updateShop(tenantId: string, input: UpdateShopInput): Promise<Shop>;
   updateShopToken(tenantId: string, input: UpdateShopTokenInput): Promise<Shop>;
@@ -21,6 +22,9 @@ export function createBackendShopsService(): BackendShopsService {
   return {
     listShops(tenantId) {
       return createShopService({ tenantId, db }).listShops();
+    },
+    checkShopNameExists(tenantId, name) {
+      return createShopService({ tenantId, db }).checkShopNameExists(name);
     },
     createShop(tenantId, input) {
       return createShopService({ tenantId, db }).createShop(input);

@@ -119,6 +119,7 @@ export interface ShopRepository {
   listShops(): Promise<Shop[]>;
   listActiveShops(): Promise<Shop[]>;
   getShopById(id: string): Promise<Shop | null>;
+  checkShopNameExists(name: string): Promise<boolean>;
   createShop(input: CreateShopInput): Promise<Shop>;
   updateShop(id: string, patch: Omit<UpdateShopInput, "id">): Promise<Shop | null>;
   updateShopToken(
@@ -227,7 +228,11 @@ export function createTenantRepository(db: Database = getDatabase()): TenantRepo
 export function createTenantChatRepository(db: Database = getDatabase()): TenantChatRepository {
   return {
     async getByChatId(chatId: number) {
-      const [row] = await db.select().from(tenantChats).where(eq(tenantChats.chatId, chatId)).limit(1);
+      const [row] = await db
+        .select()
+        .from(tenantChats)
+        .where(eq(tenantChats.chatId, chatId))
+        .limit(1);
       return row ? mapTenantChat(row) : null;
     },
 
@@ -299,6 +304,18 @@ export function createShopRepository(options: TenantScopedRepositoryOptions): Sh
           .limit(1);
 
         return row ? mapShop(row) : null;
+      });
+    },
+
+    async checkShopNameExists(name) {
+      return withTenantScope(context, async (db) => {
+        const [row] = await db
+          .select({ id: shops.id })
+          .from(shops)
+          .where(and(eq(shops.tenantId, context.tenantId), eq(shops.name, name)))
+          .limit(1);
+
+        return !!row;
       });
     },
 
@@ -387,7 +404,9 @@ export function createShopRepository(options: TenantScopedRepositoryOptions): Sh
   };
 }
 
-export function createProductCardRepository(options: TenantScopedRepositoryOptions): ProductCardRepository {
+export function createProductCardRepository(
+  options: TenantScopedRepositoryOptions
+): ProductCardRepository {
   const context = createTenantContext(options);
 
   return {
@@ -461,7 +480,9 @@ export function createProductCardRepository(options: TenantScopedRepositoryOptio
   };
 }
 
-export function createSyncStateRepository(options: TenantScopedRepositoryOptions): SyncStateRepository {
+export function createSyncStateRepository(
+  options: TenantScopedRepositoryOptions
+): SyncStateRepository {
   const context = createTenantContext(options);
 
   return {
@@ -571,7 +592,10 @@ function createTenantContext(options: TenantScopedRepositoryOptions): TenantDbCo
   };
 }
 
-async function withTenantScope<T>(context: TenantDbContext, operation: (db: Database) => Promise<T>): Promise<T> {
+async function withTenantScope<T>(
+  context: TenantDbContext,
+  operation: (db: Database) => Promise<T>
+): Promise<T> {
   return context.db.transaction(async (transaction) => {
     const tx = transaction as unknown as Database;
     await tx.execute(sql`select set_config('app.tenant_id', ${context.tenantId}, true)`);

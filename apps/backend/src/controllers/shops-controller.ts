@@ -13,29 +13,40 @@ import type { BackendShopsService } from "../services/shops-service.js";
 import type { BackendTenantService } from "../services/tenant-service.js";
 
 const shopIdParamsSchema = z.object({
-  id: z.string().min(1)
+    id: z.string().min(1)
 }).openapi("ShopIdParams");
 
 const createShopBodySchema = z.object({
-  name: z.string().trim().min(1, "name must not be empty"),
-  wbToken: z.string().trim().min(1, "wbToken must not be empty"),
-  wbSandboxToken: z.string().trim().min(1, "wbSandboxToken must not be empty").nullable().optional(),
-  useSandbox: z.boolean().optional(),
-  supplyPrefix: z.string().trim().min(1, "supplyPrefix must not be empty").optional(),
-  isActive: z.boolean().optional()
+    name: z.string().trim().min(1, "name must not be empty"),
+    wbToken: z.string().trim().min(1, "wbToken must not be empty"),
+    wbSandboxToken: z
+      .string()
+      .trim()
+      .min(1, "wbSandboxToken must not be empty")
+      .nullable()
+      .optional(),
+    useSandbox: z.boolean().optional(),
+    supplyPrefix: z.string().trim().min(1, "supplyPrefix must not be empty").optional(),
+    isActive: z.boolean().optional()
 }).openapi("CreateShopBody");
 
-const updateShopBodySchema = z.object({
-  name: z.string().trim().min(1, "name must not be empty").optional(),
-  wbSandboxToken: z.string().trim().min(1, "wbSandboxToken must not be empty").nullable().optional(),
-  useSandbox: z.boolean().optional(),
-  supplyPrefix: z.string().trim().min(1, "supplyPrefix must not be empty").optional(),
-  isActive: z.boolean().optional()
+const updateShopBodySchema = z
+  .object({
+    name: z.string().trim().min(1, "name must not be empty").optional(),
+    wbSandboxToken: z
+      .string()
+      .trim()
+      .min(1, "wbSandboxToken must not be empty")
+      .nullable()
+      .optional(),
+    useSandbox: z.boolean().optional(),
+    supplyPrefix: z.string().trim().min(1, "supplyPrefix must not be empty").optional(),
+    isActive: z.boolean().optional()
 }).openapi("UpdateShopBody");
 
 const updateShopTokenBodySchema = z.object({
-  wbToken: z.string().trim().min(1, "wbToken must not be empty"),
-  tokenType: z.enum(["production", "sandbox"]).optional()
+    wbToken: z.string().trim().min(1, "wbToken must not be empty"),
+    tokenType: z.enum(["production", "sandbox"]).optional()
 }).openapi("UpdateShopTokenBody");
 
 const listShopsRoute = createRoute({
@@ -51,6 +62,50 @@ const listShopsRoute = createRoute({
       content: {
         "application/json": {
           schema: shopsResponseSchema
+        }
+      }
+    },
+    500: {
+      description: "Internal server error",
+      content: {
+        "application/json": {
+          schema: errorResponseSchema
+        }
+      }
+    }
+  }
+});
+
+const checkShopNameRoute = createRoute({
+  method: "get",
+  path: "/shops/check-name",
+  tags: ["Shops"],
+  request: {
+    headers: telegramContextHeadersSchema,
+    query: checkShopNameQuerySchema
+  },
+  responses: {
+    200: {
+      description: "Shop name is available",
+      content: {
+        "application/json": {
+          schema: z.object({ available: z.boolean() })
+        }
+      }
+    },
+    400: {
+      description: "Invalid request",
+      content: {
+        "application/json": {
+          schema: errorResponseSchema
+        }
+      }
+    },
+    409: {
+      description: "Shop name already exists",
+      content: {
+        "application/json": {
+          schema: errorResponseSchema
         }
       }
     },
@@ -273,6 +328,31 @@ export function registerShopsController(
     }
   });
 
+  app.openapi(checkShopNameRoute, async (c) => {
+    try {
+      const tenantContext = await dependencies.tenantService.resolveTenantContext(
+        readTelegramRequestContext(c)
+      );
+      const name = c.req.query("name");
+      if (!name || name.trim() === "") {
+        return c.json({ code: "INVALID_NAME", error: "Name parameter is required" }, 400);
+      }
+      const exists = await dependencies.shopsService.checkShopNameExists(
+        tenantContext.tenantId,
+        name.trim()
+      );
+      if (exists) {
+        return c.json(
+          { code: "SHOP_NAME_ALREADY_EXISTS", error: "Shop with this name already exists" },
+          409
+        );
+      }
+      return c.json({ available: true }, 200);
+    } catch (error) {
+      return dependencies.handleRouteError(c, error) as never;
+    }
+  });
+
   app.openapi(createShopRoute, async (c) => {
     try {
       const tenantContext = await dependencies.tenantService.resolveTenantContext(
@@ -326,7 +406,10 @@ export function registerShopsController(
       const tenantContext = await dependencies.tenantService.resolveTenantContext(
         readTelegramRequestContext(c)
       );
-      const shop = await dependencies.shopsService.deactivateShop(tenantContext.tenantId, c.req.param("id"));
+      const shop = await dependencies.shopsService.deactivateShop(
+        tenantContext.tenantId,
+        c.req.param("id")
+      );
       return c.json({ shop }, 200);
     } catch (error) {
       return dependencies.handleRouteError(c, error) as never;

@@ -105,7 +105,9 @@ const en = {
     replyYesOrNo: "Please reply with yes or no.",
     sendSandboxToken: "Send sandbox WB token.",
     shouldBeActiveQuestion: "Should this shop be active now? Reply yes or no.",
-    createFlowLostRequiredFields: "Create flow lost required fields. Please run /shops and start again.",
+    createFlowLostRequiredFields:
+      "Create flow lost required fields. Please run /shops and start again.",
+    duplicateNameRetry: "Shop with this name already exists. Please choose a different name:",
     shopCreated: "Shop created: {name}",
     listHeader: "Shops:",
     listItem: "{index:number}. {name} | {status} | {mode}",
@@ -187,7 +189,8 @@ const ruOverrides: DeepPartial<TranslationDictionary> = {
   help: {
     line1: "Используйте /shops для CRUD операций с магазинами и обновления токенов.",
     line2: "Используйте /process_all_shops и /sync_content_shops для рабочих процессов.",
-    line3: "Используйте /generate_pdfs, чтобы получить лист подбора и стикеры по последней поставке."
+    line3:
+      "Используйте /generate_pdfs, чтобы получить лист подбора и стикеры по последней поставке."
   },
   cancel: {
     noActiveInputFlow: "Сейчас нет активного ввода.",
@@ -271,7 +274,10 @@ const ruOverrides: DeepPartial<TranslationDictionary> = {
     replyYesOrNo: "Пожалуйста, ответьте да или нет.",
     sendSandboxToken: "Отправьте sandbox WB токен.",
     shouldBeActiveQuestion: "Сделать магазин активным сейчас? Ответьте да или нет.",
-    createFlowLostRequiredFields: "В процессе создания потерялись обязательные поля. Запустите /shops и начните снова.",
+    createFlowLostRequiredFields:
+      "В процессе создания потерялись обязательные поля. Запустите /shops и начните снова.",
+    duplicateNameRetry:
+      "Магазин с таким названием уже существует. Пожалуйста, выберите другое название:",
     shopCreated: "Магазин создан: {name}",
     listHeader: "Магазины:",
     listItem: "{index:number}. {name} | {status} | {mode}",
@@ -309,7 +315,8 @@ const ruOverrides: DeepPartial<TranslationDictionary> = {
   errors: {
     requestFailed: "Ошибка запроса ({status:number}): {message}",
     unexpected: "Ошибка: {message}",
-    createFlowStillActive: "Процесс создания все еще активен. Используйте /cancel при необходимости.",
+    createFlowStillActive:
+      "Процесс создания все еще активен. Используйте /cancel при необходимости.",
     backendEmptyResponse: "Backend вернул пустой ответ для {endpoint}",
     telegramChatContextMissing: "Отсутствует Telegram chat context",
     telegramUserContextMissing: "Отсутствует Telegram user context",

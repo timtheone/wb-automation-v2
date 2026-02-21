@@ -1,5 +1,6 @@
 import { InlineKeyboard, type Bot } from "grammy";
 
+import { BackendApiHttpError } from "../backend-client.js";
 import type { BackendClient } from "../backend-client.js";
 import type { BotContext, CreateShopBody, PendingAction, ShopDto } from "../bot-types.js";
 import type { BotTranslator } from "../i18n/index.js";
@@ -47,7 +48,11 @@ export function registerShopsCommand(bot: Bot<BotContext>, backend: BackendClien
     };
 
     await ctx.reply(
-      [ctx.t.shops.createFlowStarted(), ctx.t.shops.sendShopName(), ctx.t.shops.useCancelToAbort()].join("\n")
+      [
+        ctx.t.shops.createFlowStarted(),
+        ctx.t.shops.sendShopName(),
+        ctx.t.shops.useCancelToAbort()
+      ].join("\n")
     );
   });
 
@@ -118,16 +123,13 @@ export function registerShopsCommand(bot: Bot<BotContext>, backend: BackendClien
 
     try {
       const shop = await findShopById(ctx, backend, shopId);
-      const response = await backend.PATCH(
-        "/shops/{id}",
-        {
-          params: {
-            path: { id: shopId },
-            header: await getTelegramContextHeaders(ctx)
-          },
-          body: { isActive: !shop.isActive }
-        }
-      );
+      const response = await backend.PATCH("/shops/{id}", {
+        params: {
+          path: { id: shopId },
+          header: await getTelegramContextHeaders(ctx)
+        },
+        body: { isActive: !shop.isActive }
+      });
       const updated = requireResponseData(response.data, "PATCH /shops/{id}").shop;
       await ctx.reply(
         ctx.t.shops.shopNowStatus({
@@ -147,16 +149,13 @@ export function registerShopsCommand(bot: Bot<BotContext>, backend: BackendClien
 
     try {
       const shop = await findShopById(ctx, backend, shopId);
-      const response = await backend.PATCH(
-        "/shops/{id}",
-        {
-          params: {
-            path: { id: shopId },
-            header: await getTelegramContextHeaders(ctx)
-          },
-          body: { useSandbox: !shop.useSandbox }
-        }
-      );
+      const response = await backend.PATCH("/shops/{id}", {
+        params: {
+          path: { id: shopId },
+          header: await getTelegramContextHeaders(ctx)
+        },
+        body: { useSandbox: !shop.useSandbox }
+      });
       const updated = requireResponseData(response.data, "PATCH /shops/{id}").shop;
       await ctx.reply(
         ctx.t.shops.shopModeNow({
@@ -175,15 +174,12 @@ export function registerShopsCommand(bot: Bot<BotContext>, backend: BackendClien
     const shopId = requireMatchValue(ctx.match[1]);
 
     try {
-      const response = await backend.DELETE(
-        "/shops/{id}",
-        {
-          params: {
-            path: { id: shopId },
-            header: await getTelegramContextHeaders(ctx)
-          }
+      const response = await backend.DELETE("/shops/{id}", {
+        params: {
+          path: { id: shopId },
+          header: await getTelegramContextHeaders(ctx)
         }
-      );
+      });
       const updated = requireResponseData(response.data, "DELETE /shops/{id}").shop;
       await ctx.reply(ctx.t.shops.shopDeactivated({ name: updated.name }));
       await sendShopsList(ctx, backend);
@@ -213,35 +209,40 @@ export function registerShopsCommand(bot: Bot<BotContext>, backend: BackendClien
 
       if (pending.kind === "rename") {
         const normalized = requireNonEmpty(text, "name");
-        const response = await backend.PATCH(
-          "/shops/{id}",
-          {
+        try {
+          const response = await backend.PATCH("/shops/{id}", {
             params: {
               path: { id: pending.shopId },
               header: await getTelegramContextHeaders(ctx)
             },
             body: { name: normalized }
+          });
+          const updated = requireResponseData(response.data, "PATCH /shops/{id}").shop;
+          ctx.session.pendingAction = null;
+          await ctx.reply(ctx.t.shops.shopRenamed({ name: updated.name }));
+          await sendShopDetails(ctx, backend, pending.shopId);
+          return;
+        } catch (error) {
+          if (error instanceof BackendApiHttpError && error.status === 409) {
+            const details = error.details as { code?: string } | undefined;
+            if (details?.code === "SHOP_NAME_ALREADY_EXISTS") {
+              await ctx.reply(ctx.t.shops.duplicateNameRetry());
+              return;
+            }
           }
-        );
-        const updated = requireResponseData(response.data, "PATCH /shops/{id}").shop;
-        ctx.session.pendingAction = null;
-        await ctx.reply(ctx.t.shops.shopRenamed({ name: updated.name }));
-        await sendShopDetails(ctx, backend, pending.shopId);
-        return;
+          throw error;
+        }
       }
 
       if (pending.kind === "prefix") {
         const normalized = requireNonEmpty(text, "supplyPrefix");
-        const response = await backend.PATCH(
-          "/shops/{id}",
-          {
-            params: {
-              path: { id: pending.shopId },
-              header: await getTelegramContextHeaders(ctx)
-            },
-            body: { supplyPrefix: normalized }
-          }
-        );
+        const response = await backend.PATCH("/shops/{id}", {
+          params: {
+            path: { id: pending.shopId },
+            header: await getTelegramContextHeaders(ctx)
+          },
+          body: { supplyPrefix: normalized }
+        });
         const updated = requireResponseData(response.data, "PATCH /shops/{id}").shop;
         ctx.session.pendingAction = null;
         await ctx.reply(ctx.t.shops.supplyPrefixUpdated({ name: updated.name }));
@@ -251,19 +252,16 @@ export function registerShopsCommand(bot: Bot<BotContext>, backend: BackendClien
 
       if (pending.kind === "token") {
         const token = requireNonEmpty(text, "wbToken");
-        const response = await backend.PATCH(
-          "/shops/{id}/token",
-          {
-            params: {
-              path: { id: pending.shopId },
-              header: await getTelegramContextHeaders(ctx)
-            },
-            body: {
-              wbToken: token,
-              tokenType: pending.tokenType
-            }
+        const response = await backend.PATCH("/shops/{id}/token", {
+          params: {
+            path: { id: pending.shopId },
+            header: await getTelegramContextHeaders(ctx)
+          },
+          body: {
+            wbToken: token,
+            tokenType: pending.tokenType
           }
-        );
+        });
         const updated = requireResponseData(response.data, "PATCH /shops/{id}/token").shop;
         ctx.session.pendingAction = null;
         await ctx.reply(
@@ -312,7 +310,11 @@ async function listShops(ctx: BotContext, backend: BackendClient): Promise<ShopD
   return payload.shops;
 }
 
-async function findShopById(ctx: BotContext, backend: BackendClient, shopId: string): Promise<ShopDto> {
+async function findShopById(
+  ctx: BotContext,
+  backend: BackendClient,
+  shopId: string
+): Promise<ShopDto> {
   const shops = await listShops(ctx, backend);
   const shop = shops.find((item) => item.id === shopId);
 
@@ -330,10 +332,34 @@ async function handleCreateFlowStep(
   backend: BackendClient
 ) {
   if (pending.step === "name") {
-    pending.draft.name = requireNonEmpty(text, "name");
-    pending.step = "wbToken";
-    await ctx.reply(ctx.t.shops.sendProductionToken());
-    return;
+    const name = requireNonEmpty(text, "name");
+
+    try {
+      const response = await backend.GET("/shops/check-name", {
+        params: {
+          query: { name },
+          header: await getTelegramContextHeaders(ctx)
+        }
+      });
+
+      if (response.error) {
+        throw response.error;
+      }
+
+      pending.draft.name = name;
+      pending.step = "wbToken";
+      await ctx.reply(ctx.t.shops.sendProductionToken());
+      return;
+    } catch (error) {
+      if (error instanceof BackendApiHttpError && error.status === 409) {
+        const details = error.details as { code?: string } | undefined;
+        if (details?.code === "SHOP_NAME_ALREADY_EXISTS") {
+          await ctx.reply(ctx.t.shops.duplicateNameRetry());
+          return;
+        }
+      }
+      throw error;
+    }
   }
 
   if (pending.step === "wbToken") {
@@ -405,20 +431,30 @@ async function handleCreateFlowStep(
     isActive
   };
 
-  const response = await backend.POST(
-    "/shops",
-    {
+  try {
+    const response = await backend.POST("/shops", {
       params: {
         header: await getTelegramContextHeaders(ctx)
       },
       body: createBody
-    }
-  );
-  const created = requireResponseData(response.data, "POST /shops").shop;
+    });
+    const created = requireResponseData(response.data, "POST /shops").shop;
 
-  ctx.session.pendingAction = null;
-  await ctx.reply(ctx.t.shops.shopCreated({ name: created.name }));
-  await sendShopDetails(ctx, backend, created.id);
+    ctx.session.pendingAction = null;
+    await ctx.reply(ctx.t.shops.shopCreated({ name: created.name }));
+    await sendShopDetails(ctx, backend, created.id);
+  } catch (error) {
+    if (error instanceof BackendApiHttpError && error.status === 409) {
+      const details = error.details as { code?: string } | undefined;
+      if (details?.code === "SHOP_NAME_ALREADY_EXISTS") {
+        pending.step = "name";
+        pending.draft = {};
+        await ctx.reply(ctx.t.shops.duplicateNameRetry());
+        return;
+      }
+    }
+    throw error;
+  }
 }
 
 function getShopsMenuKeyboard(t: BotTranslator): InlineKeyboard {
@@ -454,7 +490,10 @@ function getShopActionsKeyboard(t: BotTranslator, shop: ShopDto): InlineKeyboard
     .text(t.shops.buttons.productionToken(), `shops:tokp:${shop.id}`)
     .text(t.shops.buttons.sandboxToken(), `shops:toks:${shop.id}`)
     .row()
-    .text(shop.isActive ? t.shops.buttons.deactivate() : t.shops.buttons.activate(), `shops:act:${shop.id}`)
+    .text(
+      shop.isActive ? t.shops.buttons.deactivate() : t.shops.buttons.activate(),
+      `shops:act:${shop.id}`
+    )
     .text(t.shops.buttons.toggleSandbox(), `shops:sbx:${shop.id}`)
     .row()
     .text(t.shops.buttons.backToList(), "shops:list")

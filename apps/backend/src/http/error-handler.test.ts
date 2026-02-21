@@ -79,6 +79,22 @@ describe("route error handler", () => {
     });
   });
 
+  it("maps postgres unique violations wrapped in cause to 409", async () => {
+    const logger = { error: vi.fn() };
+    const handler = createRouteErrorHandler(logger as never);
+
+    const drizzleWrappedError = new Error("Failed query") as { cause: { code: string } };
+    drizzleWrappedError.cause = { code: "23505" };
+
+    const response = handler(createContext(), drizzleWrappedError);
+
+    expect(response.status).toBe(409);
+    expect(await response.json()).toEqual({
+      code: "SHOP_NAME_ALREADY_EXISTS",
+      error: "Shop with this name already exists"
+    });
+  });
+
   it("maps unknown errors to 500 and logs context", async () => {
     const logger = { error: vi.fn() };
     const handler = createRouteErrorHandler(logger as never);
