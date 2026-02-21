@@ -12,11 +12,20 @@ import {
 import type { BackendShopsService } from "../services/shops-service.js";
 import type { BackendTenantService } from "../services/tenant-service.js";
 
-const shopIdParamsSchema = z.object({
+const shopIdParamsSchema = z
+  .object({
     id: z.string().min(1)
-}).openapi("ShopIdParams");
+  })
+  .openapi("ShopIdParams");
 
-const createShopBodySchema = z.object({
+const checkShopNameQuerySchema = z
+  .object({
+    name: z.string().trim().min(1, "name must not be empty")
+  })
+  .openapi("CheckShopNameQuery");
+
+const createShopBodySchema = z
+  .object({
     name: z.string().trim().min(1, "name must not be empty"),
     wbToken: z.string().trim().min(1, "wbToken must not be empty"),
     wbSandboxToken: z
@@ -28,7 +37,8 @@ const createShopBodySchema = z.object({
     useSandbox: z.boolean().optional(),
     supplyPrefix: z.string().trim().min(1, "supplyPrefix must not be empty").optional(),
     isActive: z.boolean().optional()
-}).openapi("CreateShopBody");
+  })
+  .openapi("CreateShopBody");
 
 const updateShopBodySchema = z
   .object({
@@ -42,12 +52,15 @@ const updateShopBodySchema = z
     useSandbox: z.boolean().optional(),
     supplyPrefix: z.string().trim().min(1, "supplyPrefix must not be empty").optional(),
     isActive: z.boolean().optional()
-}).openapi("UpdateShopBody");
+  })
+  .openapi("UpdateShopBody");
 
-const updateShopTokenBodySchema = z.object({
+const updateShopTokenBodySchema = z
+  .object({
     wbToken: z.string().trim().min(1, "wbToken must not be empty"),
     tokenType: z.enum(["production", "sandbox"]).optional()
-}).openapi("UpdateShopTokenBody");
+  })
+  .openapi("UpdateShopTokenBody");
 
 const listShopsRoute = createRoute({
   method: "get",

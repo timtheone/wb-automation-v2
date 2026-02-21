@@ -13,6 +13,7 @@ type BotCommandErrorCode =
   | "TELEGRAM_USER_CONTEXT_MISSING"
   | "TELEGRAM_CHAT_TYPE_UNSUPPORTED"
   | "TELEGRAM_CHAT_OWNER_UNRESOLVED"
+  | "GROUP_OWNER_REQUIRED"
   | "SHOP_NOT_FOUND"
   | "INVALID_CALLBACK_PAYLOAD"
   | "FIELD_MUST_NOT_BE_EMPTY"
@@ -49,6 +50,31 @@ export interface TelegramContextHeaders {
 
 export async function getTelegramContextHeaders(ctx: BotContext): Promise<TelegramContextHeaders> {
   return buildTelegramContextHeaders(ctx);
+}
+
+export async function requireGroupOwnerOrPrivate(ctx: BotContext): Promise<void> {
+  const chat = ctx.chat;
+  const from = ctx.from;
+
+  if (!chat) {
+    throw createBotCommandError("TELEGRAM_CHAT_CONTEXT_MISSING");
+  }
+
+  if (!from) {
+    throw createBotCommandError("TELEGRAM_USER_CONTEXT_MISSING");
+  }
+
+  const chatType = resolveSupportedChatType(chat.type);
+
+  if (chatType === "private") {
+    return;
+  }
+
+  const ownerTelegramUserId = await resolveGroupOwnerTelegramUserId(ctx, chat.id);
+
+  if (from.id !== ownerTelegramUserId) {
+    throw createBotCommandError("GROUP_OWNER_REQUIRED");
+  }
 }
 
 export async function replyWithError(ctx: BotContext, error: unknown) {
@@ -272,6 +298,8 @@ function resolveBotCommandErrorMessage(t: BotTranslator, error: BotCommandError)
       return t.errors.unsupportedChatType({ chatType: readErrorParam(error.params, "chatType") });
     case "TELEGRAM_CHAT_OWNER_UNRESOLVED":
       return t.errors.unableToResolveChatOwner();
+    case "GROUP_OWNER_REQUIRED":
+      return t.errors.groupOwnerRequired();
     case "SHOP_NOT_FOUND":
       return t.errors.shopNotFound({ shopId: readErrorParam(error.params, "shopId") });
     case "INVALID_CALLBACK_PAYLOAD":

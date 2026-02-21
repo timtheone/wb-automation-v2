@@ -163,7 +163,8 @@ const en = {
     invalidTelegramContextHeaders: "Invalid Telegram context headers",
     privateOwnerMismatch: "Owner telegram user must match requester in private chats",
     shopNameAlreadyExists: "Shop with this name already exists",
-    internalServerError: "Internal server error"
+    internalServerError: "Internal server error",
+    groupOwnerRequired: "Only the group owner can manage shops"
   }
 } as const;
 
@@ -334,7 +335,8 @@ const ruOverrides: DeepPartial<TranslationDictionary> = {
     invalidTelegramContextHeaders: "Некорректные Telegram context headers",
     privateOwnerMismatch: "В private chat владелец должен совпадать с отправителем",
     shopNameAlreadyExists: "Магазин с таким названием уже существует",
-    internalServerError: "Внутренняя ошибка сервера"
+    internalServerError: "Внутренняя ошибка сервера",
+    groupOwnerRequired: "Только владелец группы может управлять магазинами"
   }
 };
 

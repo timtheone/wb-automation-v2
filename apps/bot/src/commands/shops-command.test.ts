@@ -63,6 +63,8 @@ function createHarness() {
 function createContext() {
   const reply = vi.fn<(text: string) => Promise<void>>(async () => undefined);
   const answerCallbackQuery = vi.fn(async () => undefined);
+  const getChatAdministrators = vi.fn(async () => [{ status: "creator", user: { id: 800 } }]);
+  const deleteMessage = vi.fn(async () => undefined);
 
   const ctx = {
     update: { update_id: 1 },
@@ -72,11 +74,41 @@ function createContext() {
     t: createTranslator("en"),
     reply,
     answerCallbackQuery,
-    message: { text: "" },
-    match: []
+    deleteMessage,
+    message: { text: "", message_id: 1 },
+    match: [],
+    api: {
+      getChatAdministrators
+    }
   } as unknown as BotContext;
 
-  return { ctx, reply, answerCallbackQuery };
+  return { ctx, reply, answerCallbackQuery, getChatAdministrators, deleteMessage };
+}
+
+function createGroupContext(options: { userId: number; chatId?: number }) {
+  const { userId, chatId = 700 } = options;
+  const reply = vi.fn<(text: string) => Promise<void>>(async () => undefined);
+  const answerCallbackQuery = vi.fn(async () => undefined);
+  const getChatAdministrators = vi.fn(async () => [{ status: "creator", user: { id: 900 } }]);
+  const deleteMessage = vi.fn(async () => undefined);
+
+  const ctx = {
+    update: { update_id: 1 },
+    chat: { id: chatId, type: "supergroup" },
+    from: { id: userId, language_code: "en" },
+    session: { pendingAction: null },
+    t: createTranslator("en"),
+    reply,
+    answerCallbackQuery,
+    deleteMessage,
+    message: { text: "", message_id: 1 },
+    match: [],
+    api: {
+      getChatAdministrators
+    }
+  } as unknown as BotContext;
+
+  return { ctx, reply, answerCallbackQuery, getChatAdministrators, deleteMessage };
 }
 
 describe("shops command", () => {
@@ -404,5 +436,213 @@ describe("shop rename duplicate name handling", () => {
         text.includes(ctx.t.shops.shopRenamed({ name: "Unique Name" }))
       )
     ).toBe(true);
+  });
+});
+
+describe("group owner restriction", () => {
+  it("blocks /shops for non-owner in group", async () => {
+    const harness = createHarness();
+    const backend = {} as BackendClient;
+
+    registerShopsCommand(harness.bot, backend);
+
+    const { ctx, reply, getChatAdministrators } = createGroupContext({ userId: 800 });
+
+    await harness.command("shops")(ctx);
+
+    expect(getChatAdministrators).toHaveBeenCalledWith(700);
+    expect(reply).toHaveBeenCalledWith(ctx.t.errors.groupOwnerRequired());
+    expect(ctx.session.pendingAction).toBeNull();
+  });
+
+  it("allows /shops for owner in group", async () => {
+    const harness = createHarness();
+    const backend = {} as BackendClient;
+
+    registerShopsCommand(harness.bot, backend);
+
+    const { ctx, reply, getChatAdministrators } = createGroupContext({
+      userId: 900,
+      chatId: 701
+    });
+
+    await harness.command("shops")(ctx);
+
+    expect(getChatAdministrators).toHaveBeenCalledWith(701);
+    expect(reply).toHaveBeenCalledWith(ctx.t.shops.menuTitle(), expect.any(Object));
+  });
+
+  it("allows /shops in private chat without admin check", async () => {
+    const harness = createHarness();
+    const backend = {} as BackendClient;
+
+    registerShopsCommand(harness.bot, backend);
+
+    const { ctx, reply, getChatAdministrators } = createContext();
+
+    await harness.command("shops")(ctx);
+
+    expect(getChatAdministrators).not.toHaveBeenCalled();
+    expect(reply).toHaveBeenCalledWith(ctx.t.shops.menuTitle(), expect.any(Object));
+  });
+});
+
+describe("token message deletion in groups", () => {
+  it("deletes token message in group during create flow", async () => {
+    const harness = createHarness();
+    const createdShop = {
+      id: "shop-1",
+      name: "Test Shop",
+      wbToken: "secret-token",
+      wbSandboxToken: null,
+      useSandbox: false,
+      isActive: true,
+      supplyPrefix: null,
+      tokenUpdatedAt: "2026-02-20T10:00:00.000Z",
+      createdAt: "2026-02-20T10:00:00.000Z",
+      updatedAt: "2026-02-20T10:00:00.000Z"
+    };
+
+    const backend = {
+      POST: vi.fn(async () => ({ data: { shop: createdShop } })),
+      GET: vi
+        .fn()
+        .mockResolvedValueOnce({ data: { available: true } })
+        .mockResolvedValueOnce({ data: { shops: [createdShop] } })
+    } as unknown as BackendClient;
+
+    registerShopsCommand(harness.bot, backend);
+
+    const { ctx, deleteMessage } = createGroupContext({ userId: 900, chatId: 800 });
+
+    await harness.callback("shops:create")(ctx);
+
+    const onMessage = harness.event("message:text");
+
+    setMessageText(ctx, "Test Shop");
+    await onMessage(ctx);
+
+    expect(deleteMessage).not.toHaveBeenCalled();
+
+    setMessageText(ctx, "secret-token");
+    await onMessage(ctx);
+
+    expect(deleteMessage).toHaveBeenCalledTimes(1);
+  });
+
+  it("does not delete token message in private chat during create flow", async () => {
+    const harness = createHarness();
+    const createdShop = {
+      id: "shop-1",
+      name: "Test Shop",
+      wbToken: "secret-token",
+      wbSandboxToken: null,
+      useSandbox: false,
+      isActive: true,
+      supplyPrefix: null,
+      tokenUpdatedAt: "2026-02-20T10:00:00.000Z",
+      createdAt: "2026-02-20T10:00:00.000Z",
+      updatedAt: "2026-02-20T10:00:00.000Z"
+    };
+
+    const backend = {
+      POST: vi.fn(async () => ({ data: { shop: createdShop } })),
+      GET: vi
+        .fn()
+        .mockResolvedValueOnce({ data: { available: true } })
+        .mockResolvedValueOnce({ data: { shops: [createdShop] } })
+    } as unknown as BackendClient;
+
+    registerShopsCommand(harness.bot, backend);
+
+    const { ctx, deleteMessage } = createContext();
+
+    await harness.callback("shops:create")(ctx);
+
+    const onMessage = harness.event("message:text");
+
+    setMessageText(ctx, "Test Shop");
+    await onMessage(ctx);
+
+    setMessageText(ctx, "secret-token");
+    await onMessage(ctx);
+
+    expect(deleteMessage).not.toHaveBeenCalled();
+  });
+
+  it("deletes token message in group during token update flow", async () => {
+    const harness = createHarness();
+    const updatedShop = {
+      id: "shop-1",
+      name: "Test Shop",
+      wbToken: "new-secret-token",
+      wbSandboxToken: null,
+      useSandbox: false,
+      isActive: true,
+      supplyPrefix: null,
+      tokenUpdatedAt: "2026-02-20T10:00:00.000Z",
+      createdAt: "2026-02-20T10:00:00.000Z",
+      updatedAt: "2026-02-20T10:00:00.000Z"
+    };
+
+    const backend = {
+      PATCH: vi.fn(async () => ({ data: { shop: updatedShop } })),
+      GET: vi.fn(async () => ({ data: { shops: [updatedShop] } }))
+    } as unknown as BackendClient;
+
+    registerShopsCommand(harness.bot, backend);
+
+    const { ctx, deleteMessage } = createGroupContext({ userId: 900, chatId: 800 });
+
+    ctx.session.pendingAction = {
+      kind: "token",
+      shopId: "shop-1",
+      tokenType: "production"
+    };
+
+    const onMessage = harness.event("message:text");
+
+    setMessageText(ctx, "new-secret-token");
+    await onMessage(ctx);
+
+    expect(deleteMessage).toHaveBeenCalledTimes(1);
+  });
+
+  it("does not delete token message in private chat during token update flow", async () => {
+    const harness = createHarness();
+    const updatedShop = {
+      id: "shop-1",
+      name: "Test Shop",
+      wbToken: "new-secret-token",
+      wbSandboxToken: null,
+      useSandbox: false,
+      isActive: true,
+      supplyPrefix: null,
+      tokenUpdatedAt: "2026-02-20T10:00:00.000Z",
+      createdAt: "2026-02-20T10:00:00.000Z",
+      updatedAt: "2026-02-20T10:00:00.000Z"
+    };
+
+    const backend = {
+      PATCH: vi.fn(async () => ({ data: { shop: updatedShop } })),
+      GET: vi.fn(async () => ({ data: { shops: [updatedShop] } }))
+    } as unknown as BackendClient;
+
+    registerShopsCommand(harness.bot, backend);
+
+    const { ctx, deleteMessage } = createContext();
+
+    ctx.session.pendingAction = {
+      kind: "token",
+      shopId: "shop-1",
+      tokenType: "production"
+    };
+
+    const onMessage = harness.event("message:text");
+
+    setMessageText(ctx, "new-secret-token");
+    await onMessage(ctx);
+
+    expect(deleteMessage).not.toHaveBeenCalled();
   });
 });

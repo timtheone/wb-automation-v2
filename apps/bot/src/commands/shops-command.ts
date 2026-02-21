@@ -9,11 +9,19 @@ import {
   formatIsoDate,
   getTelegramContextHeaders,
   replyWithError,
+  requireGroupOwnerOrPrivate,
   requireResponseData
 } from "./shared.js";
 
 export function registerShopsCommand(bot: Bot<BotContext>, backend: BackendClient) {
   bot.command("shops", async (ctx) => {
+    try {
+      await requireGroupOwnerOrPrivate(ctx);
+    } catch (error) {
+      await replyWithError(ctx, error);
+      return;
+    }
+
     ctx.session.pendingAction = null;
     await ctx.reply(ctx.t.shops.menuTitle(), {
       reply_markup: getShopsMenuKeyboard(ctx.t)
@@ -252,6 +260,7 @@ export function registerShopsCommand(bot: Bot<BotContext>, backend: BackendClien
 
       if (pending.kind === "token") {
         const token = requireNonEmpty(text, "wbToken");
+        await deleteSensitiveMessage(ctx);
         const response = await backend.PATCH("/shops/{id}/token", {
           params: {
             path: { id: pending.shopId },
@@ -364,6 +373,7 @@ async function handleCreateFlowStep(
 
   if (pending.step === "wbToken") {
     pending.draft.wbToken = requireNonEmpty(text, "wbToken");
+    await deleteSensitiveMessage(ctx);
     pending.step = "supplyPrefix";
     await ctx.reply(ctx.t.shops.sendSupplyPrefixOrDefault());
     return;
@@ -399,6 +409,7 @@ async function handleCreateFlowStep(
 
   if (pending.step === "wbSandboxToken") {
     pending.draft.wbSandboxToken = requireNonEmpty(text, "wbSandboxToken");
+    await deleteSensitiveMessage(ctx);
     pending.step = "isActive";
     await ctx.reply(ctx.t.shops.shouldBeActiveQuestion());
     return;
@@ -594,4 +605,16 @@ function maskToken(token: string): string {
   }
 
   return `${token.slice(0, 4)}...${token.slice(-4)}`;
+}
+
+async function deleteSensitiveMessage(ctx: BotContext): Promise<void> {
+  if (ctx.chat?.type === "private") {
+    return;
+  }
+
+  try {
+    await ctx.deleteMessage();
+  } catch {
+    // Bot may not have permission to delete messages
+  }
 }
