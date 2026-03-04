@@ -84,7 +84,9 @@ export interface ProcessAllShopsService {
   processAllShops(): Promise<ProcessAllShopsResult>;
 }
 
-export function createProcessAllShopsService(options: ProcessAllShopsOptions): ProcessAllShopsService {
+export function createProcessAllShopsService(
+  options: ProcessAllShopsOptions
+): ProcessAllShopsService {
   const now = options.now ?? (() => new Date());
   const sleep = options.sleep ?? defaultSleep;
   const supplyPageLimit = options.supplyPageLimit ?? DEFAULT_SUPPLY_PAGE_LIMIT;
@@ -131,7 +133,9 @@ export function createProcessAllShopsService(options: ProcessAllShopsOptions): P
           const allOrders = newOrdersResult.data.orders ?? [];
           const eligibleOrders = allOrders.filter((order) => {
             const requiredMeta = order.requiredMeta;
-            return !requiredMeta || requiredMeta.length === 0;
+            const optionalMeta = order.optionalMeta;
+            const hasSgtinOptionalMeta = optionalMeta?.includes("sgtin") ?? false;
+            return (!requiredMeta || requiredMeta.length === 0) && !hasSgtinOptionalMeta;
           });
           const eligibleOrderIds = eligibleOrders
             .map((order) => order.id)
@@ -172,12 +176,15 @@ export function createProcessAllShopsService(options: ProcessAllShopsOptions): P
 
           for (const batch of toBatches(eligibleOrderIds, SUPPLY_ORDER_BATCH_SIZE)) {
             const body: AddOrdersBody = { orders: batch };
-            const addOrdersResult = await fbsClient.PATCH("/api/marketplace/v3/supplies/{supplyId}/orders", {
-              params: {
-                path: { supplyId }
-              },
-              body
-            });
+            const addOrdersResult = await fbsClient.PATCH(
+              "/api/marketplace/v3/supplies/{supplyId}/orders",
+              {
+                params: {
+                  path: { supplyId }
+                },
+                body
+              }
+            );
 
             emitWbApiDebug(debugContext, {
               step: "supply_add_orders",
