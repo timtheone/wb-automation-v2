@@ -1,29 +1,32 @@
 openapi: 3.0.1
 info:
-  title: FBS Orders
+  title: Заказы FBS
   version: order
   description: |
-    <div class="description_important">
-    <b>Methods for working with assembly orders of the DBW model (Delivery by Wildberries) are now in a <a href="https://dev.wildberries.ru/en/release-notes?id=312">separate environment</a>.
-    </b>
+    С помощью методов раздела Заказы FBS (Fulfillment by Seller) вы можете:
+      - получать информацию о [сборочных заданиях](/openapi/orders-fbs#tag/Sborochnye-zadaniya-FBS) и их статусах, отменять сборочные задания, получать стикеры
+      - добавлять, редактировать и удалять [метаданные](/openapi/orders-fbs#tag/Metadannye-FBS) сборочных заданий
+      - управлять [поставками](/openapi/orders-fbs#tag/Postavki-FBS)
+      - создавать, редактировать и удалять [пропуска](/openapi/orders-fbs#tag/Propuska-FBS) на склады WB
+
+    <div class="description_ref">
+      Узнать, как использовать методы в бизнес-кейсах, можно в <a href="https://dev.wildberries.ru/news/127">инструкции</a> по работе с <strong>заказами FBS</strong>
     </div>
 
-    Use the FBS Orders (Fulfillment by Seller) methods to:
-      - get information about [assembly orders](/openapi/orders-fbs#tag/FBS-Assembly-Orders) and their statuses, cancel assembly orders, and get stickers
-      - get, add, edit, and delete [metadata](/openapi/orders-fbs#tag/FBS-Metadata) for assembly orders
-      - manage [supplies](/openapi/orders-fbs#tag/FBS-Supplies)
-      - create, edit, and delete [passes](/openapi/orders-fbs#tag/FBS-Passes) to WB warehouses
+    <div class="description_important">
+      Узнать больше о заказах FBS можно в <a href="https://seller.wildberries.ru/instructions/ru/ru/category/b3e60238-fd4c-49ce-8668-ff688725a12d">справочном центре</a>
+    </div>
   x-file-name: orders-fbs
 security:
   - HeaderApiKey: []
 tags:
-  - name: FBS Assembly Orders
+  - name: Сборочные задания FBS
     description: ''
-  - name: FBS Metadata
+  - name: Метаданные FBS
     description: ''
-  - name: FBS Supplies
+  - name: Поставки FBS
     description: ''
-  - name: FBS Passes
+  - name: Пропуска FBS
     description: ''
 paths:
   /api/v3/passes/offices:
@@ -35,29 +38,33 @@ paths:
       security:
         - HeaderApiKey: []
       tags:
-        - FBS Passes
-      summary: Get Offices for Pass
+        - Пропуска FBS
+      summary: Получить список складов, для которых требуется пропуск
       description: |
-        Returns a list of offices that require a pass.
+        Метод возвращает список складов для привязки к [пропуску продавца](/openapi/orders-fbs#tag/Propuska-FBS/paths/~1api~1v3~1passes/get).
+
+        <div class="description_important">
+          Данные, которые возвращает метод, могут меняться. Рекомендуем периодически синхронизировать список
+        </div>
 
         <div class="description_limit">
-        <a href="/openapi/api-information#tag/Introduction/Rate-Limits">Request limit</a> per one seller's account for <strong>FBS assembly orders, supplies and passes</strong> methods:
+        <a href="/openapi/api-information#tag/Vvedenie/Limity-zaprosov">Лимит запросов</a> на один аккаунт продавца для методов <strong>сборочных заданий, поставок и пропусков FBS</strong>:
 
-        | Period | Limit | Interval | Burst |
+        | Период | Лимит | Интервал | Всплеск |
         | --- | --- | --- | --- |
-        | 1 min | 300 requests | 200 ms | 20 requests |
+        | 1 мин | 300 запросов | 200 мс | 20 запросов |
 
-        One request with a response code of <code>409</code> is counted as 10 requests
+        Один запрос с кодом ответа <code>409</code> учитывается как 10 запросов
         </div>
       responses:
         '200':
-          description: Success
+          description: Успешно
           content:
             application/json:
               schema:
                 type: array
                 nullable: false
-                description: Offices list
+                description: Список складов
                 items:
                   $ref: '#/components/schemas/PassOffice'
         '401':
@@ -75,33 +82,35 @@ paths:
       security:
         - HeaderApiKey: []
       tags:
-        - FBS Passes
-      summary: Get Passes
+        - Пропуска FBS
+      summary: Получить список пропусков
       description: |
-        Returns a list of all seller's passes.
+        Метод возвращает список всех [созданных](/openapi/orders-fbs#tag/Propuska-FBS/paths/~1api~1v3~1passes/post) пропусков продавца.
 
         <div class="description_limit">
-        <a href="/openapi/api-information#tag/Introduction/Rate-Limits">Request limit</a> per one seller's account for <strong>FBS assembly orders, supplies and passes</strong> methods:
+        <a href="/openapi/api-information#tag/Vvedenie/Limity-zaprosov">Лимит запросов</a> на один аккаунт продавца для методов <strong>сборочных заданий, поставок и пропусков FBS</strong>:
 
-        | Period | Limit | Interval | Burst |
+        | Период | Лимит | Интервал | Всплеск |
         | --- | --- | --- | --- |
-        | 1 min | 300 requests | 200 ms | 20 requests |
+        | 1 мин | 300 запросов | 200 мс | 20 запросов |
 
-        One request with a response code of <code>409</code> is counted as 10 requests
+        Один запрос с кодом ответа <code>409</code> учитывается как 10 запросов
         </div>
       responses:
         '200':
-          description: Success
+          description: Успешно
           content:
             application/json:
               schema:
                 type: array
                 nullable: false
-                description: Passes list
+                description: Список пропусков продавца
                 items:
                   $ref: '#/components/schemas/Pass'
         '401':
           $ref: '#/components/responses/401'
+        '402':
+          $ref: '#/components/responses/402'
         '403':
           $ref: '#/components/responses/AccessDenied'
         '429':
@@ -112,16 +121,19 @@ paths:
       security:
         - HeaderApiKey: []
       tags:
-        - FBS Passes
-      summary: Create Pass
+        - Пропуска FBS
+      summary: Создать пропуск
       description: |
-        Creates a supplier pass. <br> The pass is valid for 48 hours from the time of creation.
+        Метод создаёт [пропуск продавца](/openapi/orders-fbs#tag/Propuska-FBS/paths/~1api~1v3~1passes/get) с привязкой к складу WB.
+
+        Пропуск действует 48 часов со времени создания.
+
         <div class="description_limit">
-          Maximum of 1 request per 10 <a href="/openapi/api-information#tag/Introduction/Rate-Limits">minutes</a> per one seller's account
+          Максимум 1 запрос в 10 <a href="/openapi/api-information#tag/Vvedenie/Limity-zaprosov">минут</a> на один аккаунт продавца
         </div>
       requestBody:
         required: true
-        description: The total length of the full name is limited from 6 to 100 characters. The car number can contain only letters and numbers.
+        description: Общая длина ФИО ограничена от 6 до 100 символов. В номере машины могут быть только буквы и цифры.
         content:
           application/json:
             schema:
@@ -131,34 +143,34 @@ paths:
                   type: string
                   nullable: false
                   minLength: 1
-                  description: First name
-                  example: Alex
+                  description: Имя водителя
+                  example: Александр
                 lastName:
                   type: string
                   nullable: false
                   minLength: 1
-                  description: Last name
-                  example: Petrov
+                  description: Фамилия водителя
+                  example: Петров
                 carModel:
                   type: string
                   nullable: false
                   minLength: 1
                   maxLength: 100
-                  description: Car model
+                  description: Марка машины
                   example: Lamborghini
                 carNumber:
                   type: string
                   nullable: false
                   minLength: 6
                   maxLength: 9
-                  description: Car number
+                  description: Номер машины
                   example: A456BC123
                 officeId:
                   type: integer
                   format: int64
                   nullable: false
                   minimum: 1
-                  description: Office ID
+                  description: ID склада
                   example: 15
               required:
                 - firstName
@@ -168,7 +180,7 @@ paths:
                 - officeId
       responses:
         '201':
-          description: Created
+          description: Создано
           content:
             application/json:
               schema:
@@ -177,10 +189,10 @@ paths:
                   id:
                     type: integer
                     nullable: false
-                    description: Pass ID
+                    description: ID пропуска продавца
                     example: 2
         '400':
-          description: Bad request
+          description: Неправильный запрос
           content:
             application/json:
               schema:
@@ -190,6 +202,8 @@ paths:
                   $ref: '#/components/examples/IncorrectRequestBody'
         '401':
           $ref: '#/components/responses/401'
+        '402':
+          $ref: '#/components/responses/402'
         '403':
           $ref: '#/components/responses/AccessDenied'
         '404':
@@ -205,26 +219,25 @@ paths:
       security:
         - HeaderApiKey: []
       tags:
-        - FBS Passes
-      summary: Update Pass
+        - Пропуска FBS
+      summary: Обновить пропуск
       description: |
-        Updates the seller's pass detail
+        Метод обновляет данные [пропуска продавца](/openapi/orders-fbs#tag/Propuska-FBS/paths/~1api~1v3~1passes/get). В том числе, можно обновить данные привязанного склада WB.
 
         <div class="description_limit">
-        <a href="/openapi/api-information#tag/Introduction/Rate-Limits">Request limit</a> per one seller's account for <strong>FBS assembly orders, supplies and passes</strong> methods:
+        <a href="/openapi/api-information#tag/Vvedenie/Limity-zaprosov">Лимит запросов</a> на один аккаунт продавца для методов <strong>сборочных заданий, поставок и пропусков FBS</strong>:
 
-        | Period | Limit | Interval | Burst |
+        | Период | Лимит | Интервал | Всплеск |
         | --- | --- | --- | --- |
-        | 1 min | 300 requests | 200 ms | 20 requests |
+        | 1 мин | 300 запросов | 200 мс | 20 запросов |
 
-        One request with a response code of <code>409</code> is counted as 10 requests
+        Один запрос с кодом ответа <code>409</code> учитывается как 10 запросов
         </div>
       parameters:
         - $ref: '#/components/parameters/Pass'
       requestBody:
         required: true
-        description: |
-          The total length of the full name is limited from 6 to 100 characters. The car number can contain only letters and numbers.
+        description: Общая длина ФИО ограничена от 6 до 100 символов. В номере машины могут быть только буквы и цифры.
         content:
           application/json:
             schema:
@@ -234,34 +247,34 @@ paths:
                   type: string
                   nullable: false
                   minLength: 1
-                  description: First name
-                  example: Alex
+                  description: Имя водителя
+                  example: Александр
                 lastName:
                   type: string
                   nullable: false
-                  minLength: 1
-                  description: Last name
-                  example: Petrov
+                  minLength: 6
+                  description: Фамилия водителя
+                  example: Петров
                 carModel:
                   type: string
                   nullable: false
                   minLength: 1
                   maxLength: 100
-                  description: Car model
+                  description: Марка машины
                   example: Lamborghini
                 carNumber:
                   type: string
                   nullable: false
                   minLength: 6
                   maxLength: 9
-                  description: Car number
+                  description: Номер машины
                   example: A456BC123
                 officeId:
                   type: integer
                   format: int64
                   nullable: false
                   minimum: 1
-                  description: Office ID
+                  description: ID склада
                   example: 15
               required:
                 - firstName
@@ -271,9 +284,9 @@ paths:
                 - officeId
       responses:
         '204':
-          description: Updated
+          description: Обновлено
         '400':
-          description: Bad request
+          description: Неправильный запрос
           content:
             application/json:
               schema:
@@ -285,6 +298,8 @@ paths:
                   $ref: '#/components/examples/WarehouseNameInvalid'
         '401':
           $ref: '#/components/responses/401'
+        '402':
+          $ref: '#/components/responses/402'
         '403':
           $ref: '#/components/responses/AccessDenied'
         '404':
@@ -297,27 +312,29 @@ paths:
       security:
         - HeaderApiKey: []
       tags:
-        - FBS Passes
-      summary: Delete the Pass
+        - Пропуска FBS
+      summary: Удалить пропуск
       description: |
-        Deletes the seller's pass
+        Метод удаляет пропуск продавца [из списка](/openapi/orders-fbs#tag/Propuska-FBS/paths/~1api~1v3~1passes/get).
 
         <div class="description_limit">
-        <a href="/openapi/api-information#tag/Introduction/Rate-Limits">Request limit</a> per one seller's account for <strong>FBS assembly orders, supplies and passes</strong> methods:
+        <a href="/openapi/api-information#tag/Vvedenie/Limity-zaprosov">Лимит запросов</a> на один аккаунт продавца для методов <strong>сборочных заданий, поставок и пропусков FBS</strong>:
 
-        | Period | Limit | Interval | Burst |
+        | Период | Лимит | Интервал | Всплеск |
         | --- | --- | --- | --- |
-        | 1 min | 300 requests | 200 ms | 20 requests |
+        | 1 мин | 300 запросов | 200 мс | 20 запросов |
 
-        One request with a response code of <code>409</code> is counted as 10 requests
+        Один запрос с кодом ответа <code>409</code> учитывается как 10 запросов
         </div>
       parameters:
         - $ref: '#/components/parameters/Pass'
       responses:
         '204':
-          description: Deleted
+          description: Удалено
         '401':
           $ref: '#/components/responses/401'
+        '402':
+          $ref: '#/components/responses/402'
         '403':
           $ref: '#/components/responses/AccessDenied'
         '404':
@@ -333,28 +350,29 @@ paths:
       security:
         - HeaderApiKey: []
       tags:
-        - FBS Assembly Orders
-      summary: Get New Assembly Orders
+        - Сборочные задания FBS
+      summary: Получить список новых сборочных заданий
       description: |
-        Returns a list of all new [assembly orders](/openapi/orders-fbs#tag/FBS-Assembly-Orders/paths/~1api~1v3~1orders/get).
+        Метод возвращает список всех новых [сборочных заданий](/openapi/orders-fbs#tag/Sborochnye-zadaniya-FBS/paths/~1api~1v3~1orders/get), которые есть у продавца на момент запроса.
 
         <div class="description_important">
-        Metadata specified in the <code>requiredMeta</code> and <code>optionalMeta</code> fields in assembly orders only affects the ability to transfer a supply to delivery. If your product requires mandatory marking with identification means, you must specify all needed metadata whether it was received in <code>requiredMeta</code> or <code>optionalMeta</code> field (see 4.6 of the <a href ="https://seller.wildberries.ru/confirm-offer-condition/product/view">Offer</a>).
+        Наличие в сборочных заданиях метаданных, указанных в полях <code>requiredMeta</code> и <code>optionalMeta</code>, влияет только на возможность перевести поставку в доставку. Если ваш товар подлежит обязательной <a href ="https://seller.wildberries.ru/instructions/ru/ru/material/items-labeling-in-fbs">маркировке</a> средствами
+        идентификации, необходимо указывать метаданные независимо от того, в каком поле они были получены (п. 4.6 <a href ="https://seller.wildberries.ru/confirm-offer-condition/product/view">Оферты</a>).
         <br>
-        We recommend adding all metadata received in the <code>requiredMeta</code> and <code>optionalMeta</code> fields to the assembly orders
+        Рекомендуем добавлять в сборочные задания все метаданные, полученные в полях <code>requiredMeta</code> и <code>optionalMeta</code>
         </div>
 
         <div class="description_limit">
-        <a href="/openapi/api-information#tag/Introduction/Rate-Limits">Request limit</a> per one seller's account for <strong>FBS assembly orders, supplies and passes</strong> methods:
+        <a href="/openapi/api-information#tag/Vvedenie/Limity-zaprosov">Лимит запросов</a> на один аккаунт продавца для методов <strong>сборочных заданий, поставок и пропусков FBS</strong>:
 
-        | Period | Limit | Interval | Burst |
+        | Период | Лимит | Интервал | Всплеск |
         | --- | --- | --- | --- |
-        | 1 min | 300 requests | 200 ms | 20 requests |
+        | 1 мин | 300 запросов | 200 мс | 20 запросов |
 
         </div>
       responses:
         '200':
-          description: Success
+          description: Успешно
           content:
             application/json:
               schema:
@@ -364,11 +382,13 @@ paths:
                   orders:
                     type: array
                     nullable: false
-                    description: New assembly orders list
+                    description: Список новых сборочных заданий
                     items:
                       $ref: '#/components/schemas/OrderNew'
         '401':
           $ref: '#/components/responses/401'
+        '402':
+          $ref: '#/components/responses/402'
         '403':
           $ref: '#/components/responses/AccessDenied'
         '429':
@@ -382,19 +402,21 @@ paths:
       security:
         - HeaderApiKey: []
       tags:
-        - FBS Assembly Orders
-      summary: Get Assembly Orders
+        - Сборочные задания FBS
+      summary: Получить информацию о сборочных заданиях
       description: |
-        Returns assembly orders information without current status. <br>You can get data for a specified period, maximum of 30 calendar days per request.
+        Метод возвращает информацию о сборочных заданиях без их актуального [статуса](/openapi/orders-fbs#tag/Sborochnye-zadaniya-FBS/paths/~1api~1v3~1orders~1status/post).
+
+        Можно получить данные за заданный период, максимум 30 календарных дней одним запросом.
 
         <div class="description_limit">
-        <a href="/openapi/api-information#tag/Introduction/Rate-Limits">Request limit</a> per one seller's account for <strong>FBS assembly orders, supplies and passes</strong> methods:
+        <a href="/openapi/api-information#tag/Vvedenie/Limity-zaprosov">Лимит запросов</a> на один аккаунт продавца для методов <strong>сборочных заданий, поставок и пропусков FBS</strong>:
 
-        | Period | Limit | Interval | Burst |
+        | Период | Лимит | Интервал | Всплеск |
         | --- | --- | --- | --- |
-        | 1 min | 300 requests | 200 ms | 20 requests |
+        | 1 мин | 300 запросов | 200 мс | 20 запросов |
 
-        One request with a response code of <code>409</code> is counted as 10 requests
+        Один запрос с кодом ответа <code>409</code> учитывается как 10 запросов
         </div>
       parameters:
         - $ref: '#/components/parameters/Limit'
@@ -404,15 +426,15 @@ paths:
           schema:
             type: integer
           description: |
-            Period start date in Unix timestamp format. By default date is 30 days before the request
+            Дата начала периода в формате Unix timestamp. По умолчанию — дата за 30 дней до запроса
         - name: dateTo
           in: query
           schema:
             type: integer
-          description: Period end date in Unix timestamp format
+          description: Дата конца периода в формате Unix timestamp
       responses:
         '200':
-          description: Success
+          description: Успешно
           content:
             application/json:
               schema:
@@ -427,7 +449,7 @@ paths:
                     items:
                       $ref: '#/components/schemas/Order'
         '400':
-          description: Bad request
+          description: Неправильный запрос
           content:
             application/json:
               schema:
@@ -437,6 +459,8 @@ paths:
                   $ref: '#/components/examples/IncorrectParameter'
         '401':
           $ref: '#/components/responses/401'
+        '402':
+          $ref: '#/components/responses/402'
         '403':
           $ref: '#/components/responses/AccessDenied'
         '429':
@@ -450,45 +474,47 @@ paths:
       security:
         - HeaderApiKey: []
       tags:
-        - FBS Assembly Orders
-      summary: Get Assembly Orders Statuses
+        - Сборочные задания FBS
+      summary: Получить статусы сборочных заданий
       description: |
-        Returns the statuses of assembly orders from the request.
+        Метод возвращает статусы [сборочных заданий](/openapi/orders-fbs#tag/Sborochnye-zadaniya-FBS/paths/~1api~1v3~1orders/get) по их ID.
+        <br><br>
+        `supplierStatus` — статус сборочного задания. Триггер его изменения — действие самого продавца.
 
-        `supplierStatus` is a status of an assembly order. Its change is always triggered only by the supplier.<br>
+        Возможные значения `supplierStatus`:
 
-        Possible values of `supplierStatus`:
+        | Статус   | Описание            | Как перевести сборочное задание в данный статус |
+        |-------|----------------------|--------------------------------------|
+        | `new`      | **Новое сборочное задание** |  |
+        | `confirm`  | **На сборке** |[Добавить сборочное задание к поставке](/openapi/orders-fbs#tag/Postavki-FBS/paths/~1api~1marketplace~1v3~1supplies~1%7BsupplyId%7D~1orders/patch)
+        | `complete` | **В доставке** | [Передать поставку в доставку](/openapi/orders-fbs#tag/Postavki-FBS/paths/~1api~1v3~1supplies~1%7BsupplyId%7D~1deliver/patch) |
+        | `cancel`   | **Отменено продавцом**   | [Отменить сборочное задание](/openapi/orders-fbs#tag/Sborochnye-zadaniya-FBS/paths/~1api~1v3~1orders~1%7BorderId%7D~1cancel/patch)|
+        | `cancel_carrier`   | **Отменено перевозчиком** <br>Только для кроссбордера   | Переводится перевозчиком |
 
-        | Status    | Description              | How to move the assembly orders to this status |
-        |-----------|--------------------------|---------------------------------------------|
-        | `new`       | **New order**        |                                             |
-        | `confirm`   | **In assembly** <br>For delivery by Wildberries `fbs` | [Add assembly orders to the supply](/openapi/orders-fbs#tag/FBS-Supplies/paths/~1api~1marketplace~1v3~1supplies~1%7BsupplyId%7D~1orders/patch)
-        | `complete`  | **In delivery** <br> For delivery by Wildberries `fbs` and by WB courier `wbgo` |  [Transfer the supply to delivery](/openapi/orders-fbs#tag/FBS-Supplies/paths/~1api~1v3~1supplies~1%7BsupplyId%7D~1deliver/patch) |
-        | `cancel`   | **Canceled by seller** | [Cancel the order](/openapi/orders-fbs#tag/FBS-Assembly-Orders/paths/~1api~1v3~1orders~1%7BorderId%7D~1cancel/patch) |
+        <br><br>
+        `wbStatus` — статус системы Wildberries.
 
-        `wbStatus` — is a status of an order on the Wildberries side.
-
-        Possible values for this field are:
-        - `waiting` — the supplier confirmed the order, and the Wildberries has not received it yet
-        - `sorted` — the Wildberries warehouse sorted the order
-        - `sold` — the order is sold
-        - `canceled` — the supplier canceled the order
-        - `canceled_by_client` — the buyer canceled the order upon receipt
-        - `declined_by_client` — the buyer canceled the order in the first hour <br> Cancellation is available to the buyer in the first hour from the moment of order, if the order is not transferred to confirm status.
-        - `defect` — cancellation of the order due to a defect
-        - `ready_for_pickup` — the assembly orders came at pickup point and waiting for the client
-        - `postponed_delivery` — courier delivery is postponed
-        - `accepted_by_carrier` — accepted by carrier. The order is handed over to delivery service in the seller country
-        - `sent_to_carrier` — dispatched to carrier. The order is on the way to delivery service's warehouse in the seller
+        Возможные значения `wbStatus`:
+        - `waiting` — сборочное задание в работе
+        - `sorted` — сборочное задание отсортировано
+        - `sold` — заказ получен покупателем
+        - `canceled` — отмена сборочного задания
+        - `canceled_by_client` — покупатель отменил заказ при получении
+        - `declined_by_client` — покупатель отменил заказ. Отмена доступна покупателю в первый час с момента заказа, если заказ не переведён на сборку
+        - `defect` — отмена заказа по причине брака
+        - `ready_for_pickup` — сборочное задание прибыло на пункт выдачи заказов (ПВЗ)
+        - `accepted_by_carrier` — продавец передал заказ в службу доставки в своей стране
+        - `sent_to_carrier` — заказ отправлен на склад службы доставки в стране продавца
+        - `canceled_by_carrier` — заказ отменён перевозчиком. Только для кроссбордера
 
         <div class="description_limit">
-        <a href="/openapi/api-information#tag/Introduction/Rate-Limits">Request limit</a> per one seller's account for <strong>FBS assembly orders, supplies and passes</strong> methods:
+        <a href="/openapi/api-information#tag/Vvedenie/Limity-zaprosov">Лимит запросов</a> на один аккаунт продавца для методов <strong>сборочных заданий, поставок и пропусков FBS</strong>:
 
-        | Period | Limit | Interval | Burst |
+        | Период | Лимит | Интервал | Всплеск |
         | --- | --- | --- | --- |
-        | 1 min | 300 requests | 200 ms | 20 requests |
+        | 1 мин | 300 запросов | 200 мс | 20 запросов |
 
-        One request with a response code of <code>409</code> is counted as 10 requests
+        Один запрос с кодом ответа <code>409</code> учитывается как 10 запросов
         </div>
       requestBody:
         content:
@@ -502,14 +528,14 @@ paths:
                   type: array
                   minItems: 1
                   maxItems: 1000
-                  description: List of assembly order IDs
+                  description: Список ID сборочных заданий
                   items:
                     type: integer
                     format: int64
                     example: 5632423
       responses:
         '200':
-          description: Success
+          description: Успешно
           content:
             application/json:
               schema:
@@ -525,12 +551,12 @@ paths:
                           type: integer
                           format: int64
                           nullable: false
-                          description: Assembly order ID
+                          description: ID сборочного задания
                           example: 5632423
                         supplierStatus:
                           type: string
                           nullable: false
-                          description: Assembly order status set by the seller
+                          description: Статус сборочного задания, установленный продавцом
                           enum:
                             - new
                             - confirm
@@ -540,7 +566,7 @@ paths:
                         wbStatus:
                           type: string
                           nullable: false
-                          description: Assembly order status set by WB system
+                          description: Статус сборочного задания в системе Wildberries
                           enum:
                             - waiting
                             - sorted
@@ -554,7 +580,7 @@ paths:
                             - accepted_by_carrier
                             - sent_to_carrier
         '400':
-          description: Bad request
+          description: Неправильный запрос
           content:
             application/json:
               schema:
@@ -568,6 +594,8 @@ paths:
                   $ref: '#/components/examples/IncorrectRequest'
         '401':
           $ref: '#/components/responses/401'
+        '402':
+          $ref: '#/components/responses/402'
         '403':
           $ref: '#/components/responses/AccessDenied'
         '429':
@@ -581,44 +609,46 @@ paths:
       security:
         - HeaderApiKey: []
       tags:
-        - FBS Assembly Orders
-      summary: Get All Assembly Orders for Re-shipment
+        - Сборочные задания FBS
+      summary: Получить все сборочные задания для повторной отгрузки
       description: |
-        Returns all assembly orders that require re-shipment
+        Метод возвращает все [сборочные задания](/openapi/orders-fbs#tag/Sborochnye-zadaniya-FBS/paths/~1api~1v3~1orders/get), требующие повторной отгрузки.
+        <br><br>
+        Повторная отгрузка требуется, если поставка была отсканирована в пункте приёмки, но при этом в ней всё ещё есть неотсканированные товары. Спустя определённое время необходимо доставить эти товары заново. Данные сборочные задания можно перевести в [другую активную поставку](/openapi/orders-fbs#tag/Postavki-FBS/paths/~1api~1marketplace~1v3~1supplies~1%7BsupplyId%7D~1orders/patch).
 
         <div class="description_limit">
-        <a href="/openapi/api-information#tag/Introduction/Rate-Limits">Request limit</a> per one seller's account for <strong>FBS assembly orders, supplies and passes</strong> methods:
+        <a href="/openapi/api-information#tag/Vvedenie/Limity-zaprosov">Лимит запросов</a> на один аккаунт продавца для методов <strong>сборочных заданий, поставок и пропусков FBS</strong>:
 
-        | Period | Limit | Interval | Burst |
+        | Период | Лимит | Интервал | Всплеск |
         | --- | --- | --- | --- |
-        | 1 min | 300 requests | 200 ms | 20 requests |
+        | 1 мин | 300 запросов | 200 мс | 20 запросов |
 
-        One request with a response code of <code>409</code> is counted as 10 requests
+        Один запрос с кодом ответа <code>409</code> учитывается как 10 запросов
         </div>
       responses:
         '200':
-          description: Success
+          description: Успешно
           content:
             application/json:
               schema:
                 type: object
                 properties:
                   orders:
-                    description: Assembly orders list
+                    description: Список сборочных заданий
                     type: array
                     items:
                       type: object
                       properties:
                         supplyID:
-                          description: Supply ID
+                          description: ID поставки
                         orderID:
-                          description: Assembly order ID
+                          description: ID сборочного задания
               example:
                 orders:
                   - supplyID: WB-GI-1234567
                     orderID: 5632423
         '400':
-          description: Bad request
+          description: Неправильный запрос
           content:
             application/json:
               schema:
@@ -628,6 +658,8 @@ paths:
                   $ref: '#/components/examples/IncorrectParameter'
         '401':
           $ref: '#/components/responses/401'
+        '402':
+          $ref: '#/components/responses/402'
         '403':
           $ref: '#/components/responses/AccessDenied'
         '429':
@@ -641,27 +673,27 @@ paths:
       security:
         - HeaderApiKey: []
       tags:
-        - FBS Assembly Orders
-      summary: Cancel the Assembly Order
+        - Сборочные задания FBS
+      summary: Отменить сборочное задание
       description: |
-        Moves the assembly orders to `cancel` ("Canceled by the supplier") status.
+        Метод отменяет [сборочное задание](/openapi/orders-fbs#tag/Sborochnye-zadaniya-FBS/paths/~1api~1v3~1orders/get) и переводит в [статус](/openapi/orders-fbs#tag/Sborochnye-zadaniya-FBS/paths/~1api~1v3~1orders~1status/post) `cancel` — отменено продавцом.
 
         <div class="description_limit">
-        <a href="/openapi/api-information#tag/Introduction/Rate-Limits">Request limit</a> per one seller's account:
+        <a href="/openapi/api-information#tag/Vvedenie/Limity-zaprosov">Лимит запросов</a> на один аккаунт продавца:
 
-        | Period | Limit | Interval | Burst |
+        | Период | Лимит | Интервал | Всплеск |
         | --- | --- | --- | --- |
-        | 1 min | 100 requests | 600 ms | 20 requests |
+        | 1 мин | 100 запросов | 600 мс | 20 запросов |
 
-        One request with a response code of <code>409</code> is counted as 10 requests
+        Один запрос с кодом ответа <code>409</code> учитывается как 10 запросов
         </div>
       parameters:
         - $ref: '#/components/parameters/Order'
       responses:
         '204':
-          description: Canceled
+          description: Отменено
         '400':
-          description: Bad request
+          description: Неправильный запрос
           content:
             application/json:
               schema:
@@ -671,12 +703,14 @@ paths:
                   $ref: '#/components/examples/IncorrectParameter'
         '401':
           $ref: '#/components/responses/401'
+        '402':
+          $ref: '#/components/responses/402'
         '403':
           $ref: '#/components/responses/AccessDenied'
         '404':
           $ref: '#/components/responses/NotFound'
         '409':
-          description: Error updating a status
+          description: Ошибка обновления статуса
           content:
             application/json:
               schema:
@@ -697,33 +731,39 @@ paths:
       security:
         - HeaderApiKey: []
       tags:
-        - FBS Assembly Orders
-      summary: Get Assembly Orders Stickers
+        - Сборочные задания FBS
+      summary: Получить стикеры сборочных заданий
       description: |
-        Returns a list of stickers according to the requested assembly orders.
-        You can request a sticker in `svg`, `zplv` (vertical), `zplh` (horizontal) and `png` formats.
+        Метод возвращает список стикеров для [сборочных заданий](/openapi/orders-fbs#tag/Sborochnye-zadaniya-FBS).
 
-        **Method limitations**:
-        - You cannot request more than 100 stickers at a time (no more than 100 assembly orders IDs in a request).
-        - The method returns stickers only for assembly orders in the `confirm` — in assembly and `complete` — in delivery [statuses](/openapi/orders-fbs#tag/FBS-Assembly-Orders/paths/~1api~1v3~1orders~1status/post).
-        - Available dimensions:
-          - 580x400 px, with parameters `width` = 58, `height` = 40
-          - 400x300 px, with parameters `width` = 40, `height` = 30
+        Можно получить стикер в форматах:
+          - SVG
+          - ZPLV (вертикальный)
+          - ZPLH (горизонтальный)
+          - PNG
+
+        Ограничения:
+          - За один запрос можно получить максимум 100 стикеров.
+          - Стикеры можно получить только для сборочных заданий в [статусах](/openapi/orders-fbs#tag/Sborochnye-zadaniya-FBS/paths/~1api~1v3~1orders~1status/post) `confirm` — на сборке и `complete` — в доставке.
+
+        Доступны размеры:
+          - 580x400 px при `width=58&height=40` в запросе
+          - 400x300 px при `width=40&height=30` в запросе
 
         <div class="description_limit">
-        <a href="/openapi/api-information#tag/Introduction/Rate-Limits">Request limit</a> per one seller's account for <strong>FBS assembly orders, supplies and passes</strong> methods:
+        <a href="/openapi/api-information#tag/Vvedenie/Limity-zaprosov">Лимит запросов</a> на один аккаунт продавца для методов <strong>сборочных заданий, поставок и пропусков FBS</strong>:
 
-        | Period | Limit | Interval | Burst |
+        | Период | Лимит | Интервал | Всплеск |
         | --- | --- | --- | --- |
-        | 1 min | 300 requests | 200 ms | 20 requests |
+        | 1 мин | 300 запросов | 200 мс | 20 запросов |
 
-        One request with a response code of <code>409</code> is counted as 10 requests
+        Один запрос с кодом ответа <code>409</code> учитывается как 10 запросов
         </div>
       parameters:
         - name: type
           in: query
           required: true
-          description: Sticker format
+          description: Тип стикера
           schema:
             type: string
             enum:
@@ -734,7 +774,7 @@ paths:
         - name: width
           in: query
           required: true
-          description: Sticker width
+          description: Ширина стикера
           schema:
             type: integer
             enum:
@@ -743,7 +783,7 @@ paths:
         - name: height
           in: query
           required: true
-          description: Sticker height
+          description: Высота стикера
           schema:
             type: integer
             enum:
@@ -759,14 +799,14 @@ paths:
                   type: array
                   minItems: 1
                   maxItems: 100
-                  description: List of assembly order IDs
+                  description: Список ID сборочных заданий
                   items:
                     type: integer
                     format: int64
                     example: 5346346
       responses:
         '200':
-          description: Success
+          description: Успешно
           content:
             application/json:
               schema:
@@ -782,31 +822,31 @@ paths:
                           type: integer
                           format: int64
                           nullable: false
-                          description: Assembly order ID
+                          description: ID сборочного задания
                           example: 5346346
                         partA:
-                          type: integer
+                          type: string
                           nullable: false
-                          description: The first part of the sticker identifier (for printing the signature)
-                          example: 231648
+                          description: Первая часть ID стикера для печати подписи
+                          example: '231648'
                         partB:
-                          type: integer
+                          type: string
                           nullable: false
-                          description: The second part of the sticker identifier (for printing the signature)
-                          example: 9753
+                          description: Вторая часть ID стикера для печати подписи
+                          example: '9753'
                         barcode:
                           type: string
                           nullable: false
-                          description: The encoded value of the sticker
+                          description: Закодированное значение стикера
                           example: '!uKEtQZVx'
                         file:
                           type: string
                           format: byte
                           nullable: false
-                          description: Base64 encoded representation of the sticker in a requested format
+                          description: Полное представление стикера в заданном формате (кодировка base64)
                           example: iVBORw0KGgoAAAANSUhEUgAAASIAAAEiAQAAAAB1xeIbAAABiElEQVR4nO2YUW6DMAyGbUDaI0g9wI4Sjg5H2Q3IeyZPthNKV03tNiVdtf9/cFvXAvRhkh+z0G2t3R1FRKgqAokikCgCiSKQeDQJzho8yXMsmfmh1/UvqoKoNrsLdgN6S8hzXP2TV8Xc47KMyTPnx+DvX/1zVg1Xmch1z9ih6gv2HLZTuqIPXjX7ftSlPRLJ+prXnONLF9hXZL96q/fE4W1Q+O8XvQ/29djL/lvWiTg/Bt89Voeqn/j7OQ4eTLJY7tz8oEoVSFC28aN9JqKwqbX3kP+VBewrsg/KedE3qmXUn3IMYF/d3zONm38TiqckFKeyEaDv6/W96Nus9b2tPrbw2LOAvq/Pfpfn/Fb4HoA1p9UcU3SHJTLHExk+p8VeK3JwN0Q2UNPmR9+3m2OyDzPjoOFFML9vOMcUin0iHahR2CaGz/mkmo6P5zHtQdD3TeeY5NY++/sKZ+xQdUliNZszqePRkFd+tfvHqhtC1S/nmOQh7eH+Y3WoygKJIpAoAokikChqT+IDIkbb8/8OLskAAAAASUVORK5CYII=
         '400':
-          description: Bad request
+          description: Неправильный запрос
           content:
             application/json:
               schema:
@@ -820,6 +860,8 @@ paths:
                   $ref: '#/components/examples/IncorrectParameter'
         '401':
           $ref: '#/components/responses/401'
+        '402':
+          $ref: '#/components/responses/402'
         '403':
           $ref: '#/components/responses/AccessDenied'
         '429':
@@ -833,31 +875,31 @@ paths:
       security:
         - HeaderApiKey: []
       tags:
-        - FBS Metadata
-      summary: Get Assembly Orders Metadata
+        - Метаданные FBS
+      summary: Получить метаданные сборочных заданий
       description: |
-        The method returns metadata for [assembly orders](/openapi/orders-fbs#tag/FBS-Assembly-Orders/paths/~1api~1v3~1orders/get) by the list of their IDs.
+        Метод возвращает метаданные [сборочных заданий](/openapi/orders-fbs#tag/Sborochnye-zadaniya-FBS/paths/~1api~1v3~1orders/get) по списку их ID.
         <br><br>
-        You can get the list of metadata available for an assembly order in the `requiredMeta` and `optionalMeta` fields in the response of the [Get New Assembly Orders](/openapi/orders-fbs#tag/FBS-Assembly-Orders/paths/~1api~1v3~1orders~1new/get) method.
+        Перечень метаданных, доступных для сборочного задания, можно получить в [списке новых сборочных заданий](/openapi/orders-fbs#tag/Sborochnye-zadaniya-FBS/paths/~1api~1v3~1orders~1new/get), поля `requiredMeta` и `optionalMeta`.
         <br><br>
-        Possible metadata:
-          - `imei` — [IMEI](/openapi/orders-fbs#tag/FBS-Metadata/paths/~1api~1v3~1orders~1%7BorderId%7D~1meta~1imei/put)
-          - `uin` — [UIN](/openapi/orders-fbs#tag/FBS-Metadata/paths/~1api~1v3~1orders~1%7BorderId%7D~1meta~1uin/put)
-          - `gtin` — [GTIN](/openapi/orders-fbs#tag/FBS-Metadata/paths/~1api~1v3~1orders~1%7BorderId%7D~1meta~1gtin/put)
-          - `sgtin` — [Data matrix code](/openapi/orders-fbs#tag/FBS-Metadata/paths/~1api~1v3~1orders~1%7BorderId%7D~1meta~1sgtin/put)
-          - `expiration` — [Expiration date](/openapi/orders-fbs#tag/FBS-Metadata/paths/~1api~1v3~1orders~1%7BorderId%7D~1meta~1expiration/put)
-          - `customsDeclaration` — [customs declaration number](/openapi/orders-fbs#tag/FBS-Metadata/paths/~1api~1marketplace~1v3~1orders~1%7BorderId%7D~1meta~1customs-declaration/put)
+        Возможные метаданные:
+          - `imei` — [IMEI](/openapi/orders-fbs#tag/Metadannye-FBS/paths/~1api~1v3~1orders~1%7BorderId%7D~1meta~1imei/put)
+          - `uin` — [УИН](/openapi/orders-fbs#tag/Metadannye-FBS/paths/~1api~1v3~1orders~1%7BorderId%7D~1meta~1uin/put)
+          - `gtin` — [GTIN](/openapi/orders-fbs#tag/Metadannye-FBS/paths/~1api~1v3~1orders~1%7BorderId%7D~1meta~1gtin/put)
+          - `sgtin` — [код маркировки](/openapi/orders-fbs#tag/Metadannye-FBS/paths/~1api~1v3~1orders~1%7BorderId%7D~1meta~1sgtin/put)
+          - `expiration` — [срок годности товара](/openapi/orders-fbs#tag/Metadannye-FBS/paths/~1api~1v3~1orders~1%7BorderId%7D~1meta~1expiration/put)
+          - `customsDeclaration` — [номер ГТД](/openapi/orders-fbs#tag/Metadannye-FBS/paths/~1api~1marketplace~1v3~1orders~1%7BorderId%7D~1meta~1customs-declaration/put)
 
-          If any of the metadata objects are not returned in the response, it means that the assembly order cannot have such metadata, and they cannot be added
+        Если в ответе не вернулись какие-либо из объектов метаданных, значит, у сборочного задания не может быть таких метаданных — и добавить их нельзя.
 
         <div class="description_limit">
-        <a href="/openapi/api-information#tag/Introduction/Rate-Limits">Request limit</a> per one seller's account for all methods for <strong>getting and deleting FBS metadata</strong>:
+        <a href="/openapi/api-information#tag/Vvedenie/Limity-zaprosov">Лимит запросов</a> на один аккаунт продавца для всех методов <strong>получения и удаления метаданных FBS</strong>:
 
-        | Period | Limit | Interval | Burst |
+        | Период | Лимит | Интервал | Всплеск |
         | --- | --- | --- | --- |
-        | 1 min | 300 requests | 200 ms | 20 requests |
+        | 1 мин | 300 запросов | 200 мс | 20 запросов |
 
-        One request with a response code of <code>409</code> is counted as 10 requests
+        Один запрос с кодом ответа <code>409</code> учитывается как 10 запросов
         </div>
       requestBody:
         content:
@@ -866,42 +908,42 @@ paths:
               $ref: '#/components/schemas/v3.GetMetaMultiRequest'
       responses:
         '200':
-          description: Success
+          description: Успешно
           content:
             application/json:
               schema:
                 $ref: '#/components/schemas/v3.OrdersMetaAPI'
         '400':
-          description: Bad request
+          description: Неправильный запрос
           content:
             application/json:
               schema:
                 $ref: '#/components/schemas/v3.APIError'
               example:
                 code: BadRequest
-                message: Bad request
+                message: Неправильный запрос
                 data: {}
         '401':
           $ref: '#/components/responses/401'
         '403':
-          description: Not found
+          description: Доступ запрещён
           content:
             application/json:
               schema:
                 $ref: '#/components/schemas/v3.APIError'
               example:
                 code: AccessDenied
-                message: Access denied
+                message: Доступ запрещён
                 data: {}
         '404':
-          description: Not found
+          description: Не найдено
           content:
             application/json:
               schema:
                 $ref: '#/components/schemas/v3.APIError'
               example:
                 code: NotFound
-                message: Not found
+                message: Не найдено
                 data: {}
         '429':
           $ref: '#/components/responses/429'
@@ -914,26 +956,28 @@ paths:
       security:
         - HeaderApiKey: []
       tags:
-        - FBS Metadata
-      summary: Delete Assembly Order Metadata
+        - Метаданные FBS
+      summary: Удалить метаданные сборочного задания
       description: |
-        Removes all assembly order metadata values for the passed key.
+        Метод удаляет значение [метаданных сборочного задания](/openapi/orders-fbs#tag/Metadannye-FBS/paths/~1api~1marketplace~1v3~1orders~1meta/post) для переданного ключа.
         <br><br>
-        Possible metadata are:
-          - `imei` — [IMEI](/openapi/orders-fbs#tag/FBS-Metadata/paths/~1api~1v3~1orders~1%7BorderId%7D~1meta~1imei/put)
-          - `uin` — [UIN](/openapi/orders-fbs#tag/FBS-Metadata/paths/~1api~1v3~1orders~1%7BorderId%7D~1meta~1uin/put)
-          - `gtin` — [GTIN](/openapi/orders-fbs#tag/FBS-Metadata/paths/~1api~1v3~1orders~1%7BorderId%7D~1meta~1gtin/put)
-          - `sgtin` — [Data matrix code](/openapi/orders-fbs#tag/FBS-Metadata/paths/~1api~1v3~1orders~1%7BorderId%7D~1meta~1sgtin/put)
-          - `customsDeclaration` — [customs declaration number](/openapi/orders-fbs#tag/FBS-Metadata/paths/~1api~1marketplace~1v3~1orders~1%7BorderId%7D~1meta~1customs-declaration/put)
+        Возможные метаданные:
+          - `imei` — [IMEI](/openapi/orders-fbs#tag/Metadannye-FBS/paths/~1api~1v3~1orders~1%7BorderId%7D~1meta~1imei/put)
+          - `uin` — [УИН](/openapi/orders-fbs#tag/Metadannye-FBS/paths/~1api~1v3~1orders~1%7BorderId%7D~1meta~1uin/put)
+          - `gtin` — [GTIN](/openapi/orders-fbs#tag/Metadannye-FBS/paths/~1api~1v3~1orders~1%7BorderId%7D~1meta~1gtin/put)
+          - `sgtin` — [код маркировки](/openapi/orders-fbs#tag/Metadannye-FBS/paths/~1api~1v3~1orders~1%7BorderId%7D~1meta~1sgtin/put)
+          - `customsDeclaration` — [номер ГТД](/openapi/orders-fbs#tag/Metadannye-FBS/paths/~1api~1marketplace~1v3~1orders~1%7BorderId%7D~1meta~1customs-declaration/put)
+
+        Можно передать только один ключ.
 
         <div class="description_limit">
-        <a href="/openapi/api-information#tag/Introduction/Rate-Limits">Request limit</a> per one seller's account for all methods for <strong>getting and deleting FBS metadata</strong>:
+        <a href="/openapi/api-information#tag/Vvedenie/Limity-zaprosov">Лимит запросов</a> на один аккаунт продавца для всех методов <strong>получения и удаления метаданных FBS</strong>:
 
-        | Period | Limit | Interval | Burst |
+        | Период | Лимит | Интервал | Всплеск |
         | --- | --- | --- | --- |
-        | 1 min | 300 requests | 200 ms | 20 requests |
+        | 1 мин | 300 запросов | 200 мс | 20 запросов |
 
-        One request with a response code of <code>409</code> is counted as 10 requests
+        Один запрос с кодом ответа <code>409</code> учитывается как 10 запросов
         </div>
       parameters:
         - $ref: '#/components/parameters/Order'
@@ -941,12 +985,12 @@ paths:
           in: query
           schema:
             type: string
-          description: Name of the metadata to remove (`imei`, `uin`, `gtin`, `sgtin`, `customsDeclaration`)
+          description: Название метаданных для удаления (`imei`, `uin`, `gtin`, `sgtin`, `customsDeclaration`). Передается только одно значение.
       responses:
         '204':
-          description: Deleted
+          description: Удалено
         '400':
-          description: Bad request
+          description: Неправильный запрос
           content:
             application/json:
               schema:
@@ -958,10 +1002,12 @@ paths:
                   $ref: '#/components/examples/IncorrectParameter'
         '401':
           $ref: '#/components/responses/401'
+        '402':
+          $ref: '#/components/responses/402'
         '403':
           $ref: '#/components/responses/AccessDenied'
         '409':
-          description: Error deleting metadata
+          description: Ошибка удаления метаданных
           content:
             application/json:
               schema:
@@ -980,23 +1026,23 @@ paths:
       security:
         - HeaderApiKey: []
       tags:
-        - FBS Metadata
-      summary: Add Data Matrix Code to the Assembly Order
+        - Метаданные FBS
+      summary: Закрепить за сборочным заданием код маркировки товара
       description: |
-        The method allows attaching a Data Matrix code [Chestny ZNAK](https://chestnyznak.ru/en) to an assembly order.
-
-        Attaching a Data Matrix code to an assembly order is only possible if this field is returned in the response of the method [to get the metadata of the order](/openapi/orders-fbs#tag/FBS-Metadata/paths/~1api~1marketplace~1v3~1orders~1meta/post), and the assembly order is in the confirm status.
-
-        The loaded Data Matrix code can be retrieved through the method [to get the metadata of the order](/openapi/orders-fbs#tag/FBS-Metadata/paths/~1api~1marketplace~1v3~1orders~1meta/post)
+        Метод позволяет закрепить за [сборочным заданием](/openapi/orders-fbs#tag/Sborochnye-zadaniya-FBS/paths/~1api~1v3~1orders/get) код маркировки [Честный знак](https://честныйзнак.рф).
+        <br><br>
+        Закрепить код маркировки можно только если в [метаданных сборочного задания](/openapi/orders-fbs#tag/Metadannye-FBS/paths/~1api~1marketplace~1v3~1orders~1meta/post) есть поле `sgtin`, а сборочное задание находится в [статусе](/openapi/orders-fbs#tag/Sborochnye-zadaniya-FBS/paths/~1api~1v3~1orders~1status/post) `confirm`.
+        <br><br>
+        Получить загруженные маркировки можно в [метаданных сборочного задания](/openapi/orders-fbs#tag/Metadannye-FBS/paths/~1api~1marketplace~1v3~1orders~1meta/post).
 
         <div class="description_limit">
-        <a href="/openapi/api-information#tag/Introduction/Rate-Limits">Request limit</a> per one seller's account for all methods for <strong>adding FBS metadata</strong>:
+        <a href="/openapi/api-information#tag/Vvedenie/Limity-zaprosov">Лимит запросов</a> на один аккаунт продавца для всех методов <strong>закрепления метаданных FBS</strong>:
 
-        | Period | Limit | Interval | Burst |
+        | Период | Лимит | Интервал | Всплеск |
         | --- | --- | --- | --- |
-        | 1 min | 1000 requests | 60 ms | 20 requests |
+        | 1 мин | 1000 запросов | 60 мс | 20 запросов |
 
-        One request with a response code of <code>409</code> is counted as 10 requests
+        Один запрос с кодом ответа <code>409</code> учитывается как 10 запросов
         </div>
       parameters:
         - $ref: '#/components/parameters/Order'
@@ -1008,18 +1054,18 @@ paths:
               properties:
                 sgtins:
                   type: array
-                  description: List of Data Matrix codes.
+                  description: Массив кодов маркировки. Допускается от 16 до 135 символов для кода одной маркировки.
                   minItems: 1
                   maxItems: 100
                   items:
                     type: string
-                    description: Label code on the package. From 16 to 135 characters.
+                    description: Код маркировки на упаковке. От 16 до 135 символов.
                     example: '1234567890123456'
       responses:
         '204':
-          description: Sent
+          description: Отправлено
         '400':
-          description: Bad request
+          description: Неправильный запрос
           content:
             application/json:
               schema:
@@ -1033,12 +1079,14 @@ paths:
                   $ref: '#/components/examples/IncorrectParameter'
         '401':
           $ref: '#/components/responses/401'
+        '402':
+          $ref: '#/components/responses/402'
         '403':
           $ref: '#/components/responses/AccessDenied'
         '404':
           $ref: '#/components/responses/NotFound'
         '409':
-          description: Error adding a Data Matrix code
+          description: Ошибка добавления маркировки
           content:
             application/json:
               schema:
@@ -1057,19 +1105,23 @@ paths:
       security:
         - HeaderApiKey: []
       tags:
-        - FBS Metadata
-      summary: Add UIN (Unique Identification Number) to the Assembly Order
+        - Метаданные FBS
+      summary: Закрепить за сборочным заданием УИН
       description: |
-        Sets the UIN for the assembly order. The assembly order can only have one UIN. You can add the code only for assembly orders in the `confirm` status.
+        Метод обновляет УИН в [метаданных сборочного задания](/openapi/orders-fbs#tag/Metadannye-FBS/paths/~1api~1marketplace~1v3~1orders~1meta/post) — уникальный идентификационный номер.
+        <br><br>
+        У одного сборочного задания может быть только один УИН.
+
+        Добавлять маркировку можно только для заказов, которые доставляются WB и находятся в [статусе](/openapi/orders-fbs#tag/Sborochnye-zadaniya-FBS/paths/~1api~1v3~1orders~1status/post) `confirm`.
 
         <div class="description_limit">
-        <a href="/openapi/api-information#tag/Introduction/Rate-Limits">Request limit</a> per one seller's account for all methods for <strong>adding FBS metadata</strong>:
+        <a href="/openapi/api-information#tag/Vvedenie/Limity-zaprosov">Лимит запросов</a> на один аккаунт продавца для всех методов <strong>закрепления метаданных FBS</strong>:
 
-        | Period | Limit | Interval | Burst |
+        | Период | Лимит | Интервал | Всплеск |
         | --- | --- | --- | --- |
-        | 1 min | 1000 requests | 60 ms | 20 requests |
+        | 1 мин | 1000 запросов | 60 мс | 20 запросов |
 
-        One request with a response code of <code>409</code> is counted as 10 requests
+        Один запрос с кодом ответа <code>409</code> учитывается как 10 запросов
         </div>
       parameters:
         - $ref: '#/components/parameters/Order'
@@ -1083,15 +1135,15 @@ paths:
                   type: string
                   minLength: 16
                   maxLength: 16
-                  description: UIN
+                  description: УИН
                   example: '1234567890123456'
               required:
                 - uin
       responses:
         '204':
-          description: Updated
+          description: Обновлено
         '400':
-          description: Bad request
+          description: Неправильный запрос
           content:
             application/json:
               schema:
@@ -1105,10 +1157,12 @@ paths:
                   $ref: '#/components/examples/IncorrectParameter'
         '401':
           $ref: '#/components/responses/401'
+        '402':
+          $ref: '#/components/responses/402'
         '403':
           $ref: '#/components/responses/AccessDenied'
         '409':
-          description: Error updating metadata
+          description: Ошибка обновления метаданных
           content:
             application/json:
               schema:
@@ -1127,22 +1181,23 @@ paths:
       security:
         - HeaderApiKey: []
       tags:
-        - FBS Metadata
-      summary: Add IMEI to the Assembly Order
+        - Метаданные FBS
+      summary: Закрепить за сборочным заданием IMEI
       description: |
-        Sets the IMEI for the assembly order.
+        Метод обновляет IMEI в [метаданных сборочного задания](/openapi/orders-fbs#tag/Metadannye-FBS/paths/~1api~1marketplace~1v3~1orders~1meta/post).
         <br><br>
-        The assembly order can have only one IMEI. If a device has two IMEIs — **IMEI** and **IMEI2** or **IMEI1** and **IMEI2** — you should only specify **IMEI** or **IMEI1**. You don't need to specify **IMEI2**.<br><br>
-        You can add the code only for assembly orders in the `confirm` status.
+        У одного сборочного задания может быть только один IMEI. Если у устройства два IMEI — **IMEI** и **IMEI2** или **IMEI1** и **IMEI2** — укажите только **IMEI** или **IMEI1**. **IMEI2** указывать не нужно.
+        <br><br>
+        Добавлять маркировку можно только для заказов, которые находятся в [статусе](/openapi/orders-fbs#tag/Sborochnye-zadaniya-FBS/paths/~1api~1v3~1orders~1status/post) `confirm`.
 
         <div class="description_limit">
-        <a href="/openapi/api-information#tag/Introduction/Rate-Limits">Request limit</a> per one seller's account for all methods for <strong>adding FBS metadata</strong>:
+        <a href="/openapi/api-information#tag/Vvedenie/Limity-zaprosov">Лимит запросов</a> на один аккаунт продавца для всех методов <strong>закрепления метаданных FBS</strong>:
 
-        | Period | Limit | Interval | Burst |
+        | Период | Лимит | Интервал | Всплеск |
         | --- | --- | --- | --- |
-        | 1 min | 1000 requests | 60 ms | 20 requests |
+        | 1 мин | 1000 запросов | 60 мс | 20 запросов |
 
-        One request with a response code of <code>409</code> is counted as 10 requests
+        Один запрос с кодом ответа <code>409</code> учитывается как 10 запросов
         </div>
       parameters:
         - $ref: '#/components/parameters/Order'
@@ -1162,9 +1217,9 @@ paths:
                 - imei
       responses:
         '204':
-          description: Updated
+          description: Обновлено
         '400':
-          description: Bad request
+          description: Неправильный запрос
           content:
             application/json:
               schema:
@@ -1178,10 +1233,12 @@ paths:
                   $ref: '#/components/examples/IncorrectParameter'
         '401':
           $ref: '#/components/responses/401'
+        '402':
+          $ref: '#/components/responses/402'
         '403':
           $ref: '#/components/responses/AccessDenied'
         '409':
-          description: Error updating metadata
+          description: Ошибка обновления метаданных
           content:
             application/json:
               schema:
@@ -1200,19 +1257,23 @@ paths:
       security:
         - HeaderApiKey: []
       tags:
-        - FBS Metadata
-      summary: Add GTIN to the Assembly Order
+        - Метаданные FBS
+      summary: Закрепить за сборочным заданием GTIN
       description: |
-        Sets the GTIN (Belarus product unique identifier) for the assembly order. The assembly order can only have one GTIN. You can add the code only for assembly orders in the `confirm` status.
+        Метод обновляет GTIN в [метаданных сборочного задания](/openapi/orders-fbs#tag/Metadannye-FBS/paths/~1api~1marketplace~1v3~1orders~1meta/post) — уникальный ID товара в Беларуси.
+        <br><br>
+        У одного сборочного задания может быть только один GTIN.
+
+        Добавлять маркировку можно только для заказов, которые доставляются WB и находятся в [статусе](/openapi/orders-fbs#tag/Sborochnye-zadaniya-FBS/paths/~1api~1v3~1orders~1status/post) `confirm`.
 
         <div class="description_limit">
-        <a href="/openapi/api-information#tag/Introduction/Rate-Limits">Request limit</a> per one seller's account for all methods for <strong>adding FBS metadata</strong>:
+        <a href="/openapi/api-information#tag/Vvedenie/Limity-zaprosov">Лимит запросов</a> на один аккаунт продавца для всех методов <strong>закрепления метаданных FBS</strong>:
 
-        | Period | Limit | Interval | Burst |
+        | Период | Лимит | Интервал | Всплеск |
         | --- | --- | --- | --- |
-        | 1 min | 1000 requests | 60 ms | 20 requests |
+        | 1 мин | 1000 запросов | 60 мс | 20 запросов |
 
-        One request with a response code of <code>409</code> is counted as 10 requests
+        Один запрос с кодом ответа <code>409</code> учитывается как 10 запросов
         </div>
       parameters:
         - $ref: '#/components/parameters/Order'
@@ -1232,9 +1293,9 @@ paths:
                 - gtin
       responses:
         '204':
-          description: Updated
+          description: Обновлено
         '400':
-          description: Bad request
+          description: Неправильный запрос
           content:
             application/json:
               schema:
@@ -1248,10 +1309,12 @@ paths:
                   $ref: '#/components/examples/IncorrectParameter'
         '401':
           $ref: '#/components/responses/401'
+        '402':
+          $ref: '#/components/responses/402'
         '403':
           $ref: '#/components/responses/AccessDenied'
         '409':
-          description: Error updating metadata
+          description: Ошибка обновления метаданных
           content:
             application/json:
               schema:
@@ -1270,27 +1333,26 @@ paths:
       security:
         - HeaderApiKey: []
       tags:
-        - FBS Metadata
-      summary: Add Expiration Date to the Assembly Order
+        - Метаданные FBS
+      summary: Закрепить за сборочным заданием срок годности товара
       description: |
-        Sets the expiration date for the assembly order.
+        Метод закрепляет за [сборочным заданием](/openapi/orders-fbs#tag/Sborochnye-zadaniya-FBS/paths/~1api~1v3~1orders/get) срок годности товара. Товар годен до указанной даты.
         <br>
-        The expiration date can only be added for assembly orders that are delivered by WB and are in the `confirm` status.
+        Добавить срок годности можно только для заказов, которые доставляются WB и находятся в [статусе](/openapi/orders-fbs#tag/Sborochnye-zadaniya-FBS/paths/~1api~1v3~1orders~1status/post) `confirm`.
         <br>
         <br>
-        You can get the uploaded data in the [metadata of the assembly order](/openapi/orders-fbs#tag/FBS-Metadata/paths/~1api~1marketplace~1v3~1orders~1meta/post).
-        <br>
-        To change the expiration date, send a request with the new date.
-        It is impossible to remove the expiration date from the metadata of the assembly order.
+        Получить загруженные данные можно в [метаданных сборочного задания](/openapi/orders-fbs#tag/Metadannye-FBS/paths/~1api~1marketplace~1v3~1orders~1meta/post).
+        Чтобы изменить срок годности, отправьте запрос с новой датой.
+        Удалить срок годности из метаданных сборочного задания невозможно.
 
         <div class="description_limit">
-        <a href="/openapi/api-information#tag/Introduction/Rate-Limits">Request limit</a> per one seller's account for all methods for <strong>adding FBS metadata</strong>:
+        <a href="/openapi/api-information#tag/Vvedenie/Limity-zaprosov">Лимит запросов</a> на один аккаунт продавца для всех методов <strong>закрепления метаданных FBS</strong>:
 
-        | Period | Limit | Interval | Burst |
+        | Период | Лимит | Интервал | Всплеск |
         | --- | --- | --- | --- |
-        | 1 min | 1000 requests | 60 ms | 20 requests |
+        | 1 мин | 1000 запросов | 60 мс | 20 запросов |
 
-        One request with a response code of <code>409</code> is counted as 10 requests
+        Один запрос с кодом ответа <code>409</code> учитывается как 10 запросов
         </div>
       parameters:
         - $ref: '#/components/parameters/Order'
@@ -1302,14 +1364,14 @@ paths:
               properties:
                 expiration:
                   type: string
-                  description: The date until which the product is valid. No less than 30 days from the current date.
+                  description: Дата, до которой годен товар. Не менее 30 дней с текущей даты
                   format: date (dd.mm.yyyy)
                   example: 12.09.2030
       responses:
         '204':
-          description: Sent
+          description: Отправлено
         '400':
-          description: Bad request
+          description: Неправильный запрос
           content:
             application/json:
               schema:
@@ -1325,12 +1387,14 @@ paths:
                   $ref: '#/components/examples/IncorrectParameter'
         '401':
           $ref: '#/components/responses/401'
+        '402':
+          $ref: '#/components/responses/402'
         '403':
           $ref: '#/components/responses/AccessDenied'
         '404':
           $ref: '#/components/responses/NotFound'
         '409':
-          description: Error updating metadata
+          description: Ошибка добавления срока годности
           content:
             application/json:
               schema:
@@ -1349,23 +1413,23 @@ paths:
       security:
         - HeaderApiKey: []
       tags:
-        - FBS Metadata
-      summary: Add Custom Declaration number to the Order
+        - Метаданные FBS
+      summary: Закрепить за сборочным заданием номер ГТД
       description: |
-        The method updates the customs declaration number in the [metadata of the assembly order](/openapi/orders-fbs#tag/FBS-Metadata/paths/~1api~1marketplace~1v3~1orders~1meta/post).
+        Метод обновляет номер грузовой таможенной декларации (ГТД) в [метаданных сборочного задания](/openapi/orders-fbs#tag/Metadannye-FBS/paths/~1api~1v3~1orders~1%7BorderId%7D~1meta/get).
+        <br>
+        У одного сборочного задания может быть только один номер ГТД.
 
-        An assembly order can have only one customs declaration number.
-
-        You can add the customs declaration number only for orders in the `confirm` or `complete` [status](/openapi/orders-fbs#tag/FBS-Assembly-Orders/paths/~1api~1v3~1orders~1status/post).
+        Добавлять номер ГТД можно только для сборочных заданий, которые находятся в [статусе](/openapi/orders-fbs#tag/Sborochnye-zadaniya-FBS/paths/~1api~1v3~1orders~1status/post) `confirm` или `complete`
 
         <div class="description_limit">
-        <a href="/openapi/api-information#tag/Introduction/Rate-Limits">Request limit</a> per one seller's account for all methods for <strong>adding FBS metadata</strong>:
+        <a href="/openapi/api-information#tag/Vvedenie/Limity-zaprosov">Лимит запросов</a> на один аккаунт продавца для всех методов <strong>закрепления метаданных FBS</strong>:
 
-        | Period | Limit | Interval | Burst |
+        | Период | Лимит | Интервал | Всплеск |
         | --- | --- | --- | --- |
-        | 1 min | 1000 requests | 60 ms | 20 requests |
+        | 1 мин | 1000 запросов | 60 мс | 20 запросов |
 
-        One request with a response code of <code>409</code> is counted as 10 requests
+        Один запрос с кодом ответа <code>409</code> учитывается как 10 запросов
         </div>
       parameters:
         - $ref: '#/components/parameters/Order'
@@ -1379,13 +1443,13 @@ paths:
                   type: string
                   minLength: 17
                   maxLength: 29
-                  description: Customs declaration number
+                  description: Номер ГТД
                   example: 10704010/010624/0000302
       responses:
         '204':
-          description: Updated
+          description: Обновлено
         '400':
-          description: Bad request
+          description: Неправильный запрос
           content:
             application/json:
               schema:
@@ -1404,7 +1468,7 @@ paths:
         '404':
           $ref: '#/components/responses/NotFound'
         '409':
-          description: Error updating custom declaration number
+          description: Ошибка обновления номера ГТД
           content:
             application/json:
               schema:
@@ -1423,23 +1487,31 @@ paths:
       security:
         - HeaderApiKey: []
       tags:
-        - FBS Assembly Orders
-      summary: Get Stickers for Cross-Border Assembly Orders
+        - Сборочные задания FBS
+      summary: Получить стикеры сборочных заданий кроссбордера
       description: |
-        Returns a list of stickers for cross-border assembly orders in PDF.<br><br>
+        Метод возвращает список стикеров [сборочных заданий](/openapi/orders-fbs#tag/Sborochnye-zadaniya-FBS/paths/~1api~1v3~1orders/get) кроссбордера в формате PDF.<br><br>
 
-        Method limitations:
-        - You cannot request more than 100 stickers at a time (no more than 100 assembly order IDs in a request).
-        - The method returns stickers only for assembly orders that are on assembly or in delivery [status](/openapi/orders-fbs#tag/FBS-Assembly-Orders/paths/~1api~1v3~1orders~1status/post): `confirm`, `complete`.
+        Для каждого сборочного задания в ответе указывается статус генерации стикера:
+          - `awaitingTrackNumber` — стикер не готов. Ожидается трек-номер от перевозчика.
+          - `ready` — стикер готов
+
+        <div class="description_important">
+          Стикер может генерироваться с задержкой. Повторяйте запрос, пока не получите статус <code>ready</code>.
+        </div>
+
+        Ограничения:
+          - За один запрос можно получить максимум 100 стикеров.
+          - Можно получить стикеры только для сборочных заданий, находящихся на сборке или в доставке — [статусы](/openapi/orders-fbs#tag/Sborochnye-zadaniya-FBS/paths/~1api~1v3~1orders~1status/post) `confirm`, `complete`.
 
         <div class="description_limit">
-        <a href="/openapi/api-information#tag/Introduction/Rate-Limits">Request limit</a> per one seller's account for <strong>FBS assembly orders, supplies and passes</strong> methods:
+        <a href="/openapi/api-information#tag/Vvedenie/Limity-zaprosov">Лимит запросов</a> на один аккаунт продавца для методов <strong>сборочных заданий, поставок и пропусков FBS</strong>:
 
-        | Period | Limit | Interval | Burst |
+        | Период | Лимит | Интервал | Всплеск |
         | --- | --- | --- | --- |
-        | 1 min | 300 requests | 200 ms | 20 requests |
+        | 1 мин | 300 запросов | 200 мс | 20 запросов |
 
-        One request with a response code of <code>409</code> is counted as 10 requests
+        Один запрос с кодом ответа <code>409</code> учитывается как 10 запросов
         </div>
       requestBody:
         content:
@@ -1451,14 +1523,14 @@ paths:
                   type: array
                   minItems: 1
                   maxItems: 100
-                  description: List of assembly order IDs
+                  description: Список ID сборочных заданий
                   items:
                     type: integer
                     format: int64
                     example: 3869227998
       responses:
         '200':
-          description: Success
+          description: Успешно
           content:
             application/json:
               schema:
@@ -1470,23 +1542,65 @@ paths:
                     items:
                       type: object
                       properties:
+                        orderId:
+                          type: integer
+                          nullable: false
+                          description: ID сборочного задания
+                          example: 3869227998
+                        status:
+                          type: string
+                          nullable: false
+                          enum:
+                            - awaitingTrackNumber
+                            - ready
+                          description: |
+                            Статус генерации стикера:
+                              - `awaitingTrackNumber` — стикер не готов. Ожидается трек-номер от перевозчика.
+                              - `ready` — стикер готов
+                          example: ready
+                        parcelId:
+                          type: string
+                          description: Трек-номер в стикере для отслеживания сборочного задания
+                          example: WB0000000001
                         file:
                           type: string
                           format: byte
                           nullable: false
-                          description: Base64 encoded sticker in a PDF format
+                          description: Стикер в формате PDF, кодировка base64
                           example: JVBERi0xLjQKJSBjcmVhdGVkIGJ5IFBpbGxvdyBQREYgZHJpdmVyCjQgMCBvYmo8PAovVHlwZSAvQ2F0YWxvZwovUGFnZXMgNSAwIFIKPj5lbmRvYmoKNSAwIG9iajw8Ci9UeXBlIC9QYWdlcwovQ291bnQgMQovS2lkcyBbIDIgMCBSIF0KPj5lbmRvYmoKMSAwIG9iajw8Ci9UeXBlIC9YT2JqZWN0Ci9TdWJ0eXBlIC9JbWFnZQovV2lkdGggMjkwCi9IZWlnaHQgMjkwCi9GaWx0ZXIgWyAvQ0NJVFRGYXhEZWNvZGUgXQovRGVjb2RlUGFybXMgWyA8PAovSyAtMQovQmxhY2tJczEgdHJ1ZQovQ29sdW1ucyAyOTAKL1Jvd3MgMjkwCj4+IF0KL0JpdHNQZXJDb21wb25lbnQgMQovQ29sb3JTcGFjZSAvRGV2aWNlR3JheQovTGVuZ3RoIDY2Ngo+PnN0cmVhbQomoLYaX////////////8g2b4gpHITff///////////8nBSkIB8nBS/////////////////////+QgHkNB/IQD////////////////////////////+P//////////////////////////IQ5CHIQ////////////////////////////////jkNB/H/////////////////////4yEOQh+P//////////////////EhoKR//////yDYchDkIchDyBg2E4aCcFL////////////////////////IgFIiAhODQTg0f/////////////////+ThCICEQGgnDQTg0E4NBODZ////////////////////////4k4NESEOJCCP/////////////////8gpHIQ5CCCEEENB8hDyBg2f//////////////////////////xEZKQhOEJwhOB5f//////////////yDZviDQIjkDBS///////////////ycFLEnCCThP//////////////////kIB5CHkQEEnCEQEJwbP///////////////////////////4ycGgnBoIgFL/////////////////////+QhxIQ4kIcg0H////////////////////////8cSEOJCHEhAP//////////////////jIQDIQ+Qh5OE////////////////////////4iIiI/////////////wAQAQJAAABAwABAAAAIgEAAAEBAwABAAAAIgEAAAIBAwABAAAAAQAAAAMBAwABAAAABAAAAAYBAwABAAAAAQAAABEBBAABAAAACAAAABYBAwABAAAAIgEAABcBBAABAAAAKAIAABwBAwABAAAAAQAAAAAAAAAKZW5kc3RyZWFtCmVuZG9iagoyIDAgb2JqPDwKL1Jlc291cmNlcyA8PAovUHJvY1NldCBbIC9QREYgL0ltYWdlQiBdCi9YT2JqZWN0IDw8Ci9pbWFnZSAxIDAgUgo+Pgo+PgovTWVkaWFCb3ggWyAwIDAgMjkwLjAgMjkwLjAgXQovQ29udGVudHMgMyAwIFIKL1R5cGUgL1BhZ2UKL1BhcmVudCA1IDAgUgo+PmVuZG9iagozIDAgb2JqPDwKL0xlbmd0aCA0Nwo+PnN0cmVhbQpxIDI5MC4wMDAwMDAgMCAwIDI5MC4wMDAwMDAgMCAwIGNtIC9pbWFnZSBEbyBRCgplbmRzdHJlYW0KZW5kb2JqCjYgMCBvYmo8PAovQ3JlYXRpb25EYXRlIChEOjIwMjUxMTA3MTMzNTE1WikKL01vZERhdGUgKEQ6MjAyNTExMDcxMzM1MTVaKQo+PmVuZG9iagp4cmVmCjAgNwowMDAwMDAwMDAwIDY1NTM2IGYgCjAwMDAwMDAxNDQgMDAwMDAgbiAKMDAwMDAwMTA1MiAwMDAwMCBuIAowMDAwMDAxMjE0IDAwMDAwIG4gCjAwMDAwMDAwNDAgMDAwMDAgbiAKMDAwMDAwMDA4NyAwMDAwMCBuIAowMDAwMDAxMzA5IDAwMDAwIG4gCnRyYWlsZXIKPDwKL1Jvb3QgNCAwIFIKL1NpemUgNwovSW5mbyA2IDAgUgo+PgpzdGFydHhyZWYKMTM5MQolJUVPRg==
-                        orderId:
-                          type: integer
-                          nullable: false
-                          description: Assembly order ID
-                          example: 3869227998
-                        parcelId:
+                        partA:
                           type: string
-                          description: Assembly order tracking number in the sticker
-                          example: WB0000000001
+                          nullable: false
+                          description: Первая часть ID стикера для печати подписи
+                          example: '231648'
+                        partB:
+                          type: string
+                          nullable: false
+                          description: Вторая часть ID стикера для печати подписи
+                          example: '9753'
+                        barcode:
+                          type: string
+                          nullable: false
+                          description: Закодированное значение стикера
+                          example: '!uKEtQZVx'
+              example:
+                stickers:
+                  - orderId: 987654320
+                    status: awaitingTrackNumber
+                    parcelId: ''
+                    file: ''
+                    partA: ''
+                    partB: ''
+                    barcode: ''
+                  - orderId: 123456789
+                    status: ready
+                    parcelId: WB0000000001
+                    file: JVBERi0xLjQKJSBjcmVhdGVkIGJ5IFBpbGxvdyBQREYgZHJpdmVyCjQgMCBvYmo8PAovVHlwZSAvQ2F0YWxvZwovUGFnZXMgNSAwIFIKPj5lbmRvYmoKNSAwIG9iajw8Ci9UeXBlIC9QYWdlcwovQ291bnQgMQovS2lkcyBbIDIgMCBSIF0KPj5lbmRvYmoKMSAwIG9iajw8Ci9UeXBlIC9YT2JqZWN0Ci9TdWJ0eXBlIC9JbWFnZQovV2lkdGggMjkwCi9IZWlnaHQgMjkwCi9GaWx0ZXIgWyAvQ0NJVFRGYXhEZWNvZGUgXQovRGVjb2RlUGFybXMgWyA8PAovSyAtMQovQmxhY2tJczEgdHJ1ZQovQ29sdW1ucyAyOTAKL1Jvd3MgMjkwCj4+IF0KL0JpdHNQZXJDb21wb25lbnQgMQovQ29sb3JTcGFjZSAvRGV2aWNlR3JheQovTGVuZ3RoIDY2Ngo+PnN0cmVhbQomoLYaX////////////8g2b4gpHITff///////////8nBSkIB8nBS/////////////////////+QgHkNB/IQD////////////////////////////+P//////////////////////////IQ5CHIQ////////////////////////////////jkNB/H/////////////////////4yEOQh+P//////////////////EhoKR//////yDYchDkIchDyBg2E4aCcFL////////////////////////IgFIiAhODQTg0f/////////////////+ThCICEQGgnDQTg0E4NBODZ////////////////////////4k4NESEOJCCP/////////////////8gpHIQ5CCCEEENB8hDyBg2f//////////////////////////xEZKQhOEJwhOB5f//////////////yDZviDQIjkDBS///////////////ycFLEnCCThP//////////////////kIB5CHkQEEnCEQEJwbP///////////////////////////4ycGgnBoIgFL/////////////////////+QhxIQ4kIcg0H////////////////////////8cSEOJCHEhAP//////////////////jIQDIQ+Qh5OE////////////////////////4iIiI/////////////wAQAQJAAABAwABAAAAIgEAAAEBAwABAAAAIgEAAAIBAwABAAAAAQAAAAMBAwABAAAABAAAAAYBAwABAAAAAQAAABEBBAABAAAACAAAABYBAwABAAAAIgEAABcBBAABAAAAKAIAABwBAwABAAAAAQAAAAAAAAAKZW5kc3RyZWFtCmVuZG9iagoyIDAgb2JqPDwKL1Jlc291cmNlcyA8PAovUHJvY1NldCBbIC9QREYgL0ltYWdlQiBdCi9YT2JqZWN0IDw8Ci9pbWFnZSAxIDAgUgo+Pgo+PgovTWVkaWFCb3ggWyAwIDAgMjkwLjAgMjkwLjAgXQovQ29udGVudHMgMyAwIFIKL1R5cGUgL1BhZ2UKL1BhcmVudCA1IDAgUgo+PmVuZG9iagozIDAgb2JqPDwKL0xlbmd0aCA0Nwo+PnN0cmVhbQpxIDI5MC4wMDAwMDAgMCAwIDI5MC4wMDAwMDAgMCAwIGNtIC9pbWFnZSBEbyBRCgplbmRzdHJlYW0KZW5kb2JqCjYgMCBvYmo8PAovQ3JlYXRpb25EYXRlIChEOjIwMjUxMTA3MTMzNTE1WikKL01vZERhdGUgKEQ6MjAyNTExMDcxMzM1MTVaKQo+PmVuZG9iagp4cmVmCjAgNwowMDAwMDAwMDAwIDY1NTM2IGYgCjAwMDAwMDAxNDQgMDAwMDAgbiAKMDAwMDAwMTA1MiAwMDAwMCBuIAowMDAwMDAxMjE0IDAwMDAwIG4gCjAwMDAwMDAwNDAgMDAwMDAgbiAKMDAwMDAwMDA4NyAwMDAwMCBuIAowMDAwMDAxMzA5IDAwMDAwIG4gCnRyYWlsZXIKPDwKL1Jvb3QgNCAwIFIKL1NpemUgNwovSW5mbyA2IDAgUgo+PgpzdGFydHhyZWYKMTM5MQolJUVPRg==
+                    partA: '231648'
+                    partB: '9753'
+                    barcode: '!uKEtQZVx'
         '400':
-          description: Bad request
+          description: Неправильный запрос
           content:
             application/json:
               schema:
@@ -1498,6 +1612,8 @@ paths:
                   $ref: '#/components/examples/IncorrectRequest'
         '401':
           $ref: '#/components/responses/401'
+        '402':
+          $ref: '#/components/responses/402'
         '403':
           $ref: '#/components/responses/AccessDenied'
         '429':
@@ -1511,19 +1627,19 @@ paths:
       security:
         - HeaderApiKey: []
       tags:
-        - FBS Assembly Orders
-      summary: Status History for Cross-Border Orders
+        - Сборочные задания FBS
+      summary: История статусов для сборочных заданий кроссбордера
       description: |
-        Returns status history for cross-border orders
+        Метод возвращает историю [статусов](/openapi/orders-fbs#tag/Sborochnye-zadaniya-FBS/paths/~1api~1v3~1orders~1status/post) для [сборочных заданий](/openapi/orders-fbs#tag/Sborochnye-zadaniya-FBS/paths/~1api~1v3~1orders/get) кроссбордера.
 
         <div class="description_limit">
-        <a href="/openapi/api-information#tag/Introduction/Rate-Limits">Request limit</a> per one seller's account for <strong>FBS assembly orders, supplies and passes</strong> methods:
+        <a href="/openapi/api-information#tag/Vvedenie/Limity-zaprosov">Лимит запросов</a> на один аккаунт продавца для методов <strong>сборочных заданий, поставок и пропусков FBS</strong>:
 
-        | Period | Limit | Interval | Burst |
+        | Период | Лимит | Интервал | Всплеск |
         | --- | --- | --- | --- |
-        | 1 min | 300 requests | 200 ms | 20 requests |
+        | 1 мин | 300 запросов | 200 мс | 20 запросов |
 
-        One request with a response code of <code>409</code> is counted as 10 requests
+        Один запрос с кодом ответа <code>409</code> учитывается как 10 запросов
         </div>
       requestBody:
         content:
@@ -1532,7 +1648,7 @@ paths:
               type: object
               properties:
                 orders:
-                  description: Assembly orders IDs
+                  description: ID сборочных заданий
                   type: array
                   items:
                     type: integer
@@ -1543,7 +1659,7 @@ paths:
                     - 987654321
       responses:
         '200':
-          description: Success
+          description: Успешно
           content:
             application/json:
               schema:
@@ -1551,85 +1667,87 @@ paths:
                 properties:
                   orders:
                     type: array
-                    description: Assembly orders list
+                    description: Список сборочных заданий
                     items:
                       type: object
                       properties:
                         deliveryDate:
                           type: string
                           format: date-time
-                          description: Planned delivery date, [RFC3339](https://datatracker.ietf.org/doc/html/rfc3339)
+                          description: Планируемая дата доставки, [RFC3339](https://datatracker.ietf.org/doc/html/rfc3339)
                         statuses:
-                          description: Statuses
+                          description: Статусы
                           type: array
                           items:
                             type: object
                             properties:
                               date:
                                 type: string
-                                description: Date of the status assignment
+                                description: Дата присвоения статуса
                                 nullable: true
                                 example: null
                               code:
                                 type: string
                                 description: |
-                                  Assembly order status code:
-                                    - `dispatched_to_delivery_service` — The order is handed over to delivery service in the seller country
-                                    - `on_way_to_delivery_service` — The order is on the way to delivery service's warehouse in the seller country
-                                    - `accepted_by_carrier` — Product accepted by the carrier
-                                    - `assembling` — Sent for assembly
-                                    - `assembled` — Assembled at the warehouse
-                                    - `sorted` — Sorted
-                                    - `replaced_at_warehouse` — Replaced at the warehouse
-                                    - `prepared_for_shipment` — Prepared for shipment
-                                    - `in_search` — In search
-                                    - `arrived_at_dct` — Arrived at the distribution center-transit
-                                    - `arrived_at_sct` — Arrived at the sorting center-transit
-                                    - `arrived_at_dc` — Arrived at the distribution center
-                                    - `arrived_at_sc` — Arrived at the sorting center
-                                    - `prepared_for_shipment_at_sc` — Prepared for shipment at the sorting center
-                                    - `shipped_at_sc` — Shipped by the sorting center
-                                    - `shipped_at_dct` — Shipped by the distribution center — transit
-                                    - `shipped_at_dc` — Shipped by the distribution center
-                                    - `delivered_at_sc` — Delivered to the SC/DC
-                                    - `on_way_to_sc` — En route to the sorting center
-                                    - `on_way_to_dc` — En route to the distribution center
-                                    - `on_way_to_pp` — En route to the pickup point
-                                    - `arrived_at_pp` — Arrived at the pickup point
-                                    - `accepted_at_pp` — Received at the pickup point
-                                    - `ready_for_pick_up` — Ready for pickup
-                                    - `arrived_at_pp` — Arrived at the pickup point
-                                    - `received_by_client` — Received by the client
-                                    - `delivered_at_parcel_locker` — Delivered to the parcel locker
-                                    - `canceled_by_client` — Buyer canceled the order upon receipt
-                                    - `cancel_after_expiration` — Canceled due to storage time limit
-                                    - `at_courier` — Transferred to the courier
-                                    - `moved_to_return_box` — Moved to the return box
-                                    - `accepted_for_return` — Accepted for return at the pickup point
-                                    - `created` — Created
-                                    - `canceled_by_seller` — Canceled by the seller
-                                    - `dispatched_by_seller` — Shipped according to seller's data
-                                    - `delivered` — Order issued
-                                    - `on_way` — En route
-                                    - `arrived_at_wb_wh` — Arrived at the WB warehouse
-                                    - `dispatched_from_wh` — Sent from the warehouse
-                                    - `customs_clearance` — Customs clearance
-                                    - `customs_clearance_completed` — Released by customs
-                                    - `departed_from_origin_country` — Sent from the seller's country
-                                    - `arrived_in_destination_country` — Arrival in the destination country
-                                    - `on_way_to_wb_sc` — Sent to the WB SC
-                                    - `accepted_at_wb_sc` — Accepted by the WB SC
-                                    - `canceled` — Canceled
-                                    - `failed_to_reach_client` — Could not reach the client
+                                  Статус-код сборочного задания/заказа:
+                                    - `dispatched_to_delivery_service` — Продавец передал заказ в службу доставки в своей стране
+                                    - `on_way_to_delivery_service` — Заказ едет на склад службы доставки в стране продавца
+                                    - `accepted_by_carrier` — Товар принят перевозчиком
+                                    - `assembling` — Отправлен на сборку
+                                    - `assembled` — Собран на складе
+                                    - `sorted` — Отсортирован
+                                    - `replaced_at_warehouse` — Замена на складе
+                                    - `prepared_for_shipment` — Подготовлен к отгрузке
+                                    - `in_search` — На поиске
+                                    - `arrived_at_dct` — Поступил в распределительный центр-транзит
+                                    - `arrived_at_sct` — Поступил в сортировочный центр-транзит
+                                    - `arrived_at_dc` — Поступил в распределительный центр
+                                    - `arrived_at_sc` — Поступил в сортировочный центр
+                                    - `prepared_for_shipment_at_sc` — Подготовлен к отгрузке в сортировочном центре
+                                    - `shipped_at_sc` — Отгружено сортировочным центром
+                                    - `shipped_at_dct` — Отгружен распределительным центром — транзит
+                                    - `shipped_at_dc` — Отгружен распределительным центром
+                                    - `delivered_at_sc` — Доставлен в сортировочный/распределительный центр (СЦ/РЦ)
+                                    - `on_way_to_sc` — В пути в сортировочный центр
+                                    - `on_way_to_dc` — В пути в распределительный центр
+                                    - `on_way_to_pp` — В пути на пункт выдачи
+                                    - `arrived_at_pp` — Прибыл на пункт выдачи
+                                    - `accepted_at_pp` — Приёмка в пункте выдачи
+                                    - `ready_for_pick_up` — Готов к выдаче
+                                    - `arrived_at_pp` — Поступил на пункт выдачи заказов (ПВЗ)
+                                    - `received_by_client` — Получен клиентом
+                                    - `delivered_at_parcel_locker` — Доставлен в постамат
+                                    - `canceled_by_client` — Покупатель отменил заказ при получении
+                                    - `cancel_after_expiration` — Отмена по сроку хранения
+                                    - `at_courier` — Передан курьеру
+                                    - `moved_to_return_box` — Перемещен в возвратную коробку
+                                    - `accepted_for_return` — Принят к возврату на ПВЗ
+                                    - `created` — Оформлен
+                                    - `canceled_by_seller` — Отменен продавцом
+                                    - `dispatched_by_seller` — Отгружено по данным продавца
+                                    - `delivered` — Заказ выдан
+                                    - `on_way` — В пути
+                                    - `arrived_at_wb_wh` — Поступил на склад WB
+                                    - `dispatched_from_wh` — Отправлен со склада
+                                    - `customs_clearance` — Таможенное оформление
+                                    - `customs_clearance_completed` — Выпущен таможней
+                                    - `departed_from_origin_country` — Отправлен из страны продавца
+                                    - `arrived_in_destination_country` — Прибытие в страну назначения
+                                    - `on_way_to_wb_sc` — Отправлен до сортировочного центра (СЦ) WB
+                                    - `accepted_at_wb_sc` — Принят СЦ WB
+                                    - `canceled` — Отмена
+                                    - `failed_to_reach_client` — Не дозвонились до клиента
                                 example: SORTED
                         orderID:
-                          description: Assembly order ID
+                          description: ID сборочного задания
                           type: integer
                           example: 123456789
         '400':
-          description: Bad request
+          description: Неправильный запрос
         '401':
           $ref: '#/components/responses/401'
+        '402':
+          $ref: '#/components/responses/402'
         '403':
           $ref: '#/components/responses/AccessDenied'
         '404':
@@ -1644,20 +1762,22 @@ paths:
       x-category: marketplace
       security:
         - HeaderApiKey: []
-      summary: Orders with Client Information
+      summary: Заказы с информацией по клиенту
       tags:
-        - FBS Assembly Orders
+        - Сборочные задания FBS
       description: |
-        The method allows getting information about the client by assembly order ID. <br>Only for cross-border orders from **Turkey**
+        Метод позволяет получать информацию о покупателе по ID сборочного задания.
+
+        Только для кроссбордера из **Турции**.
 
         <div class="description_limit">
-        <a href="/openapi/api-information#tag/Introduction/Rate-Limits">Request limit</a> per one seller's account for <strong>FBS assembly orders, supplies and passes</strong> methods:
+        <a href="/openapi/api-information#tag/Vvedenie/Limity-zaprosov">Лимит запросов</a> на один аккаунт продавца для методов <strong>сборочных заданий, поставок и пропусков FBS</strong>:
 
-        | Period | Limit | Interval | Burst |
+        | Период | Лимит | Интервал | Всплеск |
         | --- | --- | --- | --- |
-        | 1 min | 300 requests | 200 ms | 20 requests |
+        | 1 мин | 300 запросов | 200 мс | 20 запросов |
 
-        One request with a response code of <code>409</code> is counted as 10 requests
+        Один запрос с кодом ответа <code>409</code> учитывается как 10 запросов
         </div>
       requestBody:
         required: true
@@ -1667,13 +1787,13 @@ paths:
               $ref: '#/components/schemas/OrdersRequestAPI'
       responses:
         '200':
-          description: Success
+          description: Успешно
           content:
             application/json:
               schema:
                 $ref: '#/components/schemas/CrossborderTurkeyClientInfoResp'
         '400':
-          description: Bad request
+          description: Неправильный запрос
           content:
             application/json:
               schema:
@@ -1683,6 +1803,8 @@ paths:
                   $ref: '#/components/examples/IncorrectParameter'
         '401':
           $ref: '#/components/responses/401'
+        '402':
+          $ref: '#/components/responses/402'
         '403':
           $ref: '#/components/responses/AccessDenied'
         '404':
@@ -1698,24 +1820,25 @@ paths:
       security:
         - HeaderApiKey: []
       tags:
-        - FBS Supplies
-      summary: Create a New Supply
+        - Поставки FBS
+      summary: Создать новую поставку
       description: |
-        **Supplies limitations**:
+        Метод создаёт новую [поставку](/openapi/orders-fbs#tag/Postavki-FBS/paths/~1api~1v3~1supplies~1%7BsupplyId%7D/get).
 
-        - Supplies applicable only for assembly orders in the FBS (Fulfillment by Seller) delivery.
-        - All assembly orders added to supply automatically transferred from the `new` status to the `confirm` status.
-        - Please note that if you will `cancel` (`Canceled by the seller`) the order, we will automatically remove it from the supply.
-        - A supply can only be assembled from assembly jobs (orders) with the same dimensional type (cargoType). A new supply does not have a dimensional attribute. When the first assembly order is added to a supply, the supply acquires the dimensional attribute of that assembly order.
+        Ограничения:
+        - Только для [сборочных заданий](/openapi/orders-fbs#tag/Sborochnye-zadaniya-FBS/paths/~1api~1v3~1orders/get) по модели FBS.
+        - При добавлении в поставку все передаваемые сборочные задания в [статусе](/openapi/orders-fbs#tag/Sborochnye-zadaniya-FBS/paths/~1api~1v3~1orders~1status/post) `new` будут автоматически переведены в статус `confirm` — на сборке.
+        - Если вы переведёте сборочное задание в статус `cancel` — отмена продавцом, прикрепленное сборочное задание автоматически удалится из поставки.
+        - Поставку можно собрать только из сборочных заданий (заказов) одного габаритного типа `cargoType`. Новая поставка не обладает габаритным признаком, она приобретает габаритный признак первого заказа, добавленного в поставку.
 
         <div class="description_limit">
-        <a href="/openapi/api-information#tag/Introduction/Rate-Limits">Request limit</a> per one seller's account for <strong>FBS assembly orders, supplies and passes</strong> methods:
+        <a href="/openapi/api-information#tag/Vvedenie/Limity-zaprosov">Лимит запросов</a> на один аккаунт продавца для методов <strong>сборочных заданий, поставок и пропусков FBS</strong>:
 
-        | Period | Limit | Interval | Burst |
+        | Период | Лимит | Интервал | Всплеск |
         | --- | --- | --- | --- |
-        | 1 min | 300 requests | 200 ms | 20 requests |
+        | 1 мин | 300 запросов | 200 мс | 20 запросов |
 
-        One request with a response code of <code>409</code> is counted as 10 requests
+        Один запрос с кодом ответа <code>409</code> учитывается как 10 запросов
         </div>
       requestBody:
         required: true
@@ -1728,11 +1851,11 @@ paths:
                   type: string
                   minLength: 1
                   maxLength: 128
-                  description: Supply name
-                  example: Some test supply
+                  description: Наименование поставки
+                  example: Тестовая поставка
       responses:
         '201':
-          description: Created
+          description: Создано
           content:
             application/json:
               schema:
@@ -1741,10 +1864,10 @@ paths:
                   id:
                     type: string
                     nullable: false
-                    description: Supply ID
+                    description: ID поставки
                     example: WB-GI-1234567
         '400':
-          description: Bad request
+          description: Неправильный запрос
           content:
             application/json:
               schema:
@@ -1754,6 +1877,8 @@ paths:
                   $ref: '#/components/examples/IncorrectRequestBody'
         '401':
           $ref: '#/components/responses/401'
+        '402':
+          $ref: '#/components/responses/402'
         '403':
           $ref: '#/components/responses/AccessDenied'
         '429':
@@ -1764,26 +1889,26 @@ paths:
       security:
         - HeaderApiKey: []
       tags:
-        - FBS Supplies
-      summary: Get a Supplies List
+        - Поставки FBS
+      summary: Получить список поставок
       description: |
-        Returns the supply list.
+        Метод возвращает список [поставок](/openapi/orders-fbs#tag/Postavki-FBS/paths/~1api~1v3~1supplies~1%7BsupplyId%7D/get).
 
         <div class="description_limit">
-        <a href="/openapi/api-information#tag/Introduction/Rate-Limits">Request limit</a> per one seller's account for <strong>FBS assembly orders, supplies and passes</strong> methods:
+        <a href="/openapi/api-information#tag/Vvedenie/Limity-zaprosov">Лимит запросов</a> на один аккаунт продавца для методов <strong>сборочных заданий, поставок и пропусков FBS</strong>:
 
-        | Period | Limit | Interval | Burst |
+        | Период | Лимит | Интервал | Всплеск |
         | --- | --- | --- | --- |
-        | 1 min | 300 requests | 200 ms | 20 requests |
+        | 1 мин | 300 запросов | 200 мс | 20 запросов |
 
-        One request with a response code of <code>409</code> is counted as 10 requests
+        Один запрос с кодом ответа <code>409</code> учитывается как 10 запросов
         </div>
       parameters:
         - $ref: '#/components/parameters/Limit'
         - $ref: '#/components/parameters/Next'
       responses:
         '200':
-          description: Success
+          description: Успешно
           content:
             application/json:
               schema:
@@ -1795,11 +1920,11 @@ paths:
                   supplies:
                     type: array
                     nullable: false
-                    description: Supplies list
+                    description: Список поставок
                     items:
                       $ref: '#/components/schemas/Supply'
         '400':
-          description: Bad request
+          description: Неправильный запрос
           content:
             application/json:
               schema:
@@ -1809,6 +1934,8 @@ paths:
                   $ref: '#/components/examples/IncorrectParameter'
         '401':
           $ref: '#/components/responses/401'
+        '402':
+          $ref: '#/components/responses/402'
         '403':
           $ref: '#/components/responses/AccessDenied'
         '429':
@@ -1822,39 +1949,38 @@ paths:
       security:
         - HeaderApiKey: []
       tags:
-        - FBS Supplies
-      summary: Add Assembly Orders to the Supply
+        - Поставки FBS
+      summary: Добавить сборочные задания к поставке
       description: |
-        The method adds up to 100 [assembly orders](/openapi/orders-fbs#tag/FBS-Assembly-Orders/paths/~1api~1v3~1orders/get) to the supply and moves it to the `confirm` [status](/openapi/orders-fbs#tag/FBS-Assembly-Orders/paths/~1api~1v3~1orders~1status/post).
+        Метод добавляет до 100 [сборочных заданий](/openapi/orders-fbs#tag/Sborochnye-zadaniya-FBS/paths/~1api~1v3~1orders/get) к поставке и переводит их в [статус](/openapi/orders-fbs#tag/Sborochnye-zadaniya-FBS/paths/~1api~1v3~1orders~1status/post) `confirm` — на сборке.
 
-        It can also move the assembly orders:
-          - between active supplies
-          - from a closed to an active supply, if the assembly order requires [reshipment](/openapi/orders-fbs#tag/FBS-Assembly-Orders/paths/~1api~1v3~1supplies~1orders~1reshipment/get).
+        Может перемещать сборочные задания:
+          - между активными поставками
+          - из закрытой поставки в активную, если сборочные задания требуют [повторной отгрузки](/openapi/orders-fbs#tag/Sborochnye-zadaniya-FBS/paths/~1api~1v3~1supplies~1orders~1reshipment/get)
 
         <div class="description_important">
-          You can add assembly orders of any dimensional type to an empty supply. After adding the first assembly order, the supply acquires the dimensional type of this assembly order from the <code>cargoType</code> <a href="/openapi/orders-fbs#tag/FBS-Supplies/paths/~1api~1v3~1supplies~1%7BsupplyId%7D/get">field</a>.
+          В пустую поставку можно добавить сборочные задания любого габаритного типа. Поставка приобретает габаритный тип первого добавленного сборочного задания <a href ="./orders-fbs#tag/Postavki-FBS/paths/~1api~1v3~1supplies~1%7BsupplyId%7D/get">из поля</a> <code>cargoType</code>.
           <br>
-          After that, you can only add assembly orders of the same dimensional type as the supply.
-        </div>
+          После этого в поставку можно добавить сборочные задания только того же габаритного типа, что и у поставки.
+         </div>
 
         <div class="description_important">
-        Assembly orders received at different warehouses cannot be added to the delivery.
+        В поставку нельзя добавить сборочные задания, поступившие на разные склады.
         </div>
-
         <div class="description_important">
-          You can add assembly orders of any type to an empty supply: crossborder or non-crossborder. After adding the first assembly order, the supply acquires the type of this assembly order from the <code>crossBorderType</code> field</a>.
-          <br>
-          After that, you can add to the supply only the assembly orders of the same type as the supply.
+        В пустую поставку можно добавить сборочные задания любого типа: кроссбордер или не кроссбордер.
+        После этого поставка приобретает тип первого добавленного сборочного задания из поля <code>crossBorderType</code>.
+        Далее в неё можно добавить только сборочные задания такого же типа.
         </div>
 
         <div class="description_limit">
-        <a href="/openapi/api-information#tag/Introduction/Rate-Limits">Request limit</a> per one seller's account for <strong>FBS assembly orders, supplies and passes</strong> methods:
+        <a href="/openapi/api-information#tag/Vvedenie/Limity-zaprosov">Лимит запросов</a> на один аккаунт продавца для методов <strong>сборочных заданий, поставок и пропусков FBS</strong>:
 
-        | Period | Limit | Interval | Burst |
+        | Период | Лимит | Интервал | Всплеск |
         | --- | --- | --- | --- |
-        | 1 min | 300 requests | 200 ms | 20 requests |
+        | 1 мин | 300 запросов | 200 мс | 20 запросов |
 
-        One request with a response code of <code>409</code> is counted as 10 requests
+        Один запрос с кодом ответа <code>409</code> учитывается как 10 запросов
         </div>
       parameters:
         - $ref: '#/components/parameters/Supply'
@@ -1869,7 +1995,7 @@ paths:
                   type: array
                   minItems: 1
                   maxItems: 100
-                  description: Assembly order IDs
+                  description: ID сборочных заданий
                   example:
                     - 5632423
                     - 3453452
@@ -1879,9 +2005,9 @@ paths:
                     type: integer
       responses:
         '204':
-          description: The assembly orders assigned to the supply
+          description: Сборочные задания закреплены за поставкой
         '400':
-          description: Bad request
+          description: Неправильный запрос
           content:
             application/json:
               schema:
@@ -1896,7 +2022,7 @@ paths:
         '404':
           $ref: '#/components/responses/NotFound'
         '409':
-          description: Error adding the assembly order to the supply
+          description: Ошибка добавления сборочного задания к поставке
           content:
             application/json:
               schema:
@@ -1915,31 +2041,31 @@ paths:
       security:
         - HeaderApiKey: []
       tags:
-        - FBS Supplies
-      summary: Get Supply Details
+        - Поставки FBS
+      summary: Получить информацию о поставке
       description: |
-        Returns supply details.
+        Метод возвращает подробную информацию о поставке.
 
         <div class="description_limit">
-        <a href="/openapi/api-information#tag/Introduction/Rate-Limits">Request limit</a> per one seller's account for <strong>FBS assembly orders, supplies and passes</strong> methods:
+        <a href="/openapi/api-information#tag/Vvedenie/Limity-zaprosov">Лимит запросов</a> на один аккаунт продавца для методов <strong>сборочных заданий, поставок и пропусков FBS</strong>:
 
-        | Period | Limit | Interval | Burst |
+        | Период | Лимит | Интервал | Всплеск |
         | --- | --- | --- | --- |
-        | 1 min | 300 requests | 200 ms | 20 requests |
+        | 1 мин | 300 запросов | 200 мс | 20 запросов |
 
-        One request with a response code of <code>409</code> is counted as 10 requests
+        Один запрос с кодом ответа <code>409</code> учитывается как 10 запросов
         </div>
       parameters:
         - $ref: '#/components/parameters/Supply'
       responses:
         '200':
-          description: Success
+          description: Успешно
           content:
             application/json:
               schema:
                 $ref: '#/components/schemas/Supply'
         '400':
-          description: Bad request
+          description: Неправильный запрос
           content:
             application/json:
               schema:
@@ -1949,6 +2075,8 @@ paths:
                   $ref: '#/components/examples/IncorrectParameter'
         '401':
           $ref: '#/components/responses/401'
+        '402':
+          $ref: '#/components/responses/402'
         '403':
           $ref: '#/components/responses/AccessDenied'
         '404':
@@ -1961,27 +2089,27 @@ paths:
       security:
         - HeaderApiKey: []
       tags:
-        - FBS Supplies
-      summary: Delete the Supply
+        - Поставки FBS
+      summary: Удалить поставку
       description: |
-        Deleted the supply if it is active and does not contain any assembly orders.
+        Метод удаляет [поставку](/openapi/orders-fbs#tag/Postavki-FBS/paths/~1api~1v3~1supplies~1%7BsupplyId%7D/get), если она активна и за ней не закреплено ни одно [сборочное задание](/openapi/orders-fbs#tag/Sborochnye-zadaniya-FBS/paths/~1api~1v3~1orders/get).
 
         <div class="description_limit">
-        <a href="/openapi/api-information#tag/Introduction/Rate-Limits">Request limit</a> per one seller's account for <strong>FBS assembly orders, supplies and passes</strong> methods:
+        <a href="/openapi/api-information#tag/Vvedenie/Limity-zaprosov">Лимит запросов</a> на один аккаунт продавца для методов <strong>сборочных заданий, поставок и пропусков FBS</strong>:
 
-        | Period | Limit | Interval | Burst |
+        | Период | Лимит | Интервал | Всплеск |
         | --- | --- | --- | --- |
-        | 1 min | 300 requests | 200 ms | 20 requests |
+        | 1 мин | 300 запросов | 200 мс | 20 запросов |
 
-        One request with a response code of <code>409</code> is counted as 10 requests
+        Один запрос с кодом ответа <code>409</code> учитывается как 10 запросов
         </div>
       parameters:
         - $ref: '#/components/parameters/Supply'
       responses:
         '204':
-          description: Deleted
+          description: Удалено
         '400':
-          description: Bad request
+          description: Неправильный запрос
           content:
             application/json:
               schema:
@@ -1991,12 +2119,14 @@ paths:
                   $ref: '#/components/examples/IncorrectParameter'
         '401':
           $ref: '#/components/responses/401'
+        '402':
+          $ref: '#/components/responses/402'
         '403':
           $ref: '#/components/responses/AccessDenied'
         '404':
           $ref: '#/components/responses/NotFound'
         '409':
-          description: The supply contains orders
+          description: За поставкой закреплены сборочные задания
           content:
             application/json:
               schema:
@@ -2013,36 +2143,36 @@ paths:
       x-readonly-method: true
       x-category: marketplace
       tags:
-        - FBS Supplies
-      summary: Get Supply Assembly Order IDs
+        - Поставки FBS
+      summary: Получить ID сборочных заданий поставки
       description: |
-        The method returns assembly orders IDs assigned to the supply.
+        Метод возвращает список ID сборочных заданий, закреплённых за поставкой.
 
         <div class="description_limit">
-        <a href="/openapi/api-information#tag/Introduction/Rate-Limits">Request limit</a> per one seller's account for <strong>FBS assembly orders, supplies and passes</strong> methods:
+        <a href="/openapi/api-information#tag/Vvedenie/Limity-zaprosov">Лимит запросов</a> на один аккаунт продавца для методов <strong>сборочных заданий, поставок и пропусков FBS</strong>:
 
-        | Period | Limit | Interval | Burst |
+        | Период | Лимит | Интервал | Всплеск |
         | --- | --- | --- | --- |
-        | 1 min | 300 requests | 200 ms | 20 requests |
+        | 1 мин | 300 запросов | 200 мс | 20 запросов |
 
-        One request with a response code of <code>409</code> is counted as 10 requests
+        Один запрос с кодом ответа <code>409</code> учитывается как 10 запросов
         </div>
       parameters:
         - name: supplyId
           in: path
-          description: Supply ID
+          description: ID поставки
           required: true
           schema:
             type: string
       responses:
         '200':
-          description: Success
+          description: Успешно
           content:
             application/json:
               schema:
                 $ref: '#/components/schemas/v3.SupplyOrderIDsAPI'
         '400':
-          description: Bad request
+          description: Неправильный запрос
           content:
             application/json:
               schema:
@@ -2052,6 +2182,8 @@ paths:
                   $ref: '#/components/examples/IncorrectParameter'
         '401':
           $ref: '#/components/responses/401'
+        '402':
+          $ref: '#/components/responses/402'
         '403':
           $ref: '#/components/responses/AccessDenied'
         '404':
@@ -2067,31 +2199,35 @@ paths:
       security:
         - HeaderApiKey: []
       tags:
-        - FBS Supplies
-      summary: Move the Supply to the Delivery
+        - Поставки FBS
+      summary: Передать поставку в доставку
       description: |
-        Closes the supply and moves all assembly orders to `complete` (`In Delivery`) status. You cannot add any assembly orders to the supply after it is closed.
-
-        If the supply wasn't handed over for delivery, than scanning its QR code or accepting the first product will automatically close the supply.
-
-        You can transfer the supply to delivery only if it contains at least one assembly order.
+        Метод закрывает [поставку](/openapi/orders-fbs#tag/Postavki-FBS/paths/~1api~1v3~1supplies~1%7BsupplyId%7D/get) и переводит все [сборочные задания](/openapi/orders-fbs#tag/Sborochnye-zadaniya-FBS/paths/~1api~1v3~1orders/get) в ней в [статус](/openapi/orders-fbs#tag/Sborochnye-zadaniya-FBS/paths/~1api~1v3~1orders~1status/post) `complete` — в доставке. После закрытия поставки добавить новые сборочные задания к ней нельзя.
+        <br><br>
+        Если поставка не была передана в доставку, то при приёмке первого товара поставка автоматически закроется.
+        <br><br>
+        Передать поставку в доставку можно только если в ней:
+          - есть хотя бы одно сборочное задание
+          - нет сборочных заданий:
+            - с отсутствующей обязательной маркировкой
+            - с маркировкой, не прошедшей валидацию
 
         <div class="description_limit">
-        <a href="/openapi/api-information#tag/Introduction/Rate-Limits">Request limit</a> per one seller's account for <strong>FBS assembly orders, supplies and passes</strong> methods:
+        <a href="/openapi/api-information#tag/Vvedenie/Limity-zaprosov">Лимит запросов</a> на один аккаунт продавца для методов <strong>сборочных заданий, поставок и пропусков FBS</strong>:
 
-        | Period | Limit | Interval | Burst |
+        | Период | Лимит | Интервал | Всплеск |
         | --- | --- | --- | --- |
-        | 1 min | 300 requests | 200 ms | 20 requests |
+        | 1 мин | 300 запросов | 200 мс | 20 запросов |
 
-        One request with a response code of <code>409</code> is counted as 10 requests
+        Один запрос с кодом ответа <code>409</code> учитывается как 10 запросов
         </div>
       parameters:
         - $ref: '#/components/parameters/Supply'
       responses:
         '204':
-          description: The supply moved to the delivery
+          description: Передано в доставку
         '400':
-          description: Bad request
+          description: Неправильный запрос
           content:
             application/json:
               schema:
@@ -2101,21 +2237,23 @@ paths:
                   $ref: '#/components/examples/IncorrectParameter'
         '401':
           $ref: '#/components/responses/401'
+        '402':
+          $ref: '#/components/responses/402'
         '403':
           $ref: '#/components/responses/AccessDenied'
         '404':
           $ref: '#/components/responses/NotFound'
         '409':
-          description: Error closing supply
+          description: Ошибка закрытия поставки
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/Error'
+                $ref: '#/components/schemas/409SupplyDeliverError'
               examples:
                 SupplyHasZeroOrders:
                   $ref: '#/components/examples/SupplyHasZeroOrders'
-                UinIsNotFilled:
-                  $ref: '#/components/examples/UinIsNotFilled'
+                MetaValidationFail:
+                  $ref: '#/components/examples/MetaValidationFail'
         '429':
           $ref: '#/components/responses/429'
   /api/v3/supplies/{supplyId}/barcode:
@@ -2127,29 +2265,34 @@ paths:
       security:
         - HeaderApiKey: []
       tags:
-        - FBS Supplies
-      summary: Get the Supply QR Code
+        - Поставки FBS
+      summary: Получить QR-код поставки
       description: |
-        Returns the QR code in svg, zplv (vertical), zplh (horizontal), png. <br>
-        Available only after the supply has been transferred to the delivery.
-        Available dimensions:
-        <dd>580x400 px
+        Метод возвращает QR-код [поставки](/openapi/orders-fbs#tag/Postavki-FBS/paths/~1api~1v3~1supplies~1%7BsupplyId%7D/get) в форматах:
+          - SVG
+          - ZPLV (вертикальный)
+          - ZPLH (горизонтальный)
+          - PNG
+
+        QR-код поставки можно получить только если поставка [передана в доставку](/openapi/orders-fbs#tag/Postavki-FBS/paths/~1api~1v3~1supplies~1%7BsupplyId%7D~1deliver/patch).
+        <br><br>
+        Размер — 580x400 px.
 
         <div class="description_limit">
-        <a href="/openapi/api-information#tag/Introduction/Rate-Limits">Request limit</a> per one seller's account for <strong>FBS assembly orders, supplies and passes</strong> methods:
+        <a href="/openapi/api-information#tag/Vvedenie/Limity-zaprosov">Лимит запросов</a> на один аккаунт продавца для методов <strong>сборочных заданий, поставок и пропусков FBS</strong>:
 
-        | Period | Limit | Interval | Burst |
+        | Период | Лимит | Интервал | Всплеск |
         | --- | --- | --- | --- |
-        | 1 min | 300 requests | 200 ms | 20 requests |
+        | 1 мин | 300 запросов | 200 мс | 20 запросов |
 
-        One request with a response code of <code>409</code> is counted as 10 requests
+        Один запрос с кодом ответа <code>409</code> учитывается как 10 запросов
         </div>
       parameters:
         - $ref: '#/components/parameters/Supply'
         - name: type
           in: query
           required: true
-          description: Sticker format
+          description: Тип стикера
           schema:
             type: string
             enum:
@@ -2159,7 +2302,7 @@ paths:
               - png
       responses:
         '200':
-          description: Success
+          description: Успешно
           content:
             application/json:
               schema:
@@ -2169,16 +2312,16 @@ paths:
                   barcode:
                     type: string
                     nullable: false
-                    description: The encoded value of the sticker (supply id)
+                    description: Закодированное значение стикера (ID поставки)
                     example: WB-GI-12345678
                   file:
                     type: string
                     format: byte
                     nullable: false
-                    description: Base64 encoded sticker file in the requested format.
+                    description: Полное представление стикера в заданном формате (кодировка base64)
                     example: U3dhZ2dlciByb2Nrcw==
         '400':
-          description: Bad request
+          description: Неправильный запрос
           content:
             application/json:
               schema:
@@ -2188,12 +2331,14 @@ paths:
                   $ref: '#/components/examples/IncorrectParameter'
         '401':
           $ref: '#/components/responses/401'
+        '402':
+          $ref: '#/components/responses/402'
         '403':
           $ref: '#/components/responses/AccessDenied'
         '404':
           $ref: '#/components/responses/NotFound'
         '409':
-          description: Error requesting data
+          description: Ошибка запроса данных
           content:
             application/json:
               schema:
@@ -2212,25 +2357,25 @@ paths:
       security:
         - HeaderApiKey: []
       tags:
-        - FBS Supplies
-      summary: Get Supply Boxes List
+        - Поставки FBS
+      summary: Получить список коробов поставки
       description: |
-        Returns supply boxes list.
+        Возвращает список коробов поставки.
 
         <div class="description_limit">
-        <a href="/openapi/api-information#tag/Introduction/Rate-Limits">Request limit</a> per one seller's account for <strong>FBS assembly orders, supplies and passes</strong> methods:
+        <a href="/openapi/api-information#tag/Vvedenie/Limity-zaprosov">Лимит запросов</a> на один аккаунт продавца для методов <strong>сборочных заданий, поставок и пропусков FBS</strong>:
 
-        | Period | Limit | Interval | Burst |
+        | Период | Лимит | Интервал | Всплеск |
         | --- | --- | --- | --- |
-        | 1 min | 300 requests | 200 ms | 20 requests |
+        | 1 мин | 300 запросов | 200 мс | 20 запросов |
 
-        One request with a response code of <code>409</code> is counted as 10 requests
+        Один запрос с кодом ответа <code>409</code> учитывается как 10 запросов
         </div>
       parameters:
         - $ref: '#/components/parameters/Supply'
       responses:
         '200':
-          description: Success
+          description: Успешно
           content:
             application/json:
               schema:
@@ -2241,7 +2386,7 @@ paths:
                     items:
                       $ref: '#/components/schemas/SupplyTrbx'
         '400':
-          description: Bad request
+          description: Неправильный запрос
           content:
             application/json:
               schema:
@@ -2251,6 +2396,8 @@ paths:
                   $ref: '#/components/examples/IncorrectParameter'
         '401':
           $ref: '#/components/responses/401'
+        '402':
+          $ref: '#/components/responses/402'
         '403':
           $ref: '#/components/responses/AccessDenied'
         '404':
@@ -2263,23 +2410,24 @@ paths:
       security:
         - HeaderApiKey: []
       tags:
-        - FBS Supplies
-      summary: Add Boxes to the Supply
+        - Поставки FBS
+      summary: Добавить короба к поставке
       description: |
-        Adds the required number of boxes to the supply.
+        Метод добавляет требуемое количество [коробов](/openapi/orders-fbs#tag/Postavki-FBS/paths/~1api~1v3~1supplies~1%7BsupplyId%7D~1trbx/get) в [поставку](/openapi/orders-fbs#tag/Postavki-FBS/paths/~1api~1v3~1supplies~1%7BsupplyId%7D/get).
         <br>
         <br>
-        Boxes should only be added to deliveries shipped to the pickup points.
-        Can only be added to an open supply.
+        Короба необходимо добавлять только в поставки, отгружаемые на ПВЗ.
+        <br>
+        Короба можно добавить только в открытую поставку. Вы можете добавить столько же коробов, сколько всего товаров в поставке, плюс ещё один.
 
         <div class="description_limit">
-        <a href="/openapi/api-information#tag/Introduction/Rate-Limits">Request limit</a> per one seller's account for <strong>FBS assembly orders, supplies and passes</strong> methods:
+        <a href="/openapi/api-information#tag/Vvedenie/Limity-zaprosov">Лимит запросов</a> на один аккаунт продавца для методов <strong>сборочных заданий, поставок и пропусков FBS</strong>:
 
-        | Period | Limit | Interval | Burst |
+        | Период | Лимит | Интервал | Всплеск |
         | --- | --- | --- | --- |
-        | 1 min | 300 requests | 200 ms | 20 requests |
+        | 1 мин | 300 запросов | 200 мс | 20 запросов |
 
-        One request with a response code of <code>409</code> is counted as 10 requests
+        Один запрос с кодом ответа <code>409</code> учитывается как 10 запросов
         </div>
       parameters:
         - $ref: '#/components/parameters/Supply'
@@ -2295,11 +2443,11 @@ paths:
                   type: integer
                   minimum: 1
                   maximum: 1000
-                  description: Boxes amount to add to the supply.
+                  description: Количество коробов, которые необходимо добавить к поставке.
                   example: 4
       responses:
         '201':
-          description: Created
+          description: Создано
           content:
             application/json:
               schema:
@@ -2307,13 +2455,13 @@ paths:
                 properties:
                   trbxIds:
                     type: array
-                    description: List of IDs of created boxes.
+                    description: Список ID коробов, которые были созданы.
                     minItems: 1
                     items:
                       type: string
                       example: WB-TRBX-1234567
         '400':
-          description: Bad request
+          description: Неправильный запрос
           content:
             application/json:
               schema:
@@ -2323,6 +2471,8 @@ paths:
                   $ref: '#/components/examples/IncorrectParameter'
         '401':
           $ref: '#/components/responses/401'
+        '402':
+          $ref: '#/components/responses/402'
         '403':
           $ref: '#/components/responses/AccessDenied'
         '404':
@@ -2335,19 +2485,21 @@ paths:
       security:
         - HeaderApiKey: []
       tags:
-        - FBS Supplies
-      summary: Delete Boxes from the Supply
+        - Поставки FBS
+      summary: Удалить короба из поставки
       description: |
-        The method deletes boxes from the supply. Available only while the supply is being assembled.
+        Метод удаляет короба из поставки.
+        <br><br>
+        Можно удалить только пока поставка на сборке.
 
         <div class="description_limit">
-        <a href="/openapi/api-information#tag/Introduction/Rate-Limits">Request limit</a> per one seller's account for <strong>FBS assembly orders, supplies and passes</strong> methods:
+        <a href="/openapi/api-information#tag/Vvedenie/Limity-zaprosov">Лимит запросов</a> на один аккаунт продавца для методов <strong>сборочных заданий, поставок и пропусков FBS</strong>:
 
-        | Period | Limit | Interval | Burst |
+        | Период | Лимит | Интервал | Всплеск |
         | --- | --- | --- | --- |
-        | 1 min | 300 requests | 200 ms | 20 requests |
+        | 1 мин | 300 запросов | 200 мс | 20 запросов |
 
-        One request with a response code of <code>409</code> is counted as 10 requests
+        Один запрос с кодом ответа <code>409</code> учитывается как 10 запросов
         </div>
       parameters:
         - $ref: '#/components/parameters/Supply'
@@ -2361,15 +2513,15 @@ paths:
               properties:
                 trbxIds:
                   type: array
-                  description: List of box IDs to delete from the supply.
+                  description: Список ID коробов, которые необходимо удалить.
                   items:
                     type: string
                     example: WB-TRBX-1234567
       responses:
         '204':
-          description: Deleted
+          description: Удалено
         '400':
-          description: Bad request
+          description: Неправильный запрос
           content:
             application/json:
               schema:
@@ -2379,6 +2531,8 @@ paths:
                   $ref: '#/components/examples/IncorrectParameter'
         '401':
           $ref: '#/components/responses/401'
+        '402':
+          $ref: '#/components/responses/402'
         '403':
           $ref: '#/components/responses/AccessDenied'
         '404':
@@ -2394,28 +2548,32 @@ paths:
       security:
         - HeaderApiKey: []
       tags:
-        - FBS Supplies
-      summary: Get the Supply Box QR Code Stickers
+        - Поставки FBS
+      summary: Получить стикеры коробов поставки
       description: |
-        Returns QR-code stickers in svg, zplv (vertical), zplh (horizontal), png.<br>
-        Available only if there are assembly orders in the box.<br>
-        Stickers dimensions: 580x400 px.
+        Метод возвращает QR-стикеры в форматах:
+          - SVG
+          - ZPLV (вертикальный)
+          - ZPLH (горизонтальный)
+          - PNG
+        <br><br>
+        Размер стикеров — 580x400 px.
 
         <div class="description_limit">
-        <a href="/openapi/api-information#tag/Introduction/Rate-Limits">Request limit</a> per one seller's account for <strong>FBS assembly orders, supplies and passes</strong> methods:
+        <a href="/openapi/api-information#tag/Vvedenie/Limity-zaprosov">Лимит запросов</a> на один аккаунт продавца для методов <strong>сборочных заданий, поставок и пропусков FBS</strong>:
 
-        | Period | Limit | Interval | Burst |
+        | Период | Лимит | Интервал | Всплеск |
         | --- | --- | --- | --- |
-        | 1 min | 300 requests | 200 ms | 20 requests |
+        | 1 мин | 300 запросов | 200 мс | 20 запросов |
 
-        One request with a response code of <code>409</code> is counted as 10 requests
+        Один запрос с кодом ответа <code>409</code> учитывается как 10 запросов
         </div>
       parameters:
         - $ref: '#/components/parameters/Supply'
         - name: type
           in: query
           required: true
-          description: Sticker format
+          description: Тип стикера
           schema:
             type: string
             enum:
@@ -2433,13 +2591,13 @@ paths:
               properties:
                 trbxIds:
                   type: array
-                  description: List of supply box IDs for the sticker generation
+                  description: Список ID коробов, по которым необходимо вернуть стикеры.
                   items:
                     type: string
                     example: WB-TRBX-1234567
       responses:
         '200':
-          description: Success
+          description: Успешно
           content:
             application/json:
               schema:
@@ -2452,7 +2610,7 @@ paths:
                     items:
                       $ref: '#/components/schemas/TrbxStickers'
         '400':
-          description: Bad request
+          description: Неправильный запрос
           content:
             application/json:
               schema:
@@ -2462,6 +2620,8 @@ paths:
                   $ref: '#/components/examples/IncorrectParameter'
         '401':
           $ref: '#/components/responses/401'
+        '402':
+          $ref: '#/components/responses/402'
         '403':
           $ref: '#/components/responses/AccessDenied'
         '404':
@@ -2479,7 +2639,7 @@ components:
       name: supplyId
       in: path
       required: true
-      description: Supply ID
+      description: ID поставки
       schema:
         type: string
         example: WB-GI-1234567
@@ -2487,7 +2647,7 @@ components:
       name: orderId
       in: path
       required: true
-      description: Assembly order ID
+      description: ID сборочного задания
       schema:
         type: integer
         format: int64
@@ -2496,7 +2656,7 @@ components:
       name: passId
       in: path
       required: true
-      description: Pass ID
+      description: ID пропуска
       schema:
         type: integer
         format: int64
@@ -2508,7 +2668,7 @@ components:
       schema:
         type: integer
         format: int64
-      description: Pagination parameter. Sets the value from which to retrieve the next batch. It should start at 0 to get the full list of data. For the subsequent requests, you must take the value from the `next` field in the response.
+      description: Параметр пагинации. Устанавливает значение, с которого надо получить следующий пакет данных. Для получения полного списка данных должен быть равен `0` в первом запросе. Для следующих запросов необходимо брать значения из одноимённого поля в ответе.
     Limit:
       name: limit
       in: query
@@ -2517,53 +2677,72 @@ components:
         type: integer
         minimum: 1
         maximum: 1000
-      description: Pagination parameter. Sets the limit for the amount of data returned.
+      description: Параметр пагинации. Устанавливает предельное количество возвращаемых данных.
   examples:
     LowExpirationDate:
-      description: The specified expiration date is less than the allowable limit
+      description: Указан срок меньше допустимого
       value:
         code: LowExpirationDate
         message: Не удалось обновить срок годности. Указан срок меньше допустимого
     IncorrectRequestBody:
       value:
-        message: Incorrect request body
+        code: IncorrectRequestBody
+        message: Некорректное тело запроса
     WarehouseNameInvalid:
       value:
-        message: Incorrect warehouse name
+        code: WarehouseNameInvalid
+        message: Некорректное имя склада
     IncorrectRequest:
       value:
-        message: Incorrect request parameters
+        code: IncorrectRequest
+        message: Переданы некорректные данные
     IncorrectParameter:
       value:
         code: IncorrectParameter
         message: Передан некорректный параметр
     FailedToUpdateMeta:
       value:
-        message: Failed to update the metadata of the assembly order. Please ensure that the assembly order meets all the necessary requirements (the assembly order exists, is in the "In assembly" status, metadata is available to the order, see the method description to Get the metadata of the order).
+        code: FailedToUpdateMeta
+        message: Failed to update assembly order metadata. Make sure the assembly order meets all the necessary requirements.
     SupplyHasOrders:
       value:
-        message: Cannot delete the supply. The supply contains orders.
+        code: SupplyHasOrders
+        message: Не удалось обработать поставку. Убедитесь, что за ней не осталось закреплённых сборочных заданий.
     SupplyHasZeroOrders:
       value:
-        message: Cannot move the supply to the delivery. The supply does not satisfy the delivery conditions.
-    UinIsNotFilled:
+        code: SupplyHasZeroOrders
+        message: Не удалось обработать поставку. Убедитесь, что за ней закреплён хотя бы одно сборочное задание.
+    MetaValidationFail:
+      description: Маркировка не прошла валидацию
       value:
-        message: Transition to the "in Delivery" status is not possible. Enter UINs for all orders where necessary.
+        code: MetaValidationFail
+        message: Fix them to dispatch items
+        data:
+          orders:
+            - id: 123456789
+              metaDetails:
+                - key: uin
+                  value: 'null'
+                  decision: uinBadStatus
     SupplyNotClosed:
       value:
-        message: The supply is not moved to the delivery.
+        code: SupplyNotClosed
+        message: Поставка не передана в доставку
     FailedToAddSupplyOrder:
       value:
-        message: Cannot add the assembly order to the supply. The assembly order does not satisfy the conditions of assignment to the delivery.
+        code: FailedToAddSupplyOrder
+        message: Не удалось закрепить сборочное задание за поставкой. Убедитесь, что сборочное задание и поставка удовлетворяют всем необходимым требованиям.
     StatusMismatch:
       value:
-        message: Status change is not allowed for the assembly order.
+        code: StatusMismatch
+        message: Несоответствие статусов, проверьте их правильность
     StatusChangeNotAllowed:
       value:
-        message: Status change to 'completed' or 'canceled by client' is not allowed for the assembly order in 'Delivery By Supplier'.
+        code: StatusChangeNotAllowed
+        message: Задание перейдёт в завершенные после сканирования на пункте выдачи заказов (ПВЗ)
   responses:
     '401':
-      description: Unauthorized
+      description: Не авторизован
       content:
         application/json:
           schema:
@@ -2571,29 +2750,29 @@ components:
             properties:
               title:
                 type: string
-                description: Error title
+                description: Заголовок ошибки
               detail:
                 type: string
-                description: Error details
+                description: Детали ошибки
               code:
                 type: string
-                description: Internal error code
+                description: Внутренний код ошибки
               requestId:
                 type: string
-                description: Unique request ID
+                description: Уникальный ID запроса
               origin:
                 type: string
-                description: WB internal service ID
+                description: ID внутреннего сервиса WB
               status:
                 type: number
-                description: HTTP status code
+                description: HTTP статус-код
               statusText:
                 type: string
-                description: Text of the HTTP status code
+                description: Расшифровка HTTP статус-кода
               timestamp:
                 type: string
                 format: date-time
-                description: Request date and time
+                description: Дата и время запроса
           example:
             title: unauthorized
             detail: 'token problem; token is malformed: could not base64 decode signature: illegal base64 data at input byte 84'
@@ -2603,8 +2782,24 @@ components:
             status: 401
             statusText: Unauthorized
             timestamp: '2024-09-30T06:52:38Z'
+    '402':
+      description: Требуется платёж
+      content:
+        application/problem+json:
+          schema:
+            type: object
+            properties:
+              title:
+                type: string
+                description: Заголовок ошибки
+              detail:
+                type: string
+                description: Детали ошибки. Ошибка означает, что на балансе сервиса из [Каталога](https://dev.wildberries.ru/business-solutions) недостаточно средств
+          example:
+            title: payment required
+            detail: please top up your balance in your company personal account https://dev.wildberries.ru/company
     '429':
-      description: Too many requests
+      description: Слишком много запросов
       content:
         application/json:
           schema:
@@ -2612,29 +2807,29 @@ components:
             properties:
               title:
                 type: string
-                description: Error title
+                description: Заголовок ошибки
               detail:
                 type: string
-                description: Error details
+                description: Детали ошибки
               code:
                 type: string
-                description: Internal error code
+                description: Внутренний код ошибки
               requestId:
                 type: string
-                description: Unique request ID
+                description: Уникальный ID запроса
               origin:
                 type: string
-                description: WB internal service ID
+                description: ID внутреннего сервиса WB
               status:
                 type: number
-                description: HTTP status code
+                description: HTTP статус-код
               statusText:
                 type: string
-                description: Text of the HTTP status code
+                description: Расшифровка HTTP статус-кода
               timestamp:
                 type: string
                 format: date-time
-                description: Request date and time
+                description: Дата и время запроса
           example:
             title: too many requests
             detail: limited by c122a060-a7fb-4bb4-abb0-32fd4e18d489
@@ -2645,28 +2840,30 @@ components:
             statusText: Too Many Requests
             timestamp: '2024-09-30T06:52:38Z'
     NotFound:
-      description: Not found
+      description: Не найдено
       content:
         application/json:
           schema:
             $ref: '#/components/schemas/Error'
           example:
-            message: Not found
+            code: NotFound
+            message: Не найдено
     AccessDenied:
-      description: Access denied
+      description: Доступ запрещён
       content:
         application/json:
           schema:
             $ref: '#/components/schemas/Error'
           example:
-            message: Access denied
+            code: AccessDenied
+            message: Доступ запрещён
   schemas:
     v3.SupplyOrderIDsAPI:
       type: object
       properties:
         orderIds:
           type: array
-          description: Assembly order IDs
+          description: ID сборочных заданий
           items:
             type: integer
           example:
@@ -2676,18 +2873,18 @@ components:
             - 598349
     PassOffice:
       type: object
-      description: Office details, for which a pass is required
+      description: Данные о складе, для которого требуется пропуск
       properties:
         name:
           type: string
           nullable: false
-          description: Name
-          example: Koledino
+          description: Название
+          example: Коледино
         address:
           type: string
           nullable: false
-          description: Address
-          example: Kosmonavtov 10А
+          description: Адрес
+          example: г. Подольск, д. Коледино, ул. Троицкая
         id:
           type: integer
           format: int64
@@ -2700,21 +2897,96 @@ components:
       properties:
         code:
           type: string
-          description: Error code
+          description: Код ошибки
           nullable: false
         message:
           type: string
-          description: Error description
+          description: Описание ошибки
           nullable: false
         data:
           type: object
-          description: Additional data for the error
+          description: Дополнительные данные ошибки
           nullable: true
+    409SupplyDeliverError:
+      type: object
+      nullable: false
+      properties:
+        code:
+          type: string
+          description: Код ошибки
+          nullable: false
+        message:
+          type: string
+          description: Описание ошибки
+          nullable: false
+        data:
+          type: object
+          description: Дополнительные данные ошибки
+          nullable: true
+          properties:
+            orders:
+              type: array
+              description: Сборочные задания, метаданные которых не прошли или ещё не завершили валидацию
+              items:
+                type: object
+                properties:
+                  id:
+                    type: integer
+                    description: ID сборочного задания
+                  metaDetails:
+                    type: array
+                    description: Информация об ошибках
+                    items:
+                      type: object
+                      properties:
+                        key:
+                          type: string
+                          description: Метаданные
+                        value:
+                          type: string
+                          description: Значение метаданных
+                        decision:
+                          type: string
+                          description: |
+                            Статус проверки:
+                            - IMEI
+                              - `pending` — Маркировка на проверке
+                              - `required` — Обязательная маркировка не заполнена
+                              - `imeiInvalidFormat` — Неверный формат маркировки
+                              - `imeiAlreadySold` — Товар с этим IMEI уже продан
+                            - UIN
+                              - `required` — Обязательная маркировка не заполнена
+                              - `pending` — Маркировка на проверке
+                              - `required` — Маркировка обязательна, не заполнена
+                              - `uinInvalidFormat` — Неверный формат маркировки
+                              - `uinNotFound` — Не найден в ГИС
+                              - `uinBadStatus` — Некорректный статус партии
+                              - `uinBadProcess` — Некорректная стадия обработки
+                              - `uinBadStatusAndBadProcess` — Некорректный статус партии. Некорректная стадия обработки
+                            - SGTIN
+                              - `required` — Обязательная маркировка не заполнена
+                              - `pending` — Маркировка на проверке
+                              - `sgtinInvalidFormat` — Неверный формат маркировки
+                              - `sgtinNotFound` — Маркировка не найдена в [Честном Знаке](https://chestnyznak.ru)
+                              - `sgtinEmitted` —  Маркировка эмитирована
+                              - `sgtinApplied` — Не пройдена процедура Ввод в оборот
+                              - `sgtinWrittenOff` — Списан
+                              - `sgtinRetired` — Выбыл
+                              - `sgtinWithdrawn` — Выбыл
+                              - `sgtinDisaggregation` — Расформирован
+                              - `sgtinDisaggregated` — Расформирован
+                              - `sgtinAppliedNotPaid` — Не оплачен
+                            - GTIN
+                              - `required` — Маркировка обязательна, не заполнена
+                            - Expiration
+                              - `required` — Маркировка обязательна, не заполнена
+                            - Customs declaration
+                              - `required` — Маркировка обязательна, не заполнена
     Next:
       type: integer
       format: int64
       nullable: false
-      description: Pagination parameter. Sets the value from which to retrieve the next batch
+      description: Параметр пагинации. Содержит значение, которое необходимо указать в запросе для получения следующего пакета данных
       example: 13833711
     Order:
       type: object
@@ -2722,85 +2994,85 @@ components:
         address:
           type: object
           nullable: true
-          description: Exact buyer's address for delivery, if applicable. Some of the fields may be empty due to the specifics of the address.
+          description: Точный адрес покупателя для доставки, если применимо. Из-за особенностей адреса некоторые поля могут быть пустыми
           properties:
             fullAddress:
-              description: Delivery address
+              description: Адрес доставки
               type: string
-              example: Chelyabinsk Region, Chelyabinsk, 51st Arabkir Street, Building 10A, Apartment 42
+              example: Челябинская область, г. Челябинск, 51-я улица Арабкира, д. 10А, кв. 42
             longitude:
               type: number
               format: float64
               nullable: false
-              description: Longitude
+              description: Долгота
               example: 44.519068
             latitude:
               type: number
               format: float64
               nullable: false
-              description: Latitude
+              description: Широта
               example: 40.20192
         scanPrice:
           type: number
           format: uint32
           nullable: true
-          description: Acceptance price in kopecks. Displayed after the actual acceptance of the order
+          description: Цена приёмки в копейках. Отображается после фактической приёмки заказа
           example: 1500
         deliveryType:
           type: string
           nullable: false
           description: |
-            Delivery type:
-            - `fbs` — Fulfillment By Wildberries (FBS)
+            Тип доставки:
+            - `fbs` — доставка на склад Wildberries (FBS)
           enum:
             - fbs
         supplyId:
           type: string
-          description: Supply ID. Returns if the assembly order is assigned to a supply
+          description: ID поставки. Возвращается, если заказ закреплён за поставкой
           example: WB-GI-92937123
         orderUid:
           type: string
-          description: Transaction ID for assembly orders grouping. Orders in the same buyer's cart will have the same `orderUid`.
+          description: ID транзакции для группировки сборочных заданий. Сборочные задания в одной корзине покупателя будут иметь одинаковый `orderUid`
           example: 165918930_629fbc924b984618a44354475ca58675
         article:
           type: string
           nullable: false
-          description: Seller's article
+          description: Артикул продавца
           example: one-ring-7548
         colorCode:
           type: string
           nullable: false
-          description: Color code (for tinted products only)
+          description: Код цвета (только для колеруемых товаров)
           example: RAL 3017
         rid:
           type: string
           nullable: false
           description: |
-            Unique order ID. <br>
-            Note: `rid` corresponds to `srid` in the responses of the methods:
-              - [Buyers return applications](./user-communication#tag/Buyers-Returns/paths/~1api~1v1~1claims/get)
-              - [Orders](./reports#tag/Main-Reports/paths/~1api~1v1~1supplier~1orders/get)
-              - [Sales](./reports#tag/Main-Reports/paths/~1api~1v1~1supplier~1sales/get)
-              - [Goods Return Report](./reports#tag/Goods-Return-Report)
-              - [Realization sales report](./financial-reports-and-accounting#tag/Financial-Reports/paths/~1api~1v5~1supplier~1reportDetailByPeriod/get)
+            Уникальный ID заказа. <br>
+            Примечание: `rid` — это `srid` в ответах методов:
+              - [Заявки покупателей на возврат](./user-communication#tag/Vozvraty-pokupatelyami/paths/~1api~1v1~1claims/get)
+              - [Заказы](./reports#tag/Osnovnye-otchyoty/paths/~1api~1v1~1supplier~1orders/get)
+              - [Продажи](./reports#tag/Osnovnye-otchyoty/paths/~1api~1v1~1supplier~1sales/get)
+              - [Отчет о возвратах и перемещении товаров](./reports#tag/Otchyot-o-vozvratah-i-peremeshenii-tovarov)
+              - [Отчет о продажах по реализации](./financial-reports-and-accounting#tag/Finansovye-otchyoty/paths/~1api~1v5~1supplier~1reportDetailByPeriod/get)
           example: f884001e44e511edb8780242ac120002
         createdAt:
           type: string
           format: date-time
           nullable: false
-          description: Assembly order creation date (RFC3339)
+          description: Дата создания сборочного задания (RFC3339)
           example: '2022-05-04T07:56:29Z'
         offices:
           type: array
           nullable: true
-          description: List of offices where you should deliver the assembly order
+          description: Список офисов, куда следует привезти товар
           items:
             type: string
-            example: Kaluga
+            example: Калуга
         skus:
           type: array
           nullable: false
-          description: List of SKUs
+          description: Список баркодов
           items:
             type: string
             example: '6665956397512'
@@ -2808,69 +3080,69 @@ components:
           type: integer
           format: int64
           nullable: false
-          description: Assembly order ID
+          description: ID сборочного задания
           example: 13833711
         warehouseId:
           type: integer
           nullable: false
-          description: Seller's warehouse ID where the assembly order was received
+          description: ID склада продавца, на который поступило сборочное задание
           example: 658434
         officeId:
           type: integer
           format: int64
           nullable: false
-          description: ID of the WB warehouse associated with the seller's warehouse
+          description: ID склада WB, к которому привязан склад продавца
           example: 123
         nmId:
           type: integer
           nullable: false
-          description: WB article
+          description: Артикул WB
           example: 12345678
         chrtId:
           type: integer
           nullable: false
-          description: Product size ID in WB systems
+          description: ID размера товара в системе WB
           example: 987654321
         price:
           type: integer
           nullable: false
           description: |
-            The price in the currency of sale, including all discounts except the amount from the WB Wallet, multiplied by 100. The currency code of the sale is in the `currencyCode` field
+            Цена в валюте продажи с учётом всех скидок, кроме скидки по WB Кошельку, умноженная на 100. Код валюты продажи — в поле `currencyCode`. Предоставляется в информационных целях
           example: 1014
         convertedPrice:
           type: integer
           nullable: false
-          description: The price in the currency of the seller's country including all discounts, except WB Wallet discount, multiplied by 100. Provided for informational purposes only.
+          description: Цена в валюте страны продавца с учетом всех скидок, кроме скидки по WB Кошельку, умноженная на 100. Предоставляется в информационных целях
           example: 28322
         currencyCode:
           type: integer
           nullable: false
-          description: Sale currency code
+          description: Код валюты продажи
           format: ISO 4217
           example: 933
         convertedCurrencyCode:
           type: integer
           nullable: false
-          description: Currency code of the supplier country
+          description: Код валюты страны продавца
           format: ISO 4217
           example: 643
         cargoType:
           type: integer
           nullable: false
           description: |
-            Type of cargo:
-              - `1` — small-sized goods
-              - `2` — over dimensional cargo (ODC)
-              - `3` — dimensional cargo+ (CD+)
+            Тип товара:
+              - `1` — малогабаритный товар (МГТ)
+              - `2` — сверхгабаритный товар (СГТ)
+              - `3` — крупногабаритный товар (КГТ+)
           enum:
             - 1
             - 2
             - 3
         crossBorderType:
           description: |
-            Assembly order type:
-              - `0` — non-cross-border
-              - `1` — cross-border
+            Тип сборочного задания:
+              - `0` — не кроссбордер
+              - `1` — кроссбордер
           enum:
             - 0
             - 1
@@ -2879,7 +3151,7 @@ components:
           example: 1
           nullable: false
         comment:
-          description: Buyer's comment
+          description: Комментарий покупателя
           type: string
           nullable: false
           maxLength: 300
@@ -2887,66 +3159,74 @@ components:
         isZeroOrder:
           type: boolean
           description: |
-            Indicator of an order for a product with zero inventory:
-              - `false` — the order is made for a product with a non-zero inventory
-              - `true` — the order is made for a product with zero inventory. Such an order can be canceled without a cancellation fee
+            Признак заказа товара с нулевым остатком:
+              - `false` — заказ сделан на товар с ненулевым остатком
+              - `true` — заказ сделан на товар с нулевым остатком. Такой заказ можно отменить без штрафа за отмену
           example: false
         options:
           type: object
-          description: Order options
+          description: Опции заказа
           properties:
-            isB2b:
+            isB2B:
               type: boolean
               description: |
-                Indicator of a B2B sale:
-                  - `false` — not B2B sale
-                  - `true` — B2B sale
+                Признак B2B-продажи:
+                  - `false` — не B2B-продажа
+                  - `true` — B2B-продажа
     Supply:
       type: object
       properties:
         id:
           type: string
           nullable: false
-          description: Supply ID
+          description: ID поставки
           example: WB-GI-1234567
+        isB2b:
+          type: boolean
+          nullable: true
+          description: |
+            Признак B2B-продажи:
+              - `true` — B2B-продажа
+              - `false` — не B2B-продажа
+              - `null` — признак отсутствует, сборочные задания не добавлены к поставке
         done:
           type: boolean
           nullable: false
           description: |
-            An indication that the supply is closed
-              - `true` — closed
-              - `false` — open
+            Флаг закрытия поставки:
+              - `true` — закрыта
+              - `false` — открыта
         createdAt:
           type: string
           format: date-time
           nullable: false
-          description: Supply creation date (RFC3339)
+          description: Дата создания поставки (RFC3339)
           example: '2022-05-04T07:56:29Z'
         closedAt:
           type: string
           format: date-time
           nullable: true
-          description: Supply close date (RFC3339)
+          description: Дата закрытия поставки (RFC3339)
           example: '2022-05-04T07:56:29Z'
         scanDt:
           type: string
           nullable: true
           format: date-time
-          description: Supply scan date (RFC3339)
+          description: Дата скана поставки (RFC3339)
           example: '2022-05-04T07:56:29Z'
         name:
           type: string
           nullable: false
-          description: Supply name
-          example: My test supply
+          description: Наименование поставки
+          example: Тестовая поставка
         cargoType:
           type: integer
           nullable: false
           description: |
-            Type of cargo:
-              - `1` — small-sized goods
-              - `2` — over dimensional cargo (ODC)
-              - `3` — dimensional cargo+ (CD+)
+            Тип товара:
+              - `1` — малогабаритный товар (МГТ)
+              - `2` — сверхгабаритный товар (СГТ)
+              - `3` — крупногабаритный товар (КГТ+)
           enum:
             - 0
             - 1
@@ -2954,10 +3234,10 @@ components:
             - 3
         crossBorderType:
           description: |
-            Supply type:
-              - `0` — non-cross-border
-              - `1` — cross-border
-              - `null` — no value
+            Тип поставки:
+              - `0` — не кроссбордер
+              - `1` — кроссбордер
+              - `null` — значение отсутствует
           enum:
             - 0
             - 1
@@ -2969,7 +3249,7 @@ components:
           type: integer
           format: int64
           nullable: true
-          description: ID of the destination office for the supply. If `null`, destination office ID is not specified
+          description: ID склада назначения поставки. Если `null`, склад назначения не указан
           example: 123
     OrderNew:
       type: object
@@ -2977,47 +3257,47 @@ components:
         address:
           type: object
           nullable: true
-          description: Exact buyer's address for delivery, if applicable. Some of the fields may be empty due to the specifics of the address
+          description: Точный адрес покупателя для доставки, если применимо. Из-за особенностей адреса некоторые поля могут быть пустыми
           properties:
             fullAddress:
-              description: Delivery address
+              description: Адрес доставки
               type: string
-              example: Chelyabinsk Region, Chelyabinsk, 51st Arabkir Street, Building 10A, Apartment 42
+              example: Челябинская область, г. Челябинск, 51-я улица Арабкира, д. 10А, кв. 42
             longitude:
               type: number
               format: float64
               nullable: false
-              description: Longitude
+              description: Долгота
               example: 44.519068
             latitude:
               type: number
               format: float64
               nullable: false
-              description: Latitude
+              description: Широта
               example: 40.20192
         ddate:
           type: string
           description: |
-            Planned delivery date. <br>
-            The field is displayed for assembly orders with over dimensional products `ODC`, `cargoType: 2`
+            Планируемая дата доставки.<br>
+            Поле отображается для сборочных заданий со сверхгабаритными товарами `СГТ`, `cargoType: 2`
           nullable: false
           example: 17.05.2024
         sellerDate:
           type: string
           nullable: true
           description: |
-            Recommended delivery date for `ODC` products to sorting center or warehouse. <br>
-            The field is displayed for assembly orders with over dimensional products `ODC`, `cargoType: 2`
+            Рекомендуемая дата доставки СГТ в сортировочный центр или на склад. <br>
+            Поле отображается для сборочных заданий со сверхгабаритными товарами `СГТ`, `cargoType: 2`
           example: 02.06.2025
         salePrice:
           description: |
-            Seller's price in the currency of sale, including seller's discount, except the WB Club discount, multiplied by 100
+            Цена продавца в валюте продажи с учётом скидки продавца, без учёта скидки WB Клуба, умноженная на 100. Предоставляется в информационных целях
           type: integer
           nullable: true
           example: 504600
         requiredMeta:
           description: |
-            List of metadata that needs to be added to the assembly order to tranfer a supply with this assembly order to the  delivery
+            Список метаданных, которые необходимо добавить в сборочное задание, чтобы поставку с этим сборочным заданием можно было перевести в доставку
           type: array
           nullable: true
           items:
@@ -3026,8 +3306,8 @@ components:
             - uin
         optionalMeta:
           description: |
-            List of metadata that can to be added to the assembly order.  <br>
-            A supply with the assembly order without this metadata can be transferred to the delivery, but metadata may be required, for example, when a customer returns a product
+            Список метаданных, которые можно добавить в сборочное задание.<br>
+            Поставку со сборочным заданием без этих метаданных можно перевести в доставку, но они могут потребоваться, например, при возврате товара покупателем
           items:
             type: string
           type: array
@@ -3038,33 +3318,33 @@ components:
           type: string
           nullable: false
           description: |
-            Delivery type:
-            - `fbs` — Fulfillment By Wildberries (FBS)
+            Тип доставки:
+            - `fbs` — доставка на склад Wildberries (FBS)
           enum:
             - fbs
         comment:
-          description: Buyer's comment
+          description: Комментарий покупателя
           type: string
           nullable: false
           maxLength: 300
           example: Упакуйте в плёнку, пожалуйста
         scanPrice:
-          description: Acceptance price in kopecks. Displayed after the actual acceptance of the order. For this method will `null` always be returned
+          description: Цена приёмки в копейках. Отображается после фактической приёмки заказа. Для данного метода всегда будет возвращаться `null`. Предоставляется в информационных целях
           type: number
           format: uint32
           nullable: true
           example: null
         orderUid:
           type: string
-          description: Transaction ID for assembly orders grouping. Orders in the same buyer's cart will have the same `orderUid`.
+          description: ID транзакции для группировки сборочных заданий. Сборочные задания в одной корзине покупателя будут иметь одинаковый `orderUid`
           example: 165918930_629fbc924b984618a44354475ca58675
         article:
           type: string
           nullable: false
-          description: Supplier's article
+          description: Артикул продавца
           example: one-ring-7548
         colorCode:
-          description: Color code (for tinted products only)
+          description: Код цвета (только для колеруемых товаров)
           type: string
           nullable: false
           example: RAL 3017
@@ -3072,31 +3352,31 @@ components:
           type: string
           nullable: false
           description: |
-            Unique order ID. <br>
-            Note: `rid` corresponds to `srid` in the responses of the methods:
-              - [Buyers return applications](./user-communication#tag/Buyers-Returns/paths/~1api~1v1~1claims/get)
-              - [Orders](./reports#tag/Main-Reports/paths/~1api~1v1~1supplier~1orders/get)
-              - [Sales](./reports#tag/Main-Reports/paths/~1api~1v1~1supplier~1sales/get)
-              - [Goods Return Report](./reports#tag/Goods-Return-Report)
-              - [Realization sales report](./financial-reports-and-accounting#tag/Financial-Reports/paths/~1api~1v5~1supplier~1reportDetailByPeriod/get)
+            Уникальный ID заказа. <br>
+            Примечание: `rid` — это `srid` в ответах методов:
+              - [Заявки покупателей на возврат](./user-communication#tag/Vozvraty-pokupatelyami/paths/~1api~1v1~1claims/get)
+              - [Заказы](./reports#tag/Osnovnye-otchyoty/paths/~1api~1v1~1supplier~1orders/get)
+              - [Продажи](./reports#tag/Osnovnye-otchyoty/paths/~1api~1v1~1supplier~1sales/get)
+              - [Отчет о возвратах и перемещении товаров](./reports#tag/Otchyot-o-vozvratah-i-peremeshenii-tovarov)
+              - [Отчет о продажах по реализации](./financial-reports-and-accounting#tag/Finansovye-otchyoty/paths/~1api~1v5~1supplier~1reportDetailByPeriod/get)
           example: f884001e44e511edb8780242ac120002
         createdAt:
           type: string
           format: date-time
           nullable: false
-          description: Assembly order creation date (RFC3339)
+          description: Дата создания сборочного задания (RFC3339)
           example: '2022-05-04T07:56:29Z'
         offices:
           type: array
           nullable: true
-          description: List of offices where you should deliver the order
+          description: Список офисов, куда следует привезти товар
           items:
             type: string
             example: Калуга
         skus:
           type: array
           nullable: false
-          description: List of SKUs
+          description: Список баркодов
           items:
             type: string
             example: '6665956397512'
@@ -3104,77 +3384,77 @@ components:
           type: integer
           format: int64
           nullable: false
-          description: Assembly order ID
+          description: ID сборочного задания
           example: 13833711
         warehouseId:
           type: integer
           nullable: false
-          description: Supplier's warehouse ID where the assembly order was received
+          description: ID склада продавца, на который поступило сборочное задание
           example: 658434
         officeId:
           type: integer
           format: int64
           nullable: false
-          description: ID of the WB warehouse associated with the seller's warehouse
+          description: ID склада WB, к которому привязан склад продавца
           example: 123
         nmId:
           type: integer
           nullable: false
-          description: WB article
+          description: Артикул WB
           example: 123456789
         chrtId:
           type: integer
           nullable: false
-          description: Product size ID in WB systems
+          description: ID размера товара в системе WB
           example: 987654321
         price:
           type: integer
           nullable: false
           description: |
-            The price in the currency of sale, including all discounts except the amount from the WB Wallet, multiplied by 100. The currency code of the sale is in the `currencyCode` field
+            Цена в валюте продажи с учётом всех скидок, кроме скидки по WB Кошельку, умноженная на 100. Код валюты продажи — в поле `currencyCode`. Предоставляется в информационных целях
           example: 1014
         finalPrice:
-          description: The sum charged to the buyer in the currency of sale including all discounts, multiplied by 100. You can find a currency code in the `currencyCode` field. Provided for informational purposes only
+          description: Сумма к оплате покупателем в валюте продажи с учетом всех скидок, умноженная на 100. Код валюты продажи указан в поле `currencyCode`. Предоставляется в информационных целях
           type: integer
           example: 1014
         convertedPrice:
           type: integer
           nullable: false
-          description: The price in the currency of the seller's country including all discounts, except WB Wallet discount, multiplied by 100. Provided for informational purposes only.
+          description: Цена в валюте страны продавца с учетом всех скидок, кроме скидки по WB Кошельку, умноженная на 100. Предоставляется в информационных целях
           example: 28322
         convertedFinalPrice:
-          description: The sum charged to the buyer in the currency of the seller's country including all discounts, multiplied by 100. Provided for informational purposes only
+          description: Сумма к оплате покупателем в валюте страны продавца с учетом всех скидок, умноженная на 100. Предоставляется в информационных целях
           type: integer
           example: 1014
         currencyCode:
           type: integer
           nullable: false
-          description: Sale currency code
+          description: Код валюты продажи
           format: ISO 4217
           example: 933
         convertedCurrencyCode:
           type: integer
           nullable: false
-          description: Currency code of the supplier country
+          description: Код валюты страны продавца
           format: ISO 4217
           example: 643
         cargoType:
           type: integer
           nullable: false
           description: |
-            Type of cargo:
-              - `1` — small-sized goods
-              - `2` — over dimensional cargo (ODC)
-              - `3` — dimensional cargo+ (CD+)
+            Тип товара:
+              - `1` — малогабаритный товар (МГТ)
+              - `2` — сверхгабаритный товар (СГТ)
+              - `3` — крупногабаритный товар (КГТ+)
           enum:
             - 1
             - 2
             - 3
         crossBorderType:
           description: |
-            Assembly order type:
-              - `0` — non-cross-border
-              - `1` — cross-border
+            Тип сборочного задания:
+              - `0` — не кроссбордер
+              - `1` — кроссбордер
           enum:
             - 0
             - 1
@@ -3185,25 +3465,25 @@ components:
         isZeroOrder:
           type: boolean
           description: |
-            Indicator of an order for a product with zero inventory:
-              - `false` — the order is made for a product with a non-zero inventory
-              - `true` — the order is made for a product with zero inventory. Such an order can be canceled without a cancellation fee
+            Признак заказа товара с нулевым остатком:
+              - `false` — заказ сделан на товар с ненулевым остатком
+              - `true` — заказ сделан на товар с нулевым остатком. Такой заказ можно отменить без штрафа за отмену
           example: false
         options:
           type: object
-          description: Order options
+          description: Опции заказа
           properties:
-            isB2b:
+            isB2B:
               type: boolean
               description: |
-                Indicator of a B2B sale:
-                  - `false` — not B2B sale
-                  - `true` — B2B sale
+                Признак B2B-продажи:
+                  - `false` — не B2B-продажа
+                  - `true` — B2B-продажа
     SupplyTrbx:
       type: object
       properties:
         id:
-          description: Box ID
+          description: ID короба
           type: string
           example: WB-TRBX-1234567
     TrbxStickers:
@@ -3212,17 +3492,17 @@ components:
         barcode:
           type: string
           minLength: 1
-          description: The encoded value of the sticker
+          description: Закодированное значение стикера
           example: $WBMP:1:123:1234567
         file:
           type: string
           format: byte
           minLength: 1
-          description: Base64 encoded sticker file in the requested format
+          description: Полное представление стикера в заданном формате (кодировка base64)
           example: U3dhZ2dlciByb2Nrcw==
     Meta:
       type: object
-      description: Assembly order metadata
+      description: Устарело. [Будет отключено 30 апреля](https://dev.wildberries.ru/release-notes?id=500)
       properties:
         imei:
           type: object
@@ -3239,7 +3519,7 @@ components:
               nullable: true
               type: string
               example: '123456789012345'
-          description: UIN
+          description: УИН
         gtin:
           type: object
           properties:
@@ -3258,7 +3538,7 @@ components:
               example:
                 - '123456789012345'
               nullable: true
-          description: Data Matrix code (Chestny ZNAK)
+          description: Код маркировки Честного знака
         expiration:
           type: object
           properties:
@@ -3266,7 +3546,7 @@ components:
               type: string
               example: 12.09.2030
               nullable: true
-          description: Expiration date
+          description: Срок годности товара
           format: date (dd.mm.yyyy)
         customsDeclaration:
           type: object
@@ -3275,10 +3555,75 @@ components:
               type: string
               example: 10704010/010624/0000302
               nullable: true
-          description: Customs declaration number
+          description: Номер грузовой таможенной декларации
+    MetaDetails:
+      type: array
+      description: Детали маркировки
+      items:
+        type: object
+        properties:
+          key:
+            type: string
+            example: uin
+            description: Маркировка
+          value:
+            nullable: true
+            type: string
+            example: null
+            description: Значение
+          decision:
+            type: string
+            example: uinMaySell
+            description: |
+              Статус:
+              - IMEI
+                - `filled` — Валидация пройдена
+                - `deadlineExceeded` — Валидация пройдена
+                - `optional` — Маркировка не обязательна
+                - `pending` — Маркировка на проверке
+                - `required` — Обязательная маркировка не заполнена. Валидация не пройдена
+                - `imeiInvalidFormat` — Неверный формат маркировки. Валидация не пройдена
+                - `imeiAlreadySold` — Товар с этим IMEI уже продан. Валидация не пройдена
+              - UIN
+                - `filled` — Валидация пройдена
+                - `deadlineExceeded` — Валидация пройдена
+                - `optional` — Маркировка не обязательна
+                - `pending` — Маркировка на проверке
+                - `uinMaySell` — Валидация пройдена
+                - `required` — Маркировка обязательна, не заполнена. Валидация не пройдена
+                - `uinInvalidFormat` — Неверный формат маркировки. Валидация не пройдена
+                - `uinNotFound` — Не найден в ГИС. Валидация не пройдена
+                - `uinBadStatus` — Некорректный статус партии. Валидация не пройдена
+                - `uinBadProcess` — Некорректная стадия обработки. Валидация не пройдена
+                - `uinBadStatusAndBadProcess` — Некорректный статус партии. Некорректная стадия обработки. Валидация не пройдена
+              - SGTIN
+                - `filled` — Валидация пройдена
+                - `deadlineExceeded` — Валидация пройдена
+                - `optional` — Маркировка не обязательна
+                - `pending` — Маркировка на проверке
+                - `required` — Маркировка обязательна, не заполнена. Валидация не пройдена
+                - `sgtinInvalidFormat` — Неверный формат маркировки. Валидация не пройдена
+                - `sgtinNotFound` — Маркировка не найдена в [Честном Знаке](https://chestnyznak.ru). Валидация не пройдена
+                - `sgtinEmitted` —  Маркировка эмитирована. Валидация не пройдена
+                - `sgtinApplied` — Не пройдена процедура Ввод в оборот. Валидация не пройдена
+                - `sgtinWrittenOff` — Списан. Валидация не пройдена
+                - `sgtinRetired` — Выбыл. Валидация не пройдена
+                - `sgtinDisaggregated` — Расформирован. Валидация не пройдена
+                - `sgtinAppliedNotPaid` — Не оплачен. Валидация не пройдена
+              - GTIN
+                - `filled` — Валидация пройдена
+                - `optional` — Маркировка не обязательна
+                - `required` — Маркировка обязательна, не заполнена. Валидация не пройдена
+              - Expiration
+                - `filled` — Валидация пройдена
+                - `optional` — Маркировка не обязательна
+                - `required` — Маркировка обязательна, не заполнена. Валидация не пройдена
+              - Customs declaration
+                - `filled` — Валидация пройдена
+                - `required` — Маркировка обязательна, не заполнена. Валидация не пройдена
     v3.GetMetaMultiRequest:
       type: object
-      description: Assembly order IDs
+      description: ID сборочных заданий
       required:
         - orders
       properties:
@@ -3302,97 +3647,101 @@ components:
       properties:
         id:
           type: integer
-          description: Assembly order ID
+          description: ID сборочного задания
+        metaDetails:
+          description: Метаданные сборочного задания
+          $ref: '#/components/schemas/MetaDetails'
+          type: array
         meta:
-          description: Assembly order metadata
+          deprecated: true
           $ref: '#/components/schemas/Meta'
           type: object
       type: object
     Pass:
       type: object
-      description: Supplier's pass details
+      description: Данные о пропуске продавца
       properties:
         firstName:
           type: string
           nullable: false
-          description: First name
-          example: Alex
+          description: Имя водителя
+          example: Александр
         dateEnd:
           type: string
           nullable: false
-          description: Pass expiration date
+          description: Дата окончания действия пропуска
           example: '2022-07-31 17:53:13+00:00'
         lastName:
           type: string
           nullable: false
-          description: Last name
-          example: Petrov
+          description: Фамилия водителя
+          example: Петров
         carModel:
           type: string
           nullable: false
-          description: Car model
+          description: Марка машины
           example: Lamborghini
         carNumber:
           type: string
           nullable: false
-          description: Car number
+          description: Номер машины
           example: A456BC123
         officeName:
           type: string
           nullable: false
-          description: Office name
-          example: Koledino
+          description: Название склада
+          example: Коледино
         officeAddress:
           type: string
           nullable: false
-          description: Office address
-          example: Kosmonavtov 10А
+          description: Адрес склада
+          example: г. Подольск, д. Коледино, ул. Троицкая
         officeId:
           type: integer
           format: int64
           nullable: false
-          description: Office ID
+          description: ID склада
           example: 15
         id:
           type: integer
           format: int64
           nullable: false
-          description: Pass ID
+          description: ID пропуска
           example: 1
     CrossborderTurkeyClientInfo:
       properties:
         firstName:
           type: string
-          description: Client's first name
+          description: Имя клиента
           example: Иван
         fullName:
           type: string
-          description: First name, Last name, Patronymic
+          description: Фамилия, Имя, Отчество
           example: Андреев Иван Васильевич
         lastName:
           type: string
-          description: Client's last name
+          description: Фамилия клиента
           example: Андреев
         middleName:
           type: string
-          description: Client's patronymic
+          description: Отчество клиента
           example: Васильевич
         orderID:
           type: integer
-          description: Order number
+          description: Номер заказа
           example: 134567
         phone:
           type: string
-          description: Phone number for contacting the client
+          description: Телефон для связи с клиентом
           example: '79871234567'
         phoneCode:
           type: string
-          description: Not used
+          description: Не используется
           example: '0'
     CrossborderTurkeyClientInfoResp:
       properties:
         orders:
-          description: Client information for cross-border orders from Turkey
+          description: Информация по клиенту для кроссбордер-заказа из Турции
           items:
             $ref: '#/components/schemas/CrossborderTurkeyClientInfo'
           type: array
@@ -3400,7 +3749,7 @@ components:
     OrdersRequestAPI:
       properties:
         orders:
-          description: Orders list
+          description: Список заказов
           items:
             type: integer
           type: array
@@ -3414,10 +3763,10 @@ components:
       properties:
         code:
           type: string
-          description: Error code
+          description: Код ошибки
         message:
           type: string
-          description: Error description
+          description: Описание ошибки
         data:
           type: object
-          description: Additional data for the error
+          description: Дополнительные данные ошибки

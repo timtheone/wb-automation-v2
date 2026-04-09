@@ -1,5 +1,6 @@
 import {
   createWbFbsClient,
+  WbApiHttpError,
   WB_FBS_SANDBOX_API_BASE_URL,
   type FbsPaths,
   type WbFbsClient
@@ -11,6 +12,8 @@ import { formatEmptyResponseMessage, toErrorMessage } from "./error-utils.js";
 const DEFAULT_SUPPLY_PAGE_LIMIT = 1_000;
 const DEFAULT_POLL_ATTEMPTS = 20;
 const DEFAULT_POLL_INTERVAL_MS = 1_000;
+const DELIVER_RETRY_ATTEMPTS = 4;
+const DELIVER_RETRY_DELAY_MS = 5_000;
 const SUPPLY_ORDER_BATCH_SIZE = 100;
 
 type CreateSupplyOperation = FbsPaths["/api/v3/supplies"]["post"];
@@ -54,6 +57,7 @@ export interface ProcessAllShopsWbApiDebugEvent {
     | "supplies_open_not_found"
     | "supply_create"
     | "supply_add_orders"
+    | "supply_deliver_check"
     | "supply_deliver"
     | "supply_poll"
     | "supply_poll_timeout"
@@ -201,21 +205,11 @@ export function createProcessAllShopsService(
             });
           }
 
-          const deliverResult = await fbsClient.PATCH("/api/v3/supplies/{supplyId}/deliver", {
-            params: {
-              path: { supplyId }
-            }
-          });
-
-          emitWbApiDebug(debugContext, {
-            step: "supply_deliver",
-            requestMethod: "PATCH",
-            requestPath: "/api/v3/supplies/{supplyId}/deliver",
-            requestBody: {
-              supplyId
-            },
-            responseStatus: deliverResult.response.status,
-            responseUrl: deliverResult.response.url
+          await deliverSupplyWithRetry({
+            fbsClient,
+            supplyId,
+            sleep,
+            debugContext
           });
 
           await waitUntilSupplyClosed({
@@ -472,6 +466,88 @@ async function waitUntilSupplyClosed(input: {
   });
 
   throw new Error(`Timed out waiting for supply ${input.supplyId} to close`);
+}
+
+async function deliverSupplyWithRetry(input: {
+  fbsClient: WbFbsClient;
+  supplyId: string;
+  sleep: (ms: number) => Promise<void>;
+  debugContext: ProcessAllShopsDebugContext;
+}) {
+  const supplyResult = await input.fbsClient.GET("/api/v3/supplies/{supplyId}", {
+    params: {
+      path: { supplyId: input.supplyId }
+    }
+  });
+
+  emitWbApiDebug(input.debugContext, {
+    step: "supply_deliver_check",
+    requestMethod: "GET",
+    requestPath: "/api/v3/supplies/{supplyId}",
+    requestQuery: {
+      supplyId: input.supplyId
+    },
+    responseStatus: supplyResult.response.status,
+    responseUrl: supplyResult.response.url,
+    responseData: summarizeSupplyPollResponse(supplyResult.data)
+  });
+
+  if (supplyResult.data === undefined) {
+    throw new Error(formatEmptyResponseMessage(supplyResult.response));
+  }
+
+  for (let attempt = 1; attempt <= DELIVER_RETRY_ATTEMPTS; attempt += 1) {
+    try {
+      const deliverResult = await input.fbsClient.PATCH("/api/v3/supplies/{supplyId}/deliver", {
+        params: {
+          path: { supplyId: input.supplyId }
+        }
+      });
+
+      emitWbApiDebug(input.debugContext, {
+        step: "supply_deliver",
+        requestMethod: "PATCH",
+        requestPath: "/api/v3/supplies/{supplyId}/deliver",
+        requestBody: {
+          supplyId: input.supplyId,
+          attempt,
+          maxAttempts: DELIVER_RETRY_ATTEMPTS
+        },
+        responseStatus: deliverResult.response.status,
+        responseUrl: deliverResult.response.url
+      });
+
+      return;
+    } catch (error) {
+      if (!isWbNotFoundError(error)) {
+        throw error;
+      }
+
+      emitWbApiDebug(input.debugContext, {
+        step: "supply_deliver",
+        requestMethod: "PATCH",
+        requestPath: "/api/v3/supplies/{supplyId}/deliver",
+        requestBody: {
+          supplyId: input.supplyId,
+          attempt,
+          maxAttempts: DELIVER_RETRY_ATTEMPTS
+        },
+        responseStatus: error.status,
+        responseUrl: error.url,
+        error: error.message
+      });
+
+      if (attempt === DELIVER_RETRY_ATTEMPTS) {
+        throw error;
+      }
+
+      await input.sleep(DELIVER_RETRY_DELAY_MS);
+    }
+  }
+}
+
+function isWbNotFoundError(error: unknown): error is WbApiHttpError {
+  return error instanceof WbApiHttpError && error.status === 404;
 }
 
 function resolveFbsCredentials(shop: Shop): { token: string; baseUrl?: string } {

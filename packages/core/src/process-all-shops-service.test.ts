@@ -1,4 +1,5 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
+import { WbApiHttpError } from "@wb-automation-v2/wb-clients";
 
 import {
   createProcessAllShopsService,
@@ -40,8 +41,13 @@ vi.mock("@wb-automation-v2/db", async () => {
 });
 
 vi.mock("@wb-automation-v2/wb-clients", async () => {
+  const actual = await vi.importActual<typeof import("@wb-automation-v2/wb-clients")>(
+    "@wb-automation-v2/wb-clients"
+  );
+
   return {
     WB_FBS_SANDBOX_API_BASE_URL: "https://marketplace-api-sandbox.wildberries.ru",
+    WbApiHttpError: actual.WbApiHttpError,
     createWbFbsClient: (options: { token: string; baseUrl?: string }) => {
       if (!testState.createClient) {
         throw new Error("WB FBS client mock is not configured");
@@ -87,6 +93,12 @@ function createClient(overrides: Partial<MockWbFbsClient>): MockWbFbsClient {
     },
     ...overrides
   };
+}
+
+function createWbNotFoundError(url = "https://example.test/api/v3/supplies/SUP-RETRY/deliver") {
+  const response = new Response(null, { status: 404, statusText: "Not Found" });
+  Object.defineProperty(response, "url", { value: url });
+  return new WbApiHttpError(response);
 }
 
 describe("process all shops service", () => {
@@ -653,6 +665,179 @@ describe("process all shops service", () => {
     expect(attachedBatches[2]?.[4]).toBe(205);
   });
 
+  it("checks supply existence before deliver and retries 404 responses", async () => {
+    testState.shops = createSingleShopRepo();
+
+    const sleepCalls: number[] = [];
+    const steps: string[] = [];
+    let supplyGetCalls = 0;
+    let deliverCalls = 0;
+
+    testState.createClient = () =>
+      createClient({
+        async GET(path) {
+          if (path === "/api/v3/orders/new") {
+            return {
+              data: {
+                orders: [{ id: 1, requiredMeta: [] }]
+              },
+              response: new Response(null, { status: 200 })
+            };
+          }
+
+          if (path === "/api/v3/supplies") {
+            return {
+              data: {
+                next: 0,
+                supplies: [{ id: "SUP-RETRY", done: false, name: "pref_20260101_0000" }]
+              },
+              response: new Response(null, { status: 200 })
+            };
+          }
+
+          if (path === "/api/v3/supplies/{supplyId}") {
+            supplyGetCalls += 1;
+            steps.push(supplyGetCalls === 1 ? "deliver-check" : "poll");
+
+            return {
+              data: { id: "SUP-RETRY", done: supplyGetCalls > 1 },
+              response: new Response(null, { status: 200 })
+            };
+          }
+
+          if (path === "/api/v3/supplies/{supplyId}/barcode") {
+            steps.push("barcode");
+
+            return {
+              data: { barcode: "SUP-RETRY", file: "base64" },
+              response: new Response(null, { status: 200 })
+            };
+          }
+
+          throw new Error(`Unexpected GET ${path}`);
+        },
+        async PATCH(path) {
+          if (path === "/api/marketplace/v3/supplies/{supplyId}/orders") {
+            steps.push("add-orders");
+            return { response: new Response(null, { status: 204 }) };
+          }
+
+          if (path === "/api/v3/supplies/{supplyId}/deliver") {
+            deliverCalls += 1;
+            steps.push(`deliver-${deliverCalls}`);
+
+            if (deliverCalls < 4) {
+              throw createWbNotFoundError();
+            }
+
+            return { response: new Response(null, { status: 204 }) };
+          }
+
+          throw new Error(`Unexpected PATCH ${path}`);
+        }
+      });
+
+    const service = createProcessAllShopsService({
+      tenantId: "tenant-1",
+      db: {} as Database,
+      sleep: async (ms) => {
+        sleepCalls.push(ms);
+      }
+    });
+
+    const result = await service.processAllShops();
+
+    expect(result.successCount).toBe(1);
+    expect(result.failureCount).toBe(0);
+    expect(result.results[0]?.status).toBe("success");
+    expect(deliverCalls).toBe(4);
+    expect(supplyGetCalls).toBe(2);
+    expect(sleepCalls).toEqual([5000, 5000, 5000]);
+    expect(steps).toEqual([
+      "add-orders",
+      "deliver-check",
+      "deliver-1",
+      "deliver-2",
+      "deliver-3",
+      "deliver-4",
+      "poll",
+      "barcode"
+    ]);
+  });
+
+  it("fails after the fourth 404 deliver response", async () => {
+    testState.shops = createSingleShopRepo();
+
+    const sleepCalls: number[] = [];
+    let deliverCalls = 0;
+
+    testState.createClient = () =>
+      createClient({
+        async GET(path) {
+          if (path === "/api/v3/orders/new") {
+            return {
+              data: {
+                orders: [{ id: 1, requiredMeta: [] }]
+              },
+              response: new Response(null, { status: 200 })
+            };
+          }
+
+          if (path === "/api/v3/supplies") {
+            return {
+              data: {
+                next: 0,
+                supplies: [{ id: "SUP-RETRY", done: false, name: "pref_20260101_0000" }]
+              },
+              response: new Response(null, { status: 200 })
+            };
+          }
+
+          if (path === "/api/v3/supplies/{supplyId}") {
+            return {
+              data: { id: "SUP-RETRY", done: false },
+              response: new Response(null, { status: 200 })
+            };
+          }
+
+          if (path === "/api/v3/supplies/{supplyId}/barcode") {
+            throw new Error("must not fetch barcode after deliver retries fail");
+          }
+
+          throw new Error(`Unexpected GET ${path}`);
+        },
+        async PATCH(path) {
+          if (path === "/api/marketplace/v3/supplies/{supplyId}/orders") {
+            return { response: new Response(null, { status: 204 }) };
+          }
+
+          if (path === "/api/v3/supplies/{supplyId}/deliver") {
+            deliverCalls += 1;
+            throw createWbNotFoundError("https://example.test/api/v3/supplies/SUP-RETRY/deliver-fail");
+          }
+
+          throw new Error(`Unexpected PATCH ${path}`);
+        }
+      });
+
+    const service = createProcessAllShopsService({
+      tenantId: "tenant-1",
+      db: {} as Database,
+      sleep: async (ms) => {
+        sleepCalls.push(ms);
+      }
+    });
+
+    const result = await service.processAllShops();
+
+    expect(result.successCount).toBe(0);
+    expect(result.failureCount).toBe(1);
+    expect(result.results[0]?.status).toBe("failed");
+    expect(result.results[0]?.error).toContain("status 404");
+    expect(deliverCalls).toBe(4);
+    expect(sleepCalls).toEqual([5000, 5000, 5000]);
+  });
+
   it("marks shop as failed when supply closing poll times out", async () => {
     testState.shops = createSingleShopRepo();
 
@@ -725,7 +910,7 @@ describe("process all shops service", () => {
     expect(result.failureCount).toBe(1);
     expect(result.results[0]?.status).toBe("failed");
     expect(result.results[0]?.error).toBe("Timed out waiting for supply SUP-POLL to close");
-    expect(pollCalls).toBe(3);
+    expect(pollCalls).toBe(4);
     expect(sleepCalls).toEqual([250, 250]);
   });
 });

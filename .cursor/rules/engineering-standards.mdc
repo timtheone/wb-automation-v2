@@ -1,0 +1,17 @@
+---
+description: Project-wide engineering standards
+alwaysApply: true
+---
+
+Follow these rules for all work in this repository.
+
+- Use `pnpm` only. Prefer workspace commands like `pnpm --filter <package> ...`. Do not use `npm`, `yarn`, or `bun` unless explicitly requested.
+- Apply SOLID principles where they improve maintainability. Prefer composition over inheritance.
+- Keep routes, controllers, and UI handlers thin. Put business logic in services or domain modules.
+- Write concise, readable, maintainable TypeScript. Prefer explicit names, focused functions, and simple control flow.
+- Follow existing project conventions and structure. Keep diffs small and avoid unrelated refactors.
+- Prefer strict typing. Avoid `any` unless clearly justified.
+- Add or update tests for every non-trivial change, bug fix, or new behavior.
+- Run relevant tests before considering work complete. If shared behavior changed, run the broader related suite as well.
+- Validate inputs, handle errors explicitly, and do not expose secrets or tokens.
+- Reuse shared workspace packages before duplicating logic.
