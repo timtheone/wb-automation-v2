@@ -38,7 +38,8 @@ const testState = vi.hoisted(() => ({
     sendWaitingOrdersPdfGenerated: vi.fn(async () => undefined),
     sendWaitingOrdersPdfFailed: vi.fn(async () => undefined),
     sendSyncContentShopsCompleted: vi.fn(async () => undefined),
-    sendSyncContentShopsFailed: vi.fn(async () => undefined)
+    sendSyncContentShopsFailed: vi.fn(async () => undefined),
+    sendSyncContentShopsFailureSummary: vi.fn(async () => undefined)
   },
   loggerInfo: vi.fn(),
   loggerError: vi.fn(),
@@ -267,7 +268,7 @@ vi.mock("./telegram-delivery-service.js", async () => {
       sendWaitingOrdersPdfFailed: testState.telegram.sendWaitingOrdersPdfFailed,
       sendSyncContentShopsCompleted: testState.telegram.sendSyncContentShopsCompleted,
       sendSyncContentShopsFailed: testState.telegram.sendSyncContentShopsFailed,
-      async sendSyncContentShopsFailureSummary() {},
+      sendSyncContentShopsFailureSummary: testState.telegram.sendSyncContentShopsFailureSummary,
       async sendWbTokenExpirationWarnings() {}
     })
   };
@@ -296,6 +297,7 @@ describe("flows-service critical behavior", () => {
     testState.telegram.sendWaitingOrdersPdfFailed.mockReset().mockResolvedValue(undefined);
     testState.telegram.sendSyncContentShopsCompleted.mockReset().mockResolvedValue(undefined);
     testState.telegram.sendSyncContentShopsFailed.mockReset().mockResolvedValue(undefined);
+    testState.telegram.sendSyncContentShopsFailureSummary.mockReset().mockResolvedValue(undefined);
     testState.loggerInfo.mockReset();
     testState.loggerError.mockReset();
     testState.loggerWarn.mockReset();
@@ -568,6 +570,95 @@ describe("flows-service critical behavior", () => {
       "sync exploded",
       "ru"
     );
+  });
+
+  it("logs failed shops and sends sync-content failure summary for partial failures", async () => {
+    testState.coreSyncResult = {
+      ...createBaseSyncResult(),
+      successCount: 1,
+      failureCount: 1,
+      totalCardsUpserted: 12,
+      results: [
+        {
+          shopId: "shop-ok",
+          shopName: "Shop OK",
+          status: "success",
+          pagesFetched: 1,
+          cardsUpserted: 12,
+          error: null
+        },
+        {
+          shopId: "shop-fail",
+          shopName: "Shop Fail",
+          status: "failed",
+          pagesFetched: 2,
+          cardsUpserted: 0,
+          error: "WB timeout"
+        }
+      ]
+    };
+
+    const service = createBackendFlowsService();
+    await service.startCombinedPdfListsJob("tenant-a", 1, "en");
+
+    const boss = testState.bossInstances[0];
+    const syncWorker = boss?.workers.find(
+      (worker) => worker.queueName === "flows.sync-content-shops"
+    );
+
+    if (!syncWorker) {
+      throw new Error("sync worker not registered");
+    }
+
+    await expect(
+      syncWorker.handler([
+        {
+          id: "sync-partial",
+          data: { tenantId: "tenant-a", chatId: 102, languageCode: "ru" }
+        }
+      ])
+    ).resolves.toEqual({
+      summary: {
+        processedShops: 2,
+        successCount: 1,
+        failureCount: 1,
+        totalCardsUpserted: 12
+      }
+    });
+
+    expect(testState.telegram.sendSyncContentShopsCompleted).toHaveBeenCalledWith(
+      102,
+      testState.coreSyncResult,
+      "ru"
+    );
+    expect(testState.telegram.sendSyncContentShopsFailureSummary).toHaveBeenCalledWith(
+      102,
+      {
+        processedShops: 2,
+        successCount: 1,
+        failureCount: 1,
+        totalCardsUpserted: 12,
+        failedShops: [
+          {
+            shopId: "shop-fail",
+            shopName: "Shop Fail",
+            error: "WB timeout"
+          }
+        ]
+      },
+      "ru"
+    );
+    expect(testState.loggerError).toHaveBeenCalledWith(
+      expect.objectContaining({
+        tenantId: "tenant-a",
+        jobId: "sync-partial",
+        shopId: "shop-fail",
+        shopName: "Shop Fail",
+        error: "WB timeout"
+      }),
+      "sync-content-shops shop failed"
+    );
+    expect(testState.telegram.sendSyncContentShopsFailed).not.toHaveBeenCalled();
   });
 
   it("returns immediately when worker receives empty batches", async () => {

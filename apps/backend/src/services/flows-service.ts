@@ -392,6 +392,7 @@ async function registerSyncContentWorker(input: {
           tenantId,
           jobId
         }).syncContentShops();
+        const failedShops = collectFailedSyncContentShops(result);
 
         input.logger.info(
           {
@@ -406,7 +407,46 @@ async function registerSyncContentWorker(input: {
           "sync-content-shops flow completed"
         );
 
+        for (const failedShop of failedShops) {
+          input.logger.error(
+            {
+              tenantId,
+              jobId,
+              shopId: failedShop.shopId,
+              shopName: failedShop.shopName,
+              error: failedShop.error
+            },
+            "sync-content-shops shop failed"
+          );
+        }
+
         await input.telegramDelivery.sendSyncContentShopsCompleted(chatId, result, languageCode);
+
+        if (failedShops.length > 0) {
+          await input.telegramDelivery
+            .sendSyncContentShopsFailureSummary(
+              chatId,
+              {
+                processedShops: result.processedShops,
+                successCount: result.successCount,
+                failureCount: result.failureCount,
+                totalCardsUpserted: result.totalCardsUpserted,
+                failedShops
+              },
+              languageCode
+            )
+            .catch((notificationError) => {
+              input.logger.error(
+                {
+                  tenantId,
+                  jobId,
+                  chatId,
+                  error: toErrorMessage(notificationError)
+                },
+                "failed to send sync-content-shops failure summary to telegram"
+              );
+            });
+        }
 
         return {
           summary: {
@@ -505,6 +545,24 @@ function createProcessAllShopsServiceWithProgressLogging(input: {
       );
     }
   });
+}
+
+function collectFailedSyncContentShops(result: SyncContentShopsResult): Array<{
+  shopId: string;
+  shopName: string;
+  error: string;
+}> {
+  return result.results.flatMap((item) =>
+    item.status === "failed" && item.error !== null
+      ? [
+          {
+            shopId: item.shopId,
+            shopName: item.shopName,
+            error: item.error
+          }
+        ]
+      : []
+  );
 }
 
 async function registerPdfWorker(input: {
