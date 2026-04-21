@@ -107,7 +107,7 @@ describe("process all shops service", () => {
     testState.createClient = null;
   });
 
-  it("creates delivery batch for eligible orders", async () => {
+  it("creates delivery batch for all new orders", async () => {
     testState.shops = createSingleShopRepo();
 
     const attachedBatches: number[][] = [];
@@ -188,16 +188,16 @@ describe("process all shops service", () => {
     expect(result.failureCount).toBe(0);
     expect(result.skippedCount).toBe(0);
     expect(result.results[0]?.ordersInNew).toBe(3);
-    expect(result.results[0]?.ordersSkippedByMeta).toBe(1);
-    expect(result.results[0]?.ordersAttached).toBe(2);
-    expect(attachedBatches).toEqual([[1, 2]]);
+    expect(result.results[0]?.ordersSkippedByMeta).toBe(0);
+    expect(result.results[0]?.ordersAttached).toBe(3);
+    expect(attachedBatches).toEqual([[1, 2, 3]]);
     expect(barcodeQueryType).toBe("png");
   });
 
-  it("marks shop as skipped when every order requires metadata", async () => {
+  it("attaches orders even when requiredMeta is present", async () => {
     testState.shops = createSingleShopRepo();
 
-    const debugEvents: Array<{ step?: string; responseData?: Record<string, unknown> }> = [];
+    const attachedBatches: number[][] = [];
 
     testState.createClient = () =>
       createClient({
@@ -211,29 +211,63 @@ describe("process all shops service", () => {
             };
           }
 
+          if (path === "/api/v3/supplies") {
+            return {
+              data: {
+                next: 0,
+                supplies: [{ id: "SUP-META", done: false, name: "pref_20260101_0000" }]
+              },
+              response: new Response(null, { status: 200 })
+            };
+          }
+
+          if (path === "/api/v3/supplies/{supplyId}") {
+            return {
+              data: { id: "SUP-META", done: true },
+              response: new Response(null, { status: 200 })
+            };
+          }
+
+          if (path === "/api/v3/supplies/{supplyId}/barcode") {
+            return {
+              data: { barcode: "SUP-META", file: "base64" },
+              response: new Response(null, { status: 200 })
+            };
+          }
+
           throw new Error(`Unexpected GET ${path}`);
+        },
+
+        async PATCH(path, options) {
+          if (path === "/api/marketplace/v3/supplies/{supplyId}/orders") {
+            const body = (options as { body?: { orders?: number[] } })?.body;
+            attachedBatches.push((body?.orders ?? []).filter((value): value is number => typeof value === "number"));
+
+            return { response: new Response(null, { status: 204 }) };
+          }
+
+          if (path === "/api/v3/supplies/{supplyId}/deliver") {
+            return { response: new Response(null, { status: 204 }) };
+          }
+
+          throw new Error(`Unexpected PATCH ${path}`);
         }
       });
 
     const service = createProcessAllShopsService({
       tenantId: "tenant-1",
       db: {} as Database,
-      onWbApiDebug(event) {
-        debugEvents.push({
-          step: event.step,
-          responseData: event.responseData
-        });
+      sleep: async () => {
+        return;
       }
     });
 
     const result = await service.processAllShops();
 
-    expect(result.successCount).toBe(0);
-    expect(result.skippedCount).toBe(1);
-    expect(result.results[0]?.status).toBe("skipped");
-    expect(debugEvents.some((event) => event.step === "orders_new")).toBe(true);
-    expect(debugEvents.some((event) => event.step === "orders_new_no_eligible")).toBe(true);
-    expect(debugEvents.find((event) => event.step === "orders_new")?.responseData?.totalOrders).toBe(1);
+    expect(result.successCount).toBe(1);
+    expect(result.skippedCount).toBe(0);
+    expect(result.results[0]?.ordersAttached).toBe(1);
+    expect(attachedBatches).toEqual([[1]]);
   });
 
   it("uses sandbox FBS endpoint and sandbox token when shop is configured for sandbox", async () => {

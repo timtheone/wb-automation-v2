@@ -135,23 +135,15 @@ export function createProcessAllShopsService(
           }
 
           const allOrders = newOrdersResult.data.orders ?? [];
-          const eligibleOrders = allOrders.filter((order) => {
-            const requiredMeta = order.requiredMeta;
-            const optionalMeta = order.optionalMeta;
-            const hasSgtinOptionalMeta = optionalMeta?.includes("sgtin") ?? false;
-            return (!requiredMeta || requiredMeta.length === 0) && !hasSgtinOptionalMeta;
-          });
-          const eligibleOrderIds = eligibleOrders
+          const allOrderIds = allOrders
             .map((order) => order.id)
             .filter((id): id is number => typeof id === "number");
-          const skippedByMeta = allOrders.length - eligibleOrders.length;
 
-          if (eligibleOrderIds.length === 0) {
+          if (allOrderIds.length === 0) {
             emitWbApiDebug(debugContext, {
               step: "orders_new_no_eligible",
               responseData: {
-                totalOrders: allOrders.length,
-                ordersSkippedByMeta: skippedByMeta
+                totalOrders: allOrders.length
               }
             });
 
@@ -161,7 +153,7 @@ export function createProcessAllShopsService(
               status: "skipped",
               supplyId: null,
               ordersInNew: allOrders.length,
-              ordersSkippedByMeta: skippedByMeta,
+              ordersSkippedByMeta: 0,
               ordersAttached: 0,
               barcode: null,
               barcodeFile: null,
@@ -178,7 +170,7 @@ export function createProcessAllShopsService(
             debugContext
           });
 
-          for (const batch of toBatches(eligibleOrderIds, SUPPLY_ORDER_BATCH_SIZE)) {
+          for (const batch of toBatches(allOrderIds, SUPPLY_ORDER_BATCH_SIZE)) {
             const body: AddOrdersBody = { orders: batch };
             const addOrdersResult = await fbsClient.PATCH(
               "/api/marketplace/v3/supplies/{supplyId}/orders",
@@ -251,8 +243,8 @@ export function createProcessAllShopsService(
             status: "success",
             supplyId,
             ordersInNew: allOrders.length,
-            ordersSkippedByMeta: skippedByMeta,
-            ordersAttached: eligibleOrderIds.length,
+            ordersSkippedByMeta: 0,
+            ordersAttached: allOrderIds.length,
             barcode: barcodeResult.data.barcode ?? null,
             barcodeFile: barcodeResult.data.file ?? null,
             error: null
