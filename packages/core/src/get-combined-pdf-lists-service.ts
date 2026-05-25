@@ -1,4 +1,5 @@
 import PDFDocument from "pdfkit";
+import * as XLSX from "xlsx";
 import { existsSync } from "node:fs";
 import { createRequire } from "node:module";
 import { dirname, resolve } from "node:path";
@@ -76,6 +77,7 @@ interface CombinedRow {
   orderId: number;
   orderCreatedAt: Date | null;
   nmId: number | null;
+  vendorCode: string | null;
   brand: string | null;
   title: string | null;
   ageGroup: string | null;
@@ -208,6 +210,21 @@ export interface GetCombinedPdfListsResult {
   results: GetCombinedPdfListsResultItem[];
 }
 
+export interface GetCombinedOrdersXlsResult {
+  startedAt: Date;
+  finishedAt: Date;
+  processedShops: number;
+  successCount: number;
+  skippedCount: number;
+  failureCount: number;
+  totalOrdersCollected: number;
+  combinedRowsCount: number;
+  deduplicatedRowsCount: number;
+  xlsFileName: string;
+  xlsBase64: string;
+  results: GetCombinedPdfListsResultItem[];
+}
+
 type GetCombinedPdfListsOptions = {
   tenantId: string;
   db: Database;
@@ -227,6 +244,10 @@ export interface GetCombinedPdfListsService {
 
 export interface GetWaitingOrdersPdfListsService {
   getWaitingOrdersPdfLists(): Promise<GetCombinedPdfListsResult>;
+}
+
+export interface GetCombinedOrdersXlsService {
+  getCombinedOrdersXls(): Promise<GetCombinedOrdersXlsResult>;
 }
 
 export function createGetWaitingOrdersPdfListsService(
@@ -249,168 +270,13 @@ export function createGetCombinedPdfListsService(
 ): GetCombinedPdfListsService {
   const mode = options.mode ?? "latest";
   const now = options.now ?? (() => new Date());
-  const supplyPageLimit = options.supplyPageLimit ?? DEFAULT_SUPPLY_PAGE_LIMIT;
-  const maxSuppliesPerShop =
-    options.maxSuppliesPerShop ??
-    (mode === "waiting" ? DEFAULT_WAITING_MAX_SUPPLIES_PER_SHOP : DEFAULT_MAX_SUPPLIES_PER_SHOP);
-  const ordersLookbackDays = options.ordersLookbackDays ?? DEFAULT_ORDERS_LOOKBACK_DAYS;
   const maxEmbeddedImages = options.maxEmbeddedImages ?? DEFAULT_MAX_EMBEDDED_IMAGES;
   const fetchImage = options.fetchImage ?? defaultFetchImage;
-  const onWbApiDebug = options.onWbApiDebug;
-  const emitWbApiDebug = (event: GetCombinedPdfListsWbDebugEvent) => {
-    onWbApiDebug?.(event);
-  };
-  const { shops, productCards } = createDbRepositories({
-    tenantId: options.tenantId,
-    db: options.db
-  });
 
   return {
     async getCombinedPdfLists() {
       const startedAt = now();
-      const activeShops = await shops.listActiveShops();
-      const rows: CombinedRow[] = [];
-      const results: GetCombinedPdfListsResultItem[] = [];
-
-      for (const shop of activeShops) {
-        try {
-          const credentials = resolveFbsCredentials(shop);
-          const fbsClient = createWbFbsClient(credentials);
-          const selectedSupplies = await getLatestDoneSuppliesWithOrders({
-            fbsClient,
-            shopId: shop.id,
-            shopName: shop.name,
-            supplyPrefix: shop.supplyPrefix,
-            supplyPageLimit,
-            maxSuppliesPerShop,
-            skipNewestSupply: mode === "waiting",
-            emitWbApiDebug
-          });
-
-          const suppliesForRows =
-            mode === "waiting"
-              ? await filterSuppliesByWaitingOrderStatus({
-                  fbsClient,
-                  shopId: shop.id,
-                  shopName: shop.name,
-                  supplies: selectedSupplies,
-                  emitWbApiDebug
-                })
-              : selectedSupplies;
-
-          const uniqueOrderIds = uniqueSorted(
-            suppliesForRows.flatMap((supply) => supply.orderIds)
-          );
-
-          if (suppliesForRows.length === 0 || uniqueOrderIds.length === 0) {
-            results.push({
-              shopId: shop.id,
-              shopName: shop.name,
-              status: "skipped",
-              supplyIds: suppliesForRows.map((supply) => supply.supplyId),
-              orderIds: uniqueOrderIds,
-              ordersCollected: 0,
-              missingProductCards: 0,
-              error: null
-            });
-            continue;
-          }
-
-          const orderFactsById = await getOrderFactsById({
-            fbsClient,
-            shopId: shop.id,
-            shopName: shop.name,
-            lookbackDays: ordersLookbackDays,
-            emitWbApiDebug
-          });
-
-          const stickersByOrderId = await getStickersByOrderId({
-            fbsClient,
-            shopId: shop.id,
-            shopName: shop.name,
-            orderIds: uniqueOrderIds,
-            emitWbApiDebug
-          });
-
-          const nmIds = uniqueSorted(
-            uniqueOrderIds
-              .map((orderId) => orderFactsById.get(orderId)?.nmId ?? null)
-              .filter((nmId): nmId is number => typeof nmId === "number")
-          );
-          const cardsByNmId = await getCardsByNmId({
-            shopId: shop.id,
-            nmIds,
-            productCards
-          });
-
-          let missingProductCards = 0;
-
-          for (const supply of suppliesForRows) {
-            for (const orderId of supply.orderIds) {
-              const orderFacts = orderFactsById.get(orderId);
-              const nmId = orderFacts?.nmId ?? null;
-              const card = nmId === null ? null : cardsByNmId.get(nmId) ?? null;
-
-              if (card === null) {
-                missingProductCards += 1;
-              }
-
-              const sticker = stickersByOrderId.get(orderId);
-
-              rows.push({
-                shopId: shop.id,
-                shopName: shop.name,
-                supplyId: supply.supplyId,
-                orderId,
-                orderCreatedAt: orderFacts?.createdAt ?? null,
-                nmId,
-                brand: card?.brand ?? null,
-                title: card?.title ?? null,
-                ageGroup: card?.ageGroup ?? null,
-                img: card?.img ?? null,
-                stickerPartA: sticker?.partA ?? null,
-                stickerPartB: sticker?.partB ?? null,
-                stickerFileBase64: sticker?.file ?? null
-              });
-            }
-          }
-
-          results.push({
-            shopId: shop.id,
-            shopName: shop.name,
-            status: "success",
-            supplyIds: suppliesForRows.map((supply) => supply.supplyId),
-            orderIds: uniqueOrderIds,
-            ordersCollected: uniqueOrderIds.length,
-            missingProductCards,
-            error: null
-          });
-
-          emitWbApiDebug({
-            step: "shop_summary",
-            shopId: shop.id,
-            shopName: shop.name,
-            selectedSupplyIds: suppliesForRows.map((supply) => supply.supplyId),
-            uniqueOrderIdsCount: uniqueOrderIds.length,
-            knownOrdersWithNmIdCount: nmIds.length,
-            stickersResolvedCount: stickersByOrderId.size,
-            productCardsResolvedCount: cardsByNmId.size,
-            missingProductCards
-          });
-        } catch (error) {
-          results.push({
-            shopId: shop.id,
-            shopName: shop.name,
-            status: "failed",
-            supplyIds: [],
-            orderIds: [],
-            ordersCollected: 0,
-            missingProductCards: 0,
-            error: toErrorMessage(error)
-          });
-        }
-      }
-
+      const { rows, results } = await collectCombinedRows({ options, mode });
       const sortedRows = rows.toSorted((left, right) => compareRows(left, right));
       const imageByUrl = await preloadImages(sortedRows, fetchImage, maxEmbeddedImages);
       const orderListPdfBuffer = await renderOrderListPdf(sortedRows, imageByUrl, mode);
@@ -441,6 +307,229 @@ export function createGetCombinedPdfListsService(
       };
     }
   };
+}
+
+export function createGetCombinedOrdersXlsService(
+  options: Omit<GetCombinedPdfListsOptions, "mode">
+): GetCombinedOrdersXlsService {
+  const now = options.now ?? (() => new Date());
+
+  return {
+    async getCombinedOrdersXls() {
+      const startedAt = now();
+      const latest = await collectCombinedRows({ options, mode: "latest" });
+      const waiting = await collectCombinedRows({ options, mode: "waiting" });
+      const mergedRows = [
+        ...latest.rows.map((row) => ({ ...row, source: "latest" as const })),
+        ...waiting.rows.map((row) => ({ ...row, source: "waiting" as const }))
+      ];
+      const deduplicatedRows = deduplicateCombinedRows(mergedRows).toSorted((left, right) => compareRows(left, right));
+      const finishedAt = now();
+      const workbook = XLSX.utils.book_new();
+      const rowsForSheet = deduplicatedRows.map((row) => ({
+        "Арт.Продавца": row.vendorCode ?? "-",
+        Наименование: row.title ?? "-"
+      }));
+      const worksheet = XLSX.utils.json_to_sheet(rowsForSheet);
+      XLSX.utils.book_append_sheet(workbook, worksheet, "Orders");
+      const xlsBuffer = XLSX.write(workbook, { type: "buffer", bookType: "xlsx" }) as Buffer;
+
+      return {
+        startedAt,
+        finishedAt,
+        processedShops: latest.results.length,
+        successCount: latest.results.filter((item) => item.status === "success").length,
+        skippedCount: latest.results.filter((item) => item.status === "skipped").length,
+        failureCount: latest.results.filter((item) => item.status === "failed").length,
+        totalOrdersCollected: mergedRows.length,
+        combinedRowsCount: mergedRows.length,
+        deduplicatedRowsCount: deduplicatedRows.length,
+        xlsFileName: `Заказы_${formatRuFileDate(finishedAt)}.xlsx`,
+        xlsBase64: xlsBuffer.toString("base64"),
+        results: latest.results
+      };
+    }
+  };
+}
+
+async function collectCombinedRows(input: {
+  options: GetCombinedPdfListsOptions;
+  mode: CombinedPdfFlowMode;
+}): Promise<{ rows: CombinedRow[]; results: GetCombinedPdfListsResultItem[] }> {
+  const supplyPageLimit = input.options.supplyPageLimit ?? DEFAULT_SUPPLY_PAGE_LIMIT;
+  const maxSuppliesPerShop =
+    input.options.maxSuppliesPerShop ??
+    (input.mode === "waiting" ? DEFAULT_WAITING_MAX_SUPPLIES_PER_SHOP : DEFAULT_MAX_SUPPLIES_PER_SHOP);
+  const ordersLookbackDays = input.options.ordersLookbackDays ?? DEFAULT_ORDERS_LOOKBACK_DAYS;
+  const onWbApiDebug = input.options.onWbApiDebug;
+  const emitWbApiDebug = (event: GetCombinedPdfListsWbDebugEvent) => {
+    onWbApiDebug?.(event);
+  };
+  const { shops, productCards } = createDbRepositories({
+    tenantId: input.options.tenantId,
+    db: input.options.db
+  });
+  const activeShops = await shops.listActiveShops();
+  const rows: CombinedRow[] = [];
+  const results: GetCombinedPdfListsResultItem[] = [];
+
+  for (const shop of activeShops) {
+    try {
+      const credentials = resolveFbsCredentials(shop);
+      const fbsClient = createWbFbsClient(credentials);
+      const selectedSupplies = await getLatestDoneSuppliesWithOrders({
+        fbsClient,
+        shopId: shop.id,
+        shopName: shop.name,
+        supplyPrefix: shop.supplyPrefix,
+        supplyPageLimit,
+        maxSuppliesPerShop,
+        skipNewestSupply: input.mode === "waiting",
+        emitWbApiDebug
+      });
+
+      const suppliesForRows =
+        input.mode === "waiting"
+          ? await filterSuppliesByWaitingOrderStatus({
+              fbsClient,
+              shopId: shop.id,
+              shopName: shop.name,
+              supplies: selectedSupplies,
+              emitWbApiDebug
+            })
+          : selectedSupplies;
+
+      const uniqueOrderIds = uniqueSorted(suppliesForRows.flatMap((supply) => supply.orderIds));
+
+      if (suppliesForRows.length === 0 || uniqueOrderIds.length === 0) {
+        results.push({
+          shopId: shop.id,
+          shopName: shop.name,
+          status: "skipped",
+          supplyIds: suppliesForRows.map((supply) => supply.supplyId),
+          orderIds: uniqueOrderIds,
+          ordersCollected: 0,
+          missingProductCards: 0,
+          error: null
+        });
+        continue;
+      }
+
+      const orderFactsById = await getOrderFactsById({
+        fbsClient,
+        shopId: shop.id,
+        shopName: shop.name,
+        lookbackDays: ordersLookbackDays,
+        emitWbApiDebug
+      });
+
+      const stickersByOrderId = await getStickersByOrderId({
+        fbsClient,
+        shopId: shop.id,
+        shopName: shop.name,
+        orderIds: uniqueOrderIds,
+        emitWbApiDebug
+      });
+
+      const nmIds = uniqueSorted(
+        uniqueOrderIds
+          .map((orderId) => orderFactsById.get(orderId)?.nmId ?? null)
+          .filter((nmId): nmId is number => typeof nmId === "number")
+      );
+      const cardsByNmId = await getCardsByNmId({
+        shopId: shop.id,
+        nmIds,
+        productCards
+      });
+
+      let missingProductCards = 0;
+
+      for (const supply of suppliesForRows) {
+        for (const orderId of supply.orderIds) {
+          const orderFacts = orderFactsById.get(orderId);
+          const nmId = orderFacts?.nmId ?? null;
+          const card = nmId === null ? null : cardsByNmId.get(nmId) ?? null;
+
+          if (card === null) {
+            missingProductCards += 1;
+          }
+
+          const sticker = stickersByOrderId.get(orderId);
+
+          rows.push({
+            shopId: shop.id,
+            shopName: shop.name,
+            supplyId: supply.supplyId,
+            orderId,
+            orderCreatedAt: orderFacts?.createdAt ?? null,
+            nmId,
+            vendorCode: card?.vendorCode ?? null,
+            brand: card?.brand ?? null,
+            title: card?.title ?? null,
+            ageGroup: card?.ageGroup ?? null,
+            img: card?.img ?? null,
+            stickerPartA: sticker?.partA ?? null,
+            stickerPartB: sticker?.partB ?? null,
+            stickerFileBase64: sticker?.file ?? null
+          });
+        }
+      }
+
+      results.push({
+        shopId: shop.id,
+        shopName: shop.name,
+        status: "success",
+        supplyIds: suppliesForRows.map((supply) => supply.supplyId),
+        orderIds: uniqueOrderIds,
+        ordersCollected: uniqueOrderIds.length,
+        missingProductCards,
+        error: null
+      });
+
+      emitWbApiDebug({
+        step: "shop_summary",
+        shopId: shop.id,
+        shopName: shop.name,
+        selectedSupplyIds: suppliesForRows.map((supply) => supply.supplyId),
+        uniqueOrderIdsCount: uniqueOrderIds.length,
+        knownOrdersWithNmIdCount: nmIds.length,
+        stickersResolvedCount: stickersByOrderId.size,
+        productCardsResolvedCount: cardsByNmId.size,
+        missingProductCards
+      });
+    } catch (error) {
+      results.push({
+        shopId: shop.id,
+        shopName: shop.name,
+        status: "failed",
+        supplyIds: [],
+        orderIds: [],
+        ordersCollected: 0,
+        missingProductCards: 0,
+        error: toErrorMessage(error)
+      });
+    }
+  }
+
+  return { rows, results };
+}
+
+function deduplicateCombinedRows<T extends { shopId: string; supplyId: string; orderId: number }>(rows: T[]): T[] {
+  const seen = new Set<string>();
+  const deduplicated: T[] = [];
+
+  for (const row of rows) {
+    const key = `${row.shopId}:${row.supplyId}:${row.orderId}`;
+
+    if (seen.has(key)) {
+      continue;
+    }
+
+    seen.add(key);
+    deduplicated.push(row);
+  }
+
+  return deduplicated;
 }
 
 async function getLatestDoneSuppliesWithOrders(input: {

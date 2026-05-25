@@ -37,6 +37,8 @@ const testState = vi.hoisted(() => ({
     sendCombinedPdfFailed: vi.fn(async () => undefined),
     sendWaitingOrdersPdfGenerated: vi.fn(async () => undefined),
     sendWaitingOrdersPdfFailed: vi.fn(async () => undefined),
+    sendCombinedOrdersXlsGenerated: vi.fn(async () => undefined),
+    sendCombinedOrdersXlsFailed: vi.fn(async () => undefined),
     sendSyncContentShopsCompleted: vi.fn(async () => undefined),
     sendSyncContentShopsFailed: vi.fn(async () => undefined),
     sendSyncContentShopsFailureSummary: vi.fn(async () => undefined)
@@ -184,6 +186,17 @@ vi.mock("@wb-automation-v2/core", async () => {
         return testState.coreCombinedResult;
       }
     }),
+    createGetCombinedOrdersXlsService: () => ({
+      async getCombinedOrdersXls() {
+        return {
+          ...testState.coreCombinedResult,
+          combinedRowsCount: 0,
+          deduplicatedRowsCount: 0,
+          xlsFileName: "orders.xlsx",
+          xlsBase64: ""
+        };
+      }
+    }),
     createProcessAllShopsService: (options: { onWbApiDebug?: (event: unknown) => void }) => ({
       async processAllShops() {
         options.onWbApiDebug?.({ step: "process-debug" });
@@ -266,6 +279,8 @@ vi.mock("./telegram-delivery-service.js", async () => {
       sendCombinedPdfFailed: testState.telegram.sendCombinedPdfFailed,
       sendWaitingOrdersPdfGenerated: testState.telegram.sendWaitingOrdersPdfGenerated,
       sendWaitingOrdersPdfFailed: testState.telegram.sendWaitingOrdersPdfFailed,
+      sendCombinedOrdersXlsGenerated: testState.telegram.sendCombinedOrdersXlsGenerated,
+      sendCombinedOrdersXlsFailed: testState.telegram.sendCombinedOrdersXlsFailed,
       sendSyncContentShopsCompleted: testState.telegram.sendSyncContentShopsCompleted,
       sendSyncContentShopsFailed: testState.telegram.sendSyncContentShopsFailed,
       sendSyncContentShopsFailureSummary: testState.telegram.sendSyncContentShopsFailureSummary,
@@ -295,6 +310,8 @@ describe("flows-service critical behavior", () => {
     testState.telegram.sendCombinedPdfFailed.mockReset().mockResolvedValue(undefined);
     testState.telegram.sendWaitingOrdersPdfGenerated.mockReset().mockResolvedValue(undefined);
     testState.telegram.sendWaitingOrdersPdfFailed.mockReset().mockResolvedValue(undefined);
+    testState.telegram.sendCombinedOrdersXlsGenerated.mockReset().mockResolvedValue(undefined);
+    testState.telegram.sendCombinedOrdersXlsFailed.mockReset().mockResolvedValue(undefined);
     testState.telegram.sendSyncContentShopsCompleted.mockReset().mockResolvedValue(undefined);
     testState.telegram.sendSyncContentShopsFailed.mockReset().mockResolvedValue(undefined);
     testState.telegram.sendSyncContentShopsFailureSummary.mockReset().mockResolvedValue(undefined);

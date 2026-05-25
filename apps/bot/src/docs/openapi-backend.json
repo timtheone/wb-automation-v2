@@ -1757,6 +1757,87 @@
           }
         }
       }
+    },
+    "/flows/get-combined-orders-xls": {
+      "post": {
+        "tags": [
+          "Flows"
+        ],
+        "parameters": [
+          {
+            "schema": {
+              "type": "string",
+              "pattern": "^-?\\d+$"
+            },
+            "required": true,
+            "name": "x-telegram-chat-id",
+            "in": "header"
+          },
+          {
+            "schema": {
+              "type": "string",
+              "enum": [
+                "private",
+                "group",
+                "supergroup",
+                "channel"
+              ]
+            },
+            "required": true,
+            "name": "x-telegram-chat-type",
+            "in": "header"
+          },
+          {
+            "schema": {
+              "type": "string",
+              "pattern": "^-?\\d+$"
+            },
+            "required": true,
+            "name": "x-telegram-user-id",
+            "in": "header"
+          },
+          {
+            "schema": {
+              "type": "string",
+              "pattern": "^-?\\d+$"
+            },
+            "required": true,
+            "name": "x-telegram-owner-user-id",
+            "in": "header"
+          },
+          {
+            "schema": {
+              "type": "string",
+              "minLength": 1
+            },
+            "required": false,
+            "name": "x-telegram-language-code",
+            "in": "header"
+          }
+        ],
+        "responses": {
+          "202": {
+            "description": "Start combined orders XLS generation job",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CombinedPdfListsJobAccepted"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal server error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
     }
   },
   "webhooks": {}

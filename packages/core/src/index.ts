@@ -4,10 +4,13 @@ export {
 } from "./error-utils.js";
 export {
   createGetCombinedPdfListsService,
+  createGetCombinedOrdersXlsService,
   createGetWaitingOrdersPdfListsService,
   type GetCombinedPdfListsResult,
+  type GetCombinedOrdersXlsResult,
   type GetCombinedPdfListsResultItem,
   type GetCombinedPdfListsService,
+  type GetCombinedOrdersXlsService,
   type GetWaitingOrdersPdfListsService
 } from "./get-combined-pdf-lists-service.js";
 export {

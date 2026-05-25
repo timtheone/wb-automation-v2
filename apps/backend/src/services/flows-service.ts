@@ -1,11 +1,13 @@
 import { PgBoss } from "pg-boss";
 import {
   createGetCombinedPdfListsService,
+  createGetCombinedOrdersXlsService,
   createGetWaitingOrdersPdfListsService,
   createProcessAllShopsService,
   createSyncContentShopsService,
   toErrorMessage,
   type GetCombinedPdfListsResult,
+  type GetCombinedOrdersXlsResult,
   type ProcessAllShopsResult,
   type SyncContentShopsResult
 } from "@wb-automation-v2/core";
@@ -17,6 +19,7 @@ import { createTelegramDeliveryService } from "./telegram-delivery-service.js";
 
 const COMBINED_PDF_QUEUE_NAME = "flows.get-combined-pdf-lists";
 const WAITING_ORDERS_PDF_QUEUE_NAME = "flows.get-waiting-orders-pdf";
+const COMBINED_ORDERS_XLS_QUEUE_NAME = "flows.get-combined-orders-xls";
 const SYNC_CONTENT_QUEUE_NAME = "flows.sync-content-shops";
 const COMBINED_PDF_EXPIRE_SECONDS = 60 * 60;
 const COMBINED_PDF_DELETE_AFTER_SECONDS = 30 * 60;
@@ -74,6 +77,11 @@ export interface BackendFlowsService {
     languageCode: string | null
   ): Promise<CombinedPdfJobAccepted>;
   startWaitingOrdersPdfJob(
+    tenantId: string,
+    chatId: number,
+    languageCode: string | null
+  ): Promise<CombinedPdfJobAccepted>;
+  startCombinedOrdersXlsJob(
     tenantId: string,
     chatId: number,
     languageCode: string | null
@@ -266,6 +274,47 @@ export function createBackendFlowsService(): BackendFlowsService {
         createdAt
       };
     },
+    async startCombinedOrdersXlsJob(tenantId, chatId, languageCode) {
+      await ensureQueueWorker();
+
+      const existingJob = await findActivePdfJobForTenant({
+        boss,
+        schema: bossSchema,
+        queueName: COMBINED_ORDERS_XLS_QUEUE_NAME,
+        tenantId
+      });
+
+      if (existingJob) {
+        return {
+          jobId: existingJob.id,
+          status: existingJob.state === "active" ? "running" : "queued",
+          createdAt: parseDateOrNow(existingJob.createdOn)
+        };
+      }
+
+      const jobId = crypto.randomUUID();
+      const createdAt = new Date();
+      const sentJobId = await boss.send(
+        COMBINED_ORDERS_XLS_QUEUE_NAME,
+        { tenantId, chatId, languageCode },
+        {
+          id: jobId,
+          retryLimit: 0,
+          expireInSeconds: COMBINED_PDF_EXPIRE_SECONDS,
+          retentionSeconds: COMBINED_PDF_DELETE_AFTER_SECONDS
+        }
+      );
+
+      if (!sentJobId) {
+        throw new Error("Unable to enqueue combined orders XLS flow job");
+      }
+
+      return {
+        jobId,
+        status: "queued",
+        createdAt
+      };
+    },
     async getCombinedPdfListsJob(tenantId, jobId) {
       await ensureQueueWorker();
 
@@ -338,6 +387,32 @@ async function initializeBossWorker(input: {
       input.telegramDelivery.sendWaitingOrdersPdfGenerated(chatId, result, languageCode),
     notifyFailure: (chatId, errorMessage, languageCode) =>
       input.telegramDelivery.sendWaitingOrdersPdfFailed(chatId, errorMessage, languageCode)
+  });
+
+  await registerPdfWorker({
+    boss: input.boss,
+    logger: input.logger,
+    queueName: COMBINED_ORDERS_XLS_QUEUE_NAME,
+    flowLabel: "combined-orders-xls",
+    createResult: async ({ tenantId, jobId }) =>
+      createGetCombinedOrdersXlsService({
+        db: input.db,
+        tenantId,
+        onWbApiDebug(event) {
+          input.logger.info(
+            {
+              tenantId,
+              jobId,
+              event
+            },
+            "WB combined-orders-xls API debug"
+          );
+        }
+      }).getCombinedOrdersXls(),
+    notifySuccess: (chatId, result, languageCode) =>
+      input.telegramDelivery.sendCombinedOrdersXlsGenerated(chatId, result, languageCode),
+    notifyFailure: (chatId, errorMessage, languageCode) =>
+      input.telegramDelivery.sendCombinedOrdersXlsFailed(chatId, errorMessage, languageCode)
   });
 
   await registerSyncContentWorker({
@@ -565,13 +640,13 @@ function collectFailedSyncContentShops(result: SyncContentShopsResult): Array<{
   );
 }
 
-async function registerPdfWorker(input: {
+async function registerPdfWorker<TResult extends GetCombinedPdfListsResult | GetCombinedOrdersXlsResult>(input: {
   boss: PgBoss;
   logger: ReturnType<typeof createLogger>;
   queueName: string;
-  flowLabel: "combined-pdf" | "waiting-orders-pdf";
-  createResult: (payload: { tenantId: string; jobId: string }) => Promise<GetCombinedPdfListsResult>;
-  notifySuccess: (chatId: number, result: GetCombinedPdfListsResult, languageCode: string | null) => Promise<void>;
+  flowLabel: "combined-pdf" | "waiting-orders-pdf" | "combined-orders-xls";
+  createResult: (payload: { tenantId: string; jobId: string }) => Promise<TResult>;
+  notifySuccess: (chatId: number, result: TResult, languageCode: string | null) => Promise<void>;
   notifyFailure: (chatId: number, errorMessage: string, languageCode: string | null) => Promise<void>;
 }) {
   const existingQueue = await input.boss.getQueue(input.queueName);

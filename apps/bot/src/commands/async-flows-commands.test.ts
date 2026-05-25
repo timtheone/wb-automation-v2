@@ -4,6 +4,7 @@ import { describe, expect, it, vi } from "vitest";
 import type { BackendClient } from "../backend-client.js";
 import type { BotContext } from "../bot-types.js";
 import { createTranslator } from "../i18n/index.js";
+import { registerGenerateCombinedOrdersXlsCommand } from "./generate-combined-orders-xls-command.js";
 import { registerGeneratePdfsCommand } from "./generate-pdfs-command.js";
 import { registerGenerateWaitingOrdersPdfCommand } from "./generate-waiting-orders-pdf-command.js";
 import { registerSyncContentShopsCommand } from "./sync-content-shops-command.js";
@@ -131,6 +132,36 @@ describe("async flow bot commands", () => {
     expect(reply).toHaveBeenNthCalledWith(1, ctx.t.flows.generateWaitingOrdersPdf.requesting());
     expect(reply).toHaveBeenNthCalledWith(2, ctx.t.flows.generateWaitingOrdersPdf.queued());
     expect(backend.POST).toHaveBeenCalledWith("/flows/get-waiting-orders-pdf", {
+      params: {
+        header: expect.objectContaining({
+          "x-telegram-chat-id": "500",
+          "x-telegram-owner-user-id": "900"
+        })
+      }
+    });
+  });
+
+  it("queues /generate_combined_orders_xls", async () => {
+    const harness = createCommandHarness();
+    const backend = {
+      POST: vi.fn(async () => ({
+        data: {
+          jobId: "job-xls",
+          status: "queued",
+          createdAt: new Date().toISOString()
+        }
+      }))
+    } as unknown as BackendClient;
+
+    registerGenerateCombinedOrdersXlsCommand(harness.bot, backend);
+    const handler = harness.getHandler("generate_combined_orders_xls");
+    const { ctx, reply } = createContext();
+
+    await handler(ctx);
+
+    expect(reply).toHaveBeenNthCalledWith(1, ctx.t.flows.generateCombinedOrdersXls.requesting());
+    expect(reply).toHaveBeenNthCalledWith(2, ctx.t.flows.generateCombinedOrdersXls.queued());
+    expect(backend.POST).toHaveBeenCalledWith("/flows/get-combined-orders-xls", {
       params: {
         header: expect.objectContaining({
           "x-telegram-chat-id": "500",

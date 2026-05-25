@@ -186,6 +186,33 @@ const getWaitingOrdersPdfRoute = createRoute({
   }
 });
 
+const getCombinedOrdersXlsRoute = createRoute({
+  method: "post",
+  path: "/flows/get-combined-orders-xls",
+  tags: ["Flows"],
+  request: {
+    headers: telegramContextHeadersSchema
+  },
+  responses: {
+    202: {
+      description: "Start combined orders XLS generation job",
+      content: {
+        "application/json": {
+          schema: combinedPdfListsJobAcceptedSchema
+        }
+      }
+    },
+    500: {
+      description: "Internal server error",
+      content: {
+        "application/json": {
+          schema: errorResponseSchema
+        }
+      }
+    }
+  }
+});
+
 export function registerFlowsController(
   app: OpenAPIHono,
   dependencies: {
@@ -268,6 +295,21 @@ export function registerFlowsController(
       const telegramContext = readTelegramRequestContext(c);
       const tenantContext = await dependencies.tenantService.resolveTenantContext(telegramContext);
       const result = await dependencies.flowsService.startWaitingOrdersPdfJob(
+        tenantContext.tenantId,
+        telegramContext.chatId,
+        telegramContext.languageCode ?? null
+      );
+      return c.json(result, 202);
+    } catch (error) {
+      return dependencies.handleRouteError(c, error) as never;
+    }
+  });
+
+  app.openapi(getCombinedOrdersXlsRoute, async (c) => {
+    try {
+      const telegramContext = readTelegramRequestContext(c);
+      const tenantContext = await dependencies.tenantService.resolveTenantContext(telegramContext);
+      const result = await dependencies.flowsService.startCombinedOrdersXlsJob(
         tenantContext.tenantId,
         telegramContext.chatId,
         telegramContext.languageCode ?? null

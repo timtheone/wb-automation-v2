@@ -439,6 +439,7 @@ class RecordingFlowsService implements BackendFlowsService {
   readonly combinedStartCalls: Array<{ tenantId: string; chatId: number }> = [];
   readonly combinedStatusCalls: string[] = [];
   readonly waitingStartCalls: Array<{ tenantId: string; chatId: number }> = [];
+  readonly combinedXlsStartCalls: Array<{ tenantId: string; chatId: number }> = [];
 
   async processAllShops(tenantId: string) {
     this.processCalls.push(tenantId);
@@ -507,6 +508,16 @@ class RecordingFlowsService implements BackendFlowsService {
 
     return {
       jobId: "job-3",
+      status: "queued" as const,
+      createdAt: new Date("2026-01-01T00:00:00.000Z")
+    };
+  }
+
+  async startCombinedOrdersXlsJob(tenantId: string, chatId: number, _languageCode: string | null) {
+    this.combinedXlsStartCalls.push({ tenantId, chatId });
+
+    return {
+      jobId: "job-4",
       status: "queued" as const,
       createdAt: new Date("2026-01-01T00:00:00.000Z")
     };

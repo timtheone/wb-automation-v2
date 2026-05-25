@@ -4,6 +4,7 @@ import type { BackendClient } from "../backend-client.js";
 import type { BotContext } from "../bot-types.js";
 import { createTranslator, type BotTranslator } from "../i18n/index.js";
 import { registerCancelCommand } from "./cancel-command.js";
+import { registerGenerateCombinedOrdersXlsCommand } from "./generate-combined-orders-xls-command.js";
 import { registerGeneratePdfsCommand } from "./generate-pdfs-command.js";
 import { registerGenerateWaitingOrdersPdfCommand } from "./generate-waiting-orders-pdf-command.js";
 import { registerHelpCommand } from "./help-command.js";
@@ -21,6 +22,7 @@ export async function registerCommands(bot: Bot<BotContext>, backend: BackendCli
   registerProcessAllShopsCommand(bot, backend);
   registerGeneratePdfsCommand(bot, backend);
   registerGenerateWaitingOrdersPdfCommand(bot, backend);
+  registerGenerateCombinedOrdersXlsCommand(bot, backend);
   registerSyncContentShopsCommand(bot, backend);
   registerShopsCommand(bot, backend);
 
@@ -39,6 +41,10 @@ function toTelegramCommands(t: BotTranslator) {
     {
       command: "generate_waiting_orders_pdf",
       description: t.commandDescriptions.generateWaitingOrdersPdf()
+    },
+    {
+      command: "generate_combined_orders_xls",
+      description: t.commandDescriptions.generateCombinedOrdersXls()
     },
     { command: "shops", description: t.commandDescriptions.shops() },
     { command: "cancel", description: t.commandDescriptions.cancel() }

@@ -1,4 +1,5 @@
 import type { GetCombinedPdfListsResult } from "@wb-automation-v2/core";
+import type { GetCombinedOrdersXlsResult } from "@wb-automation-v2/core";
 import type { SyncContentShopsResult } from "@wb-automation-v2/core";
 import type { WbTokenExpirationWarning } from "@wb-automation-v2/core";
 
@@ -20,6 +21,12 @@ export interface TelegramDeliveryService {
     languageCode: string | null
   ): Promise<void>;
   sendWaitingOrdersPdfFailed(chatId: number, errorMessage: string, languageCode: string | null): Promise<void>;
+  sendCombinedOrdersXlsGenerated(
+    chatId: number,
+    result: GetCombinedOrdersXlsResult,
+    languageCode: string | null
+  ): Promise<void>;
+  sendCombinedOrdersXlsFailed(chatId: number, errorMessage: string, languageCode: string | null): Promise<void>;
   sendSyncContentShopsCompleted(
     chatId: number,
     result: SyncContentShopsResult,
@@ -64,6 +71,12 @@ export function createTelegramDeliveryService(): TelegramDeliveryService {
         throw new Error("BOT_TOKEN is configured in backend environment");
       },
       async sendWaitingOrdersPdfFailed() {
+        throw new Error("BOT_TOKEN is configured in backend environment");
+      },
+      async sendCombinedOrdersXlsGenerated() {
+        throw new Error("BOT_TOKEN is configured in backend environment");
+      },
+      async sendCombinedOrdersXlsFailed() {
         throw new Error("BOT_TOKEN is configured in backend environment");
       },
       async sendSyncContentShopsCompleted() {
@@ -143,6 +156,30 @@ export function createTelegramDeliveryService(): TelegramDeliveryService {
     async sendWaitingOrdersPdfFailed(chatId, errorMessage, languageCode) {
       const locale = resolveLocale(languageCode);
       await sendMessage(baseUrl, chatId, t(locale, "waitingFailed", { errorMessage }));
+    },
+    async sendCombinedOrdersXlsGenerated(chatId, result, languageCode) {
+      const locale = resolveLocale(languageCode);
+
+      await sendMessage(baseUrl, chatId, t(locale, "xlsGenerationCompleted"));
+      await sendDocument(
+        baseUrl,
+        chatId,
+        result.xlsFileName,
+        result.xlsBase64,
+        "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+      );
+      await sendMessage(
+        baseUrl,
+        chatId,
+        t(locale, "xlsDone", {
+          totalOrdersCollected: result.deduplicatedRowsCount,
+          processedShops: result.processedShops
+        })
+      );
+    },
+    async sendCombinedOrdersXlsFailed(chatId, errorMessage, languageCode) {
+      const locale = resolveLocale(languageCode);
+      await sendMessage(baseUrl, chatId, t(locale, "xlsFailed", { errorMessage }));
     },
     async sendSyncContentShopsCompleted(chatId, result, languageCode) {
       const locale = resolveLocale(languageCode);
@@ -227,6 +264,9 @@ type DeliveryTemplateKey =
   | "waitingGenerationCompleted"
   | "waitingDone"
   | "waitingFailed"
+  | "xlsGenerationCompleted"
+  | "xlsDone"
+  | "xlsFailed"
   | "syncDone"
   | "syncFailed"
   | "syncFailuresSummaryHeader"
@@ -242,6 +282,9 @@ const DELIVERY_TEXTS: Record<DeliveryLocale, Record<DeliveryTemplateKey, string>
     waitingGenerationCompleted: "Waiting-orders PDF generation completed. Sending files...",
     waitingDone: "Done. Waiting orders collected: {totalOrdersCollected}. Shops processed: {processedShops}.",
     waitingFailed: "Waiting-orders PDF generation failed: {errorMessage}",
+    xlsGenerationCompleted: "Combined orders XLS generation completed. Sending file...",
+    xlsDone: "Done. Rows exported: {totalOrdersCollected}. Shops processed: {processedShops}.",
+    xlsFailed: "Combined orders XLS generation failed: {errorMessage}",
     syncDone:
       "sync_content_shops completed. Processed: {processedShops}. Success: {successCount}. Failed: {failureCount}. New cards added: {totalCardsUpserted}.",
     syncFailed: "sync_content_shops failed: {errorMessage}",
@@ -259,6 +302,9 @@ const DELIVERY_TEXTS: Record<DeliveryLocale, Record<DeliveryTemplateKey, string>
     waitingDone:
       "Готово. Собрано ожидающих заказов: {totalOrdersCollected}. Обработано магазинов: {processedShops}.",
     waitingFailed: "Генерация PDF для ожидающих заказов завершилась ошибкой: {errorMessage}",
+    xlsGenerationCompleted: "Генерация XLS по заказам завершена. Отправляю файл...",
+    xlsDone: "Готово. Экспортировано строк: {totalOrdersCollected}. Обработано магазинов: {processedShops}.",
+    xlsFailed: "Генерация XLS по заказам завершилась ошибкой: {errorMessage}",
     syncDone:
       "sync_content_shops завершен. Обработано: {processedShops}. Успешно: {successCount}. С ошибкой: {failureCount}. Новых карточек добавлено: {totalCardsUpserted}.",
     syncFailed: "sync_content_shops завершился ошибкой: {errorMessage}",
@@ -306,13 +352,14 @@ async function sendDocument(
   baseUrl: string,
   chatId: number,
   fileName: string,
-  base64Pdf: string
+  base64File: string,
+  contentType = "application/pdf"
 ): Promise<void> {
   const form = new FormData();
   form.append("chat_id", String(chatId));
   form.append(
     "document",
-    new Blob([Buffer.from(base64Pdf, "base64")], { type: "application/pdf" }),
+    new Blob([Buffer.from(base64File, "base64")], { type: contentType }),
     fileName
   );
 

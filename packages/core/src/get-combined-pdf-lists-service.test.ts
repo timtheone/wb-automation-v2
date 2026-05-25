@@ -1,6 +1,8 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
+import * as XLSX from "xlsx";
 
 import {
+  createGetCombinedOrdersXlsService,
   createGetCombinedPdfListsService,
   createGetWaitingOrdersPdfListsService,
   type Database,
@@ -287,6 +289,121 @@ describe("get combined pdf lists service", () => {
     });
     expect(pdfBase64ToHeader(result.orderListPdfBase64)).toBe("%PDF");
     expect(pdfBase64ToHeader(result.stickersPdfBase64)).toBe("%PDF");
+  });
+
+  it("generates deduplicated XLS with vendorCode and Тип column", async () => {
+    testState.shops = {
+      async listActiveShops() {
+        return [createShop({ id: "shop-a", name: "Shop A" })];
+      }
+    };
+
+    testState.productCards = {
+      async getByShopIdAndNmIds(shopId: string, nmIds: number[]): Promise<ProductCard[]> {
+        return nmIds.map((nmId) => ({
+          shopId,
+          nmId,
+          vendorCode: `vc-${nmId}`,
+          brand: "Brand",
+          title: `Title-${nmId}`,
+          img: null,
+          ageGroup: "6+",
+          wbCreatedAt: null,
+          wbUpdatedAt: null,
+          syncedAt: new Date("2026-01-01T00:00:00.000Z")
+        }));
+      }
+    };
+
+    let supplyCalls = 0;
+    testState.createClient = () =>
+      createClient({
+        async GET(path, options) {
+          if (path === "/api/v3/supplies") {
+            supplyCalls += 1;
+            return {
+              data: {
+                next: 0,
+                supplies:
+                  supplyCalls === 1
+                    ? [{ id: "SUP-NEW", done: true, name: "pref_1", closedAt: "2026-01-03T00:00:00.000Z" }]
+                    : [
+                        { id: "SUP-NEW", done: true, name: "pref_1", closedAt: "2026-01-03T00:00:00.000Z" },
+                        { id: "SUP-OLD", done: true, name: "pref_2", closedAt: "2026-01-02T00:00:00.000Z" }
+                      ]
+              },
+              response: new Response(null, { status: 200 })
+            };
+          }
+
+          if (path === "/api/marketplace/v3/supplies/{supplyId}/order-ids") {
+            const supplyId = (options as { params?: { path?: { supplyId?: string } } })?.params?.path?.supplyId;
+            return {
+              data: {
+                orderIds: supplyId === "SUP-OLD" ? [5001] : [5001, 5002]
+              },
+              response: new Response(null, { status: 200 })
+            };
+          }
+
+          if (path === "/api/v3/orders") {
+            return {
+              data: {
+                next: 0,
+                orders: [
+                  { id: 5001, nmId: 101 },
+                  { id: 5002, nmId: 102 }
+                ]
+              },
+              response: new Response(null, { status: 200 })
+            };
+          }
+
+          throw new Error(`Unexpected GET ${path}`);
+        },
+        async POST(path) {
+          if (path === "/api/v3/orders/status") {
+            return {
+              data: {
+                orders: [
+                  { id: 5001, supplierStatus: "confirm" },
+                  { id: 5002, supplierStatus: "new" }
+                ]
+              },
+              response: new Response(null, { status: 200 })
+            };
+          }
+
+          if (path === "/api/v3/orders/stickers") {
+            return {
+              data: {
+                stickers: []
+              },
+              response: new Response(null, { status: 200 })
+            };
+          }
+
+          throw new Error(`Unexpected POST ${path}`);
+        }
+      });
+
+    const service = createGetCombinedOrdersXlsService({
+      tenantId: "tenant-1",
+      db: {} as Database,
+      now: () => new Date("2026-02-19T11:15:00.000Z")
+    });
+
+    const result = await service.getCombinedOrdersXls();
+    expect(result.combinedRowsCount).toBe(2);
+    expect(result.deduplicatedRowsCount).toBe(2);
+
+    const workbook = XLSX.read(Buffer.from(result.xlsBase64, "base64"), { type: "buffer" });
+    const worksheet = workbook.Sheets["Orders"];
+    expect(worksheet).toBeDefined();
+    const rows = XLSX.utils.sheet_to_json<Record<string, string>>(worksheet as XLSX.WorkSheet);
+    expect(rows).toHaveLength(2);
+    expect(rows[0]?.["Арт.Продавца"]).toBe("vc-101");
+    expect(rows[0]?.["Наименование"]).toBe("Title-101");
   });
 
   it("filters waiting orders and excludes newest supply for waiting flow", async () => {

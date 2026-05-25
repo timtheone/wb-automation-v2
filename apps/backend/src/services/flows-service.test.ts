@@ -101,6 +101,24 @@ vi.mock("@wb-automation-v2/core", async () => {
         return fakeCombinedResult;
       }
     }),
+    createGetCombinedOrdersXlsService: () => ({
+      async getCombinedOrdersXls() {
+        return {
+          startedAt: new Date("2026-01-01T00:00:00.000Z"),
+          finishedAt: new Date("2026-01-01T00:00:01.000Z"),
+          processedShops: 0,
+          successCount: 0,
+          skippedCount: 0,
+          failureCount: 0,
+          totalOrdersCollected: 0,
+          combinedRowsCount: 0,
+          deduplicatedRowsCount: 0,
+          xlsFileName: "orders.xlsx",
+          xlsBase64: "",
+          results: []
+        };
+      }
+    }),
     createGetWaitingOrdersPdfListsService: () => ({
       async getWaitingOrdersPdfLists() {
         return fakeCombinedResult;
@@ -166,6 +184,8 @@ vi.mock("./telegram-delivery-service.js", async () => {
       async sendCombinedPdfFailed() {},
       async sendWaitingOrdersPdfGenerated() {},
       async sendWaitingOrdersPdfFailed() {},
+      async sendCombinedOrdersXlsGenerated() {},
+      async sendCombinedOrdersXlsFailed() {},
       async sendSyncContentShopsCompleted() {},
       async sendSyncContentShopsFailed() {},
       async sendSyncContentShopsFailureSummary() {},

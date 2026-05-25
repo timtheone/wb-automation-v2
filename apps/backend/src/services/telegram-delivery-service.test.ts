@@ -140,6 +140,34 @@ describe("telegram delivery service", () => {
     );
   });
 
+  it("sends combined-orders XLS artifact", async () => {
+    const fetchMock = vi.fn(async () => new Response("ok", { status: 200 }));
+    vi.stubGlobal("fetch", fetchMock);
+
+    const service = createTelegramDeliveryService();
+
+    await service.sendCombinedOrdersXlsGenerated(
+      987,
+      {
+        startedAt: new Date("2026-02-20T10:00:00.000Z"),
+        finishedAt: new Date("2026-02-20T10:00:10.000Z"),
+        processedShops: 2,
+        successCount: 2,
+        skippedCount: 0,
+        failureCount: 0,
+        totalOrdersCollected: 14,
+        combinedRowsCount: 16,
+        deduplicatedRowsCount: 14,
+        xlsFileName: "orders.xlsx",
+        xlsBase64: "aGVsbG8=",
+        results: []
+      },
+      "en"
+    );
+
+    expect(fetchMock).toHaveBeenCalledTimes(3);
+  });
+
   it("returns throwing stubs when BOT_TOKEN is missing", async () => {
     testState.botToken = undefined;
     const service = createTelegramDeliveryService();

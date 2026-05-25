@@ -8,6 +8,7 @@ const en = {
     syncContentShops: "Run sync_content_shops flow",
     generatePdfs: "Generate PDFs for latest supply",
     generateWaitingOrdersPdf: "Run get_waiting_orders_pdf flow",
+    generateCombinedOrdersXls: "Generate combined orders XLS",
     shops: "Open shops CRUD menu",
     cancel: "Cancel current input flow"
   },
@@ -80,6 +81,11 @@ const en = {
       requesting: "Starting waiting-orders PDF generation...",
       queued: "Started in background. I will send waiting-orders PDFs when generation is complete.",
       alreadyRunning: "Waiting-orders PDF generation is already running for this chat."
+    },
+    generateCombinedOrdersXls: {
+      requesting: "Starting combined-orders XLS generation...",
+      queued: "Started in background. I will send XLS when generation is complete.",
+      alreadyRunning: "Combined-orders XLS generation is already running for this chat."
     }
   },
   shops: {
@@ -180,6 +186,7 @@ const ruOverrides: DeepPartial<TranslationDictionary> = {
     syncContentShops: "Запустить процесс sync_content_shops",
     generatePdfs: "Сгенерировать PDF по последней поставке",
     generateWaitingOrdersPdf: "Запустить процесс get_waiting_orders_pdf",
+    generateCombinedOrdersXls: "Сгенерировать XLS по заказам",
     shops: "Открыть меню магазинов",
     cancel: "Отменить текущий ввод"
   },
@@ -250,6 +257,11 @@ const ruOverrides: DeepPartial<TranslationDictionary> = {
       requesting: "Запускаю генерацию PDF для ожидающих заказов...",
       queued: "Запущено в фоне. Отправлю PDF для ожидающих заказов, когда генерация завершится.",
       alreadyRunning: "Генерация PDF для ожидающих заказов уже выполняется для этого чата."
+    },
+    generateCombinedOrdersXls: {
+      requesting: "Запускаю генерацию XLS по заказам...",
+      queued: "Запущено в фоне. Отправлю XLS, когда генерация завершится.",
+      alreadyRunning: "Генерация XLS по заказам уже выполняется для этого чата."
     }
   },
   shops: {

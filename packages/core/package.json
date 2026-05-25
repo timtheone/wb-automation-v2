@@ -14,7 +14,8 @@
     "@wb-automation-v2/db": "workspace:*",
     "@wb-automation-v2/wb-clients": "workspace:*",
     "pdfkit": "^0.17.2",
-    "sharp": "^0.34.5"
+    "sharp": "^0.34.5",
+    "xlsx": "https://cdn.sheetjs.com/xlsx-0.20.3/xlsx-0.20.3.tgz"
   },
   "devDependencies": {
     "@types/pdfkit": "^0.17.5"

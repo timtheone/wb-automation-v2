@@ -721,6 +721,56 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/flows/get-combined-orders-xls": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: {
+            parameters: {
+                query?: never;
+                header: {
+                    "x-telegram-chat-id": string;
+                    "x-telegram-chat-type": "private" | "group" | "supergroup" | "channel";
+                    "x-telegram-user-id": string;
+                    "x-telegram-owner-user-id": string;
+                    "x-telegram-language-code"?: string;
+                };
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description Start combined orders XLS generation job */
+                202: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["CombinedPdfListsJobAccepted"];
+                    };
+                };
+                /** @description Internal server error */
+                500: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ErrorResponse"];
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
 }
 export type webhooks = Record<string, never>;
 export interface components {
