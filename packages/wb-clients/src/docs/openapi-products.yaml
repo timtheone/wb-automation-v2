@@ -56,6 +56,8 @@ paths:
             <li><a href="/openapi/work-with-products#tag/Creating-Product-Cards/paths/~1content~1v2~1cards~1upload~1add/post">creating product cards with merge</a></li>
             <li><a href="/openapi/work-with-products#tag/Product-Cards/paths/~1content~1v2~1cards~1update/post">editing product cards</a></li>
             <li><a href="/openapi/work-with-products#tag/Product-Cards/paths/~1content~1v2~1cards~1error~1list/post">getting failed product cards with errors</a></li>
+            <li><a href="/openapi/work-with-products#tag/Product-Cards/paths/~1content~1v2~1cards~1delete~1trash/post">transfering product card to trash</a></li>
+            <li><a href="/openapi/work-with-products#tag/Product-Cards/paths/~1content~1v2~1cards~1recover/post">recovering product card from trash</a></li>
         </ul>
         </div>
       tags:
@@ -151,6 +153,8 @@ paths:
             <li><a href="/openapi/work-with-products#tag/Creating-Product-Cards/paths/~1content~1v2~1cards~1upload~1add/post">creating product cards with merge</a></li>
             <li><a href="/openapi/work-with-products#tag/Product-Cards/paths/~1content~1v2~1cards~1update/post">editing product cards</a></li>
             <li><a href="/openapi/work-with-products#tag/Product-Cards/paths/~1content~1v2~1cards~1error~1list/post">getting failed product cards with errors</a></li>
+            <li><a href="/openapi/work-with-products#tag/Product-Cards/paths/~1content~1v2~1cards~1delete~1trash/post">transfering product card to trash</a></li>
+            <li><a href="/openapi/work-with-products#tag/Product-Cards/paths/~1content~1v2~1cards~1recover/post">recovering product card from trash</a></li>
         </ul>
         </div>
       tags:
@@ -180,14 +184,14 @@ paths:
             type: integer
             example: 1000
             default: 30
-            description: Number of search results, maximum 1,000
+          description: Number of search results, maximum 1,000
         - name: offset
           in: query
           schema:
             type: integer
             example: 5000
             default: 0
-            description: How many results to skip. For example, with value `10`, the response will start with the 11 element
+          description: How many results to skip. For example, with value `10`, the response will start with the 11 element
         - name: parentID
           in: query
           schema:
@@ -272,6 +276,8 @@ paths:
             <li><a href="/openapi/work-with-products#tag/Creating-Product-Cards/paths/~1content~1v2~1cards~1upload~1add/post">creating product cards with merge</a></li>
             <li><a href="/openapi/work-with-products#tag/Product-Cards/paths/~1content~1v2~1cards~1update/post">editing product cards</a></li>
             <li><a href="/openapi/work-with-products#tag/Product-Cards/paths/~1content~1v2~1cards~1error~1list/post">getting failed product cards with errors</a></li>
+            <li><a href="/openapi/work-with-products#tag/Product-Cards/paths/~1content~1v2~1cards~1delete~1trash/post">transfering product card to trash</a></li>
+            <li><a href="/openapi/work-with-products#tag/Product-Cards/paths/~1content~1v2~1cards~1recover/post">recovering product card from trash</a></li>
         </ul>
         </div>
       tags:
@@ -348,6 +354,21 @@ paths:
                               -  `1` — array of strings
                               -  `4` — number
                               -  `0` — characteristic is not used
+                        hasFilter:
+                          type: boolean
+                          description: |
+                            Key characteristic. Is it an important characteristic for buyers:
+                              - `true` — yes
+                              - `false` — no
+                        isVariable:
+                          type: boolean
+                          description: |
+                            A sign of variable characteristic. The value marks out the characteristics by which the variants differ from each other:
+                              - `true` — item variants differ by this characteristic
+                              - `false` — item variants do not differ by this characteristic
+                        existNamedField:
+                          type: boolean
+                          description: "How to transfer a characteristic in requests for [creating](./work-with-products/#tag/Creating-Product-Cards/paths/~1content~1v2~1cards~1upload/post),\_[creating with merge](./work-with-products/#tag/Creating-Product-Cards/paths/~1content~1v2~1cards~1upload~1add/post), and\_[editing](./work-with-products/#tag/Product-Cards/paths/~1content~1v2~1cards~1update/post) listings:\n  - `true` — as a separate parameter in the request\n  - `false` — in the `characteristics` array\n"
                   error:
                     type: boolean
                     description: Error flag
@@ -369,6 +390,9 @@ paths:
                       maxCount: 0
                       popular: false
                       charcType: 4
+                      hasFilter: true
+                      isVariable: true
+                      existNamedField: true
                   error: false
                   errorText: ''
                   additionalErrors: null
@@ -413,6 +437,8 @@ paths:
             <li><a href="/openapi/work-with-products#tag/Creating-Product-Cards/paths/~1content~1v2~1cards~1upload~1add/post">creating product cards with merge</a></li>
             <li><a href="/openapi/work-with-products#tag/Product-Cards/paths/~1content~1v2~1cards~1update/post">editing product cards</a></li>
             <li><a href="/openapi/work-with-products#tag/Product-Cards/paths/~1content~1v2~1cards~1error~1list/post">getting failed product cards with errors</a></li>
+            <li><a href="/openapi/work-with-products#tag/Product-Cards/paths/~1content~1v2~1cards~1delete~1trash/post">transfering product card to trash</a></li>
+            <li><a href="/openapi/work-with-products#tag/Product-Cards/paths/~1content~1v2~1cards~1recover/post">recovering product card from trash</a></li>
         </ul>
         </div>
       tags:
@@ -504,6 +530,8 @@ paths:
             <li><a href="/openapi/work-with-products#tag/Creating-Product-Cards/paths/~1content~1v2~1cards~1upload~1add/post">creating product cards with merge</a></li>
             <li><a href="/openapi/work-with-products#tag/Product-Cards/paths/~1content~1v2~1cards~1update/post">editing product cards</a></li>
             <li><a href="/openapi/work-with-products#tag/Product-Cards/paths/~1content~1v2~1cards~1error~1list/post">getting failed product cards with errors</a></li>
+            <li><a href="/openapi/work-with-products#tag/Product-Cards/paths/~1content~1v2~1cards~1delete~1trash/post">transfering product card to trash</a></li>
+            <li><a href="/openapi/work-with-products#tag/Product-Cards/paths/~1content~1v2~1cards~1recover/post">recovering product card from trash</a></li>
         </ul>
         </div>
       tags:
@@ -589,6 +617,8 @@ paths:
             <li><a href="/openapi/work-with-products#tag/Creating-Product-Cards/paths/~1content~1v2~1cards~1upload~1add/post">creating product cards with merge</a></li>
             <li><a href="/openapi/work-with-products#tag/Product-Cards/paths/~1content~1v2~1cards~1update/post">editing product cards</a></li>
             <li><a href="/openapi/work-with-products#tag/Product-Cards/paths/~1content~1v2~1cards~1error~1list/post">getting failed product cards with errors</a></li>
+            <li><a href="/openapi/work-with-products#tag/Product-Cards/paths/~1content~1v2~1cards~1delete~1trash/post">transfering product card to trash</a></li>
+            <li><a href="/openapi/work-with-products#tag/Product-Cards/paths/~1content~1v2~1cards~1recover/post">recovering product card from trash</a></li>
         </ul>
         </div>
       tags:
@@ -684,6 +714,8 @@ paths:
             <li><a href="/openapi/work-with-products#tag/Creating-Product-Cards/paths/~1content~1v2~1cards~1upload~1add/post">creating product cards with merge</a></li>
             <li><a href="/openapi/work-with-products#tag/Product-Cards/paths/~1content~1v2~1cards~1update/post">editing product cards</a></li>
             <li><a href="/openapi/work-with-products#tag/Product-Cards/paths/~1content~1v2~1cards~1error~1list/post">getting failed product cards with errors</a></li>
+            <li><a href="/openapi/work-with-products#tag/Product-Cards/paths/~1content~1v2~1cards~1delete~1trash/post">transfering product card to trash</a></li>
+            <li><a href="/openapi/work-with-products#tag/Product-Cards/paths/~1content~1v2~1cards~1recover/post">recovering product card from trash</a></li>
         </ul>
         </div>
       tags:
@@ -710,7 +742,7 @@ paths:
                 type: object
                 properties:
                   data:
-                    description: Array of values for season characteristic.
+                    description: Array of values for season characteristic
                     type: array
                     items:
                       type: string
@@ -769,6 +801,8 @@ paths:
             <li><a href="/openapi/work-with-products#tag/Creating-Product-Cards/paths/~1content~1v2~1cards~1upload~1add/post">creating product cards with merge</a></li>
             <li><a href="/openapi/work-with-products#tag/Product-Cards/paths/~1content~1v2~1cards~1update/post">editing product cards</a></li>
             <li><a href="/openapi/work-with-products#tag/Product-Cards/paths/~1content~1v2~1cards~1error~1list/post">getting failed product cards with errors</a></li>
+            <li><a href="/openapi/work-with-products#tag/Product-Cards/paths/~1content~1v2~1cards~1delete~1trash/post">transfering product card to trash</a></li>
+            <li><a href="/openapi/work-with-products#tag/Product-Cards/paths/~1content~1v2~1cards~1recover/post">recovering product card from trash</a></li>
         </ul>
         </div>
       tags:
@@ -859,6 +893,8 @@ paths:
             <li><a href="/openapi/work-with-products#tag/Creating-Product-Cards/paths/~1content~1v2~1cards~1upload~1add/post">creating product cards with merge</a></li>
             <li><a href="/openapi/work-with-products#tag/Product-Cards/paths/~1content~1v2~1cards~1update/post">editing product cards</a></li>
             <li><a href="/openapi/work-with-products#tag/Product-Cards/paths/~1content~1v2~1cards~1error~1list/post">getting failed product cards with errors</a></li>
+            <li><a href="/openapi/work-with-products#tag/Product-Cards/paths/~1content~1v2~1cards~1delete~1trash/post">transfering product card to trash</a></li>
+            <li><a href="/openapi/work-with-products#tag/Product-Cards/paths/~1content~1v2~1cards~1recover/post">recovering product card from trash</a></li>
         </ul>
         </div>
       tags:
@@ -909,8 +945,8 @@ paths:
                         isKiz:
                           type: boolean
                           description: |
-                            - `true` - labeling code is required
-                            - `false` - labeling code is not required
+                            - `true` — [Chestny ZNAK](https://chestnyznak.ru/en) labeling code is required
+                            - `false` — labeling code [Chestny ZNAK](https://chestnyznak.ru/en) is not required
                   error:
                     type: boolean
                     description: Error flag
@@ -960,9 +996,13 @@ paths:
         <div class="description_limit">
         <a href="/openapi/api-information#tag/Introduction/Rate-Limits">Request limit</a> per one seller's account:
 
-        | Period | Limit | Interval | Burst |
-        | --- | --- | --- | --- |
-        | 1 s | 1 request | 1 s | 5 requests |
+
+        | Type | Period | Limit | Interval | Burst |
+        | --- | --- | --- | --- | --- |
+        | Personal | 1 s | 1 request | 1 s | 5 requests |
+        | Service | 1 s | 1 request | 1 s | 5 requests |
+        | Base with secret | 1 s | 1 request | 1 s | 5 requests |
+        | Base | 1 h | 1 request | 1 h | 1 request |
         </div>
       tags:
         - Categories, Subjects, and Characteristics
@@ -1036,6 +1076,8 @@ paths:
             <li><a href="/openapi/work-with-products#tag/Creating-Product-Cards/paths/~1content~1v2~1cards~1upload~1add/post">creating product cards with merge</a></li>
             <li><a href="/openapi/work-with-products#tag/Product-Cards/paths/~1content~1v2~1cards~1update/post">editing product cards</a></li>
             <li><a href="/openapi/work-with-products#tag/Product-Cards/paths/~1content~1v2~1cards~1error~1list/post">getting failed product cards with errors</a></li>
+            <li><a href="/openapi/work-with-products#tag/Product-Cards/paths/~1content~1v2~1cards~1delete~1trash/post">transfering product card to trash</a></li>
+            <li><a href="/openapi/work-with-products#tag/Product-Cards/paths/~1content~1v2~1cards~1recover/post">recovering product card from trash</a></li>
         </ul>
         </div>
       tags:
@@ -1082,6 +1124,8 @@ paths:
                 additionalErrors: ''
         '401':
           $ref: '#/components/responses/401'
+        '402':
+          $ref: '#/components/responses/402'
         '403':
           description: Access denied
           content:
@@ -1119,6 +1163,8 @@ paths:
             <li><a href="/openapi/work-with-products#tag/Creating-Product-Cards/paths/~1content~1v2~1cards~1upload~1add/post">creating product cards with merge</a></li>
             <li><a href="/openapi/work-with-products#tag/Product-Cards/paths/~1content~1v2~1cards~1update/post">editing product cards</a></li>
             <li><a href="/openapi/work-with-products#tag/Product-Cards/paths/~1content~1v2~1cards~1error~1list/post">getting failed product cards with errors</a></li>
+            <li><a href="/openapi/work-with-products#tag/Product-Cards/paths/~1content~1v2~1cards~1delete~1trash/post">transfering product card to trash</a></li>
+            <li><a href="/openapi/work-with-products#tag/Product-Cards/paths/~1content~1v2~1cards~1recover/post">recovering product card from trash</a></li>
         </ul>
         </div>
       tags:
@@ -1171,6 +1217,8 @@ paths:
                   $ref: '#/components/examples/responseBodyNameNotExist'
         '401':
           $ref: '#/components/responses/401'
+        '402':
+          $ref: '#/components/responses/402'
         '403':
           description: Access denied
           content:
@@ -1204,6 +1252,8 @@ paths:
             <li><a href="/openapi/work-with-products#tag/Creating-Product-Cards/paths/~1content~1v2~1cards~1upload~1add/post">creating product cards with merge</a></li>
             <li><a href="/openapi/work-with-products#tag/Product-Cards/paths/~1content~1v2~1cards~1update/post">editing product cards</a></li>
             <li><a href="/openapi/work-with-products#tag/Product-Cards/paths/~1content~1v2~1cards~1error~1list/post">getting failed product cards with errors</a></li>
+            <li><a href="/openapi/work-with-products#tag/Product-Cards/paths/~1content~1v2~1cards~1delete~1trash/post">transfering product card to trash</a></li>
+            <li><a href="/openapi/work-with-products#tag/Product-Cards/paths/~1content~1v2~1cards~1recover/post">recovering product card from trash</a></li>
         </ul>
         </div>
       tags:
@@ -1255,6 +1305,8 @@ paths:
                   $ref: '#/components/examples/responseBody400LenName'
         '401':
           $ref: '#/components/responses/401'
+        '402':
+          $ref: '#/components/responses/402'
         '403':
           description: Access denied
           content:
@@ -1285,6 +1337,8 @@ paths:
             <li><a href="/openapi/work-with-products#tag/Creating-Product-Cards/paths/~1content~1v2~1cards~1upload~1add/post">creating product cards with merge</a></li>
             <li><a href="/openapi/work-with-products#tag/Product-Cards/paths/~1content~1v2~1cards~1update/post">editing product cards</a></li>
             <li><a href="/openapi/work-with-products#tag/Product-Cards/paths/~1content~1v2~1cards~1error~1list/post">getting failed product cards with errors</a></li>
+            <li><a href="/openapi/work-with-products#tag/Product-Cards/paths/~1content~1v2~1cards~1delete~1trash/post">transfering product card to trash</a></li>
+            <li><a href="/openapi/work-with-products#tag/Product-Cards/paths/~1content~1v2~1cards~1recover/post">recovering product card from trash</a></li>
         </ul>
         </div>
       tags:
@@ -1320,6 +1374,8 @@ paths:
                   $ref: '#/components/examples/responseBodyTagNotExist'
         '401':
           $ref: '#/components/responses/401'
+        '402':
+          $ref: '#/components/responses/402'
         '403':
           description: Access denied
           content:
@@ -1355,6 +1411,8 @@ paths:
             <li><a href="/openapi/work-with-products#tag/Creating-Product-Cards/paths/~1content~1v2~1cards~1upload~1add/post">creating product cards with merge</a></li>
             <li><a href="/openapi/work-with-products#tag/Product-Cards/paths/~1content~1v2~1cards~1update/post">editing product cards</a></li>
             <li><a href="/openapi/work-with-products#tag/Product-Cards/paths/~1content~1v2~1cards~1error~1list/post">getting failed product cards with errors</a></li>
+            <li><a href="/openapi/work-with-products#tag/Product-Cards/paths/~1content~1v2~1cards~1delete~1trash/post">transfering product card to trash</a></li>
+            <li><a href="/openapi/work-with-products#tag/Product-Cards/paths/~1content~1v2~1cards~1recover/post">recovering product card from trash</a></li>
         </ul>
         </div>
       tags:
@@ -1400,6 +1458,8 @@ paths:
                   $ref: '#/components/examples/IncorrectRequestNm'
         '401':
           $ref: '#/components/responses/401'
+        '402':
+          $ref: '#/components/responses/402'
         '403':
           description: Access denied
           content:
@@ -1469,6 +1529,8 @@ paths:
             <li><a href="/openapi/work-with-products#tag/Creating-Product-Cards/paths/~1content~1v2~1cards~1upload~1add/post">creating product cards with merge</a></li>
             <li><a href="/openapi/work-with-products#tag/Product-Cards/paths/~1content~1v2~1cards~1update/post">editing product cards</a></li>
             <li><a href="/openapi/work-with-products#tag/Product-Cards/paths/~1content~1v2~1cards~1error~1list/post">getting failed product cards with errors</a></li>
+            <li><a href="/openapi/work-with-products#tag/Product-Cards/paths/~1content~1v2~1cards~1delete~1trash/post">transfering product card to trash</a></li>
+            <li><a href="/openapi/work-with-products#tag/Product-Cards/paths/~1content~1v2~1cards~1recover/post">recovering product card from trash</a></li>
         </ul>
         </div>
       parameters:
@@ -1502,18 +1564,27 @@ paths:
                         ascending:
                           type: boolean
                           default: false
-                          description: Sort by the `updatedAt` field (`false` - descending, `true` - ascending)
+                          description: |
+                            Sort by the `updatedAt` field:
+                              - `false` — descending
+                              -  `true` — ascending
                     filter:
                       description: Filters
                       type: object
                       properties:
                         withPhoto:
                           type: integer
+                          enum:
+                            - -1
+                            - 0
+                            - 1
+                            - 2
                           description: |
                             Photo:
-                              * `0` — only cards without photos
+                              * `-1` — any cards
+                              * `0` — only cards without photos. Starting from [June 16](https://dev.wildberries.ru/en/release-notes?id=531) — any cards
                               * `1` — only cards with photos
-                              * `-1` — all cards
+                              * `2` — only cards without photos. Starting from [June 16](https://dev.wildberries.ru/en/release-notes?id=531)
                           default: 0
                         textSearch:
                           type: string
@@ -1525,7 +1596,9 @@ paths:
                             type: integer
                         allowedCategoriesOnly:
                           description: |
-                            Category: true — permitted, false — forbidden
+                            Category:
+                              - `true` — permitted
+                              - `false` — forbidden
                           type: boolean
                         objectIDs:
                           type: array
@@ -1552,6 +1625,7 @@ paths:
                           description: Number of cards in response
                         updatedAt:
                           type: string
+                          nullable: true
                           description: Update date and time
                         nmID:
                           type: integer
@@ -1573,7 +1647,7 @@ paths:
                     - уллу
                     - EkkE
                   imtID: 328632
-                  withPhoto: -1
+                  withPhoto: 0
                 cursor:
                   updatedAt: '2023-12-06T11:17:00.96577Z'
                   nmID: 370870300
@@ -1625,12 +1699,22 @@ paths:
                           description: Product description
                         needKiz:
                           description: |
-                            Is a [labeling code](https://chestnyznak.ru/en) required for the product
+                            Is labeling code [Chestny ZNAK](https://chestnyznak.ru/en) required for the product:
                             <br>
-                            * `false` — labeling code is not required
+                              - `false` — labeling code is not required
                             <br>
-                            * `true` — labeling code is required
+                              -`true` — labeling code is required
                           type: boolean
+                        kizMarked:
+                          type: boolean
+                          default: false
+                          nullable: false
+                          description: |
+                            Is there the confirmation from the seller that required labeling code [Chestny ZNAK](https://chestnyznak.ru/en) is applied to the product:
+                              - `true` — yes
+                              - `false` — no
+
+                            Whether labeling code [Chestny ZNAK](https://chestnyznak.ru/en) is required is specified in the `needKiz` field
                         photos:
                           type: array
                           description: Photo array
@@ -1774,6 +1858,7 @@ paths:
                     subjectID: 7771
                     subjectName: AKF системы
                     vendorCode: wb7f6mumjr1
+                    kizMarked: true
                     brand: Тест
                     title: Тест-система
                     description: Тестовое описание
@@ -1824,6 +1909,8 @@ paths:
               example: Request body can not be decoded
         '401':
           $ref: '#/components/responses/401'
+        '402':
+          $ref: '#/components/responses/402'
         '403':
           description: Access denied
           content:
@@ -1946,6 +2033,7 @@ paths:
                           - 'Поле Наименование не должно содержать запрещенные символы: 😊 🤨 😈'
                         wb64nayozt:
                           - 'Поле Наименование не должно содержать запрещенные символы: 😈 😊 🤨'
+                      updatedAt: '2025-12-19T23:59:59Z'
                     - batchUUID: 30aa42ec-fb49-45ec-86d5-ddf9911e7e3f
                       subjects:
                         test_pasha1:
@@ -1958,9 +2046,10 @@ paths:
                         test_pasha1:
                           - Запрещено использовать E-Mail в поле Наименование
                           - Запрещено использовать E-Mail в поле Описание
+                      updatedAt: '2025-12-20T23:59:59Z'
                   cursor:
                     next: true
-                    updatedAt: '2025-08-25T10:05:21Z'
+                    updatedAt: '2025-12-20T23:59:59Z'
                     batchUUID: 1cd79751-de1f-46c8-a444-a941d35dde56
                 error: false
                 errorText: ''
@@ -2040,6 +2129,15 @@ paths:
                   vendorCode:
                     type: string
                     description: Seller's article
+                  kizMarked:
+                    type: boolean
+                    default: false
+                    description: |
+                      Confirmation that required labeling code [Chestny ZNAK](https://chestnyznak.ru/en) is specified:
+                        - `true` — the seller confirms that required labeling code is applied to the product.
+                        - `false` — the seller does not confirm that required labeling code is applied to the product. Pass `true` in the request to confirm that the product has required labeling code. The item will not pass moderation if there is no confirmation from the seller that required labeling code is applied to the product.
+
+                      To check if labeling code [Chestny ZNAK](https://chestnyznak.ru/en) is required, use the [Product Cards List](./work-with-products#tag/Product-Cards/paths/~1content~1v2~1get~1cards~1list/post) method, the response field `needKiz`
                   brand:
                     type: string
                     description: Brand
@@ -2128,6 +2226,7 @@ paths:
               example:
                 - nmID: 11111111
                   vendorCode: wbiz72wmro
+                  kizMarked: true
                   brand: ''
                   title: Свитер женский оверсайз с горлом
                   description: '12345'
@@ -2167,8 +2266,15 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/responseBodyContentError400'
+              examples:
+                MissingRequiredCharacteristics:
+                  $ref: '#/components/examples/MissingRequiredCharacteristics'
+                NonUniqueCharacteristicsInOneGroupAdd:
+                  $ref: '#/components/examples/NonUniqueCharacteristicsInOneGroupAdd'
         '401':
           $ref: '#/components/responses/401'
+        '402':
+          $ref: '#/components/responses/402'
         '403':
           description: Access denied
           content:
@@ -2252,6 +2358,8 @@ paths:
             <li><a href="/openapi/work-with-products#tag/Creating-Product-Cards/paths/~1content~1v2~1cards~1upload~1add/post">creating product cards with merge</a></li>
             <li><a href="/openapi/work-with-products#tag/Product-Cards/paths/~1content~1v2~1cards~1update/post">editing product cards</a></li>
             <li><a href="/openapi/work-with-products#tag/Product-Cards/paths/~1content~1v2~1cards~1error~1list/post">getting failed product cards with errors</a></li>
+            <li><a href="/openapi/work-with-products#tag/Product-Cards/paths/~1content~1v2~1cards~1delete~1trash/post">transfering product card to trash</a></li>
+            <li><a href="/openapi/work-with-products#tag/Product-Cards/paths/~1content~1v2~1cards~1recover/post">recovering product card from trash</a></li>
         </ul>
         </div>
       requestBody:
@@ -2304,6 +2412,8 @@ paths:
                   $ref: '#/components/examples/responseIncorrectEndDate'
         '401':
           $ref: '#/components/responses/401'
+        '402':
+          $ref: '#/components/responses/402'
         '403':
           description: Access denied
           content:
@@ -2343,19 +2453,11 @@ paths:
         A card will remain for sale as long as there is any inventory left, even if moved to the trash. To completely remove the card from sale, set its inventory to zero.
 
         <div class="description_limit">
-        <a href="/openapi/api-information#tag/Introduction/Rate-Limits">Request limit</a> per one seller's account for all methods in the <strong>Content</strong> category:
+        <a href="/openapi/api-information#tag/Introduction/Rate-Limits">Request limit</a> per one seller's account:
 
         | Period | Limit | Interval | Burst |
         | --- | --- | --- | --- |
-        | 1 min | 100 requests | 600 ms | 5 requests |
-
-        Exceptions are the methods:
-        <ul>
-            <li><a href="/openapi/work-with-products#tag/Creating-Product-Cards/paths/~1content~1v2~1cards~1upload/post">creating product cards</a></li>
-            <li><a href="/openapi/work-with-products#tag/Creating-Product-Cards/paths/~1content~1v2~1cards~1upload~1add/post">creating product cards with merge</a></li>
-            <li><a href="/openapi/work-with-products#tag/Product-Cards/paths/~1content~1v2~1cards~1update/post">editing product cards</a></li>
-            <li><a href="/openapi/work-with-products#tag/Product-Cards/paths/~1content~1v2~1cards~1error~1list/post">getting failed product cards with errors</a></li>
-        </ul>
+        | 1 min | 3 requests | 20 s | 5 requests |
         </div>
       tags:
         - Product Cards
@@ -2411,6 +2513,8 @@ paths:
                 $ref: '#/components/schemas/responseBodyContentError400'
         '401':
           $ref: '#/components/responses/401'
+        '402':
+          $ref: '#/components/responses/402'
         '403':
           description: Access denied
           content:
@@ -2436,19 +2540,15 @@ paths:
         </div>
 
         <div class="description_limit">
-        <a href="/openapi/api-information#tag/Introduction/Rate-Limits">Request limit</a> per one seller's account for all methods in the <strong>Content</strong> category:
+        <a href="/openapi/api-information#tag/Introduction/Rate-Limits">Request limit</a> per one seller's account:
 
-        | Period | Limit | Interval | Burst |
-        | --- | --- | --- | --- |
-        | 1 min | 100 requests | 600 ms | 5 requests |
 
-        Exceptions are the methods:
-        <ul>
-            <li><a href="/openapi/work-with-products#tag/Creating-Product-Cards/paths/~1content~1v2~1cards~1upload/post">creating product cards</a></li>
-            <li><a href="/openapi/work-with-products#tag/Creating-Product-Cards/paths/~1content~1v2~1cards~1upload~1add/post">creating product cards with merge</a></li>
-            <li><a href="/openapi/work-with-products#tag/Product-Cards/paths/~1content~1v2~1cards~1update/post">editing product cards</a></li>
-            <li><a href="/openapi/work-with-products#tag/Product-Cards/paths/~1content~1v2~1cards~1error~1list/post">getting failed product cards with errors</a></li>
-        </ul>
+        | Type | Period | Limit | Interval | Burst |
+        | --- | --- | --- | --- | --- |
+        | Personal | 1 min | 3 requests | 20 s | 5 requests |
+        | Service | 1 min | 3 requests | 20 s | 5 requests |
+        | Base with secret | 1 min | 3 requests | 20 s | 5 requests |
+        | Base | 1 h | 2 requests | 30 min | 1 request |
         </div>
       tags:
         - Product Cards
@@ -2504,6 +2604,8 @@ paths:
                 $ref: '#/components/schemas/responseBodyContentError400'
         '401':
           $ref: '#/components/responses/401'
+        '402':
+          $ref: '#/components/responses/402'
         '403':
           description: Access denied
           content:
@@ -2564,6 +2666,8 @@ paths:
             <li><a href="/openapi/work-with-products#tag/Creating-Product-Cards/paths/~1content~1v2~1cards~1upload~1add/post">creating product cards with merge</a></li>
             <li><a href="/openapi/work-with-products#tag/Product-Cards/paths/~1content~1v2~1cards~1update/post">editing product cards</a></li>
             <li><a href="/openapi/work-with-products#tag/Product-Cards/paths/~1content~1v2~1cards~1error~1list/post">getting failed product cards with errors</a></li>
+            <li><a href="/openapi/work-with-products#tag/Product-Cards/paths/~1content~1v2~1cards~1delete~1trash/post">transfering product card to trash</a></li>
+            <li><a href="/openapi/work-with-products#tag/Product-Cards/paths/~1content~1v2~1cards~1recover/post">recovering product card from trash</a></li>
         </ul>
         </div>
       tags:
@@ -2602,7 +2706,7 @@ paths:
                         ascending:
                           type: boolean
                           default: false
-                          description: "`trashedAt`: true — ascending, false\_— descending\n"
+                          description: "Sorting by `trashedAt` field:\n  - `true` — ascending\n  - `false`\_— descending\n"
                     cursor:
                       description: Paginator
                       type: object
@@ -2655,6 +2759,16 @@ paths:
                         vendorCode:
                           type: string
                           description: Seller's article
+                        kizMarked:
+                          type: boolean
+                          default: false
+                          nullable: false
+                          description: |
+                            Is there the confirmation from the seller that required labeling code [Chestny ZNAK](https://chestnyznak.ru/en) is applied to the product:
+                              - `true` — yes
+                              - `false` — no
+
+                            To check if labeling code [Chestny ZNAK](https://chestnyznak.ru/en) is required, use the [Product Cards List](./work-with-products#tag/Product-Cards/paths/~1content~1v2~1get~1cards~1list/post) method, the response field `needKiz`
                         subjectID:
                           type: integer
                           description: Subject ID
@@ -2779,6 +2893,7 @@ paths:
                 cards:
                   - nmID: 1234567
                     vendorCode: wb5xsy5ftj
+                    kizMarked: true
                     subjectID: 1436
                     subjectName: Ведра хозяйственные
                     photos:
@@ -2818,6 +2933,8 @@ paths:
               example: Request body can not be decoded
         '401':
           $ref: '#/components/responses/401'
+        '402':
+          $ref: '#/components/responses/402'
         '403':
           description: Access denied
           content:
@@ -2853,6 +2970,8 @@ paths:
             <li><a href="/openapi/work-with-products#tag/Creating-Product-Cards/paths/~1content~1v2~1cards~1upload~1add/post">creating product cards with merge</a></li>
             <li><a href="/openapi/work-with-products#tag/Product-Cards/paths/~1content~1v2~1cards~1update/post">editing product cards</a></li>
             <li><a href="/openapi/work-with-products#tag/Product-Cards/paths/~1content~1v2~1cards~1error~1list/post">getting failed product cards with errors</a></li>
+            <li><a href="/openapi/work-with-products#tag/Product-Cards/paths/~1content~1v2~1cards~1delete~1trash/post">transfering product card to trash</a></li>
+            <li><a href="/openapi/work-with-products#tag/Product-Cards/paths/~1content~1v2~1cards~1recover/post">recovering product card from trash</a></li>
         </ul>
         </div>
       tags:
@@ -2926,6 +3045,8 @@ paths:
             <li><a href="/openapi/work-with-products#tag/Creating-Product-Cards/paths/~1content~1v2~1cards~1upload~1add/post">creating product cards with merge</a></li>
             <li><a href="/openapi/work-with-products#tag/Product-Cards/paths/~1content~1v2~1cards~1update/post">editing product cards</a></li>
             <li><a href="/openapi/work-with-products#tag/Product-Cards/paths/~1content~1v2~1cards~1error~1list/post">getting failed product cards with errors</a></li>
+            <li><a href="/openapi/work-with-products#tag/Product-Cards/paths/~1content~1v2~1cards~1delete~1trash/post">transfering product card to trash</a></li>
+            <li><a href="/openapi/work-with-products#tag/Product-Cards/paths/~1content~1v2~1cards~1recover/post">recovering product card from trash</a></li>
         </ul>
         </div>
       tags:
@@ -2970,6 +3091,8 @@ paths:
                     example: ''
         '401':
           $ref: '#/components/responses/401'
+        '402':
+          $ref: '#/components/responses/402'
         '403':
           description: Access denied
           content:
@@ -3033,6 +3156,15 @@ paths:
                           type: string
                           description: Seller's article
                           maxLength: 72
+                        kizMarked:
+                          type: boolean
+                          default: false
+                          description: |
+                            Confirmation that required labeling code [Chestny ZNAK](https://chestnyznak.ru/en) is specified:
+                              - `true` — the seller confirms that required labeling code is applied to the product.
+                              - `false` — the seller does not confirm that required labeling code is applied to the product. Pass `true` in the request to confirm that the product has required labeling code. The item will not pass moderation if there is no confirmation from the seller that required labeling code is applied to the product.
+
+                            To check if labeling code [Chestny ZNAK](https://chestnyznak.ru/en) is required, use the [Product Cards List](./work-with-products#tag/Product-Cards/paths/~1content~1v2~1get~1cards~1list/post) method, the response field `needKiz`
                         wholesale:
                           type: object
                           description: Wholesale
@@ -3144,8 +3276,14 @@ paths:
                   $ref: '#/components/examples/CardsVendorCodeUsedInOtherCards'
                 ThisCategoryDoesNotExist:
                   $ref: '#/components/examples/ThisCategoryDoesNotExist'
+                MissingRequiredCharacteristics:
+                  $ref: '#/components/examples/MissingRequiredCharacteristics'
+                NonUniqueCharacteristicsInOneGroupCreate:
+                  $ref: '#/components/examples/NonUniqueCharacteristicsInOneGroupCreate'
         '401':
           $ref: '#/components/responses/401'
+        '402':
+          $ref: '#/components/responses/402'
         '413':
           description: The request body size exceeds the given limit
           content:
@@ -3203,9 +3341,13 @@ paths:
         <div class="description_limit">
         <a href="/openapi/api-information#tag/Introduction/Rate-Limits">Request limit</a> per one seller's account:
 
-        | Period | Limit | Interval | Burst |
-        | --- | --- | --- | --- |
-        | 1 min | 10 requests | 6 s | 5 requests |
+
+        | Type | Period | Limit | Interval | Burst |
+        | --- | --- | --- | --- | --- |
+        | Personal | 1 min | 10 requests | 6 s | 5 requests |
+        | Service | 1 min | 10 requests | 6 s | 5 requests |
+        | Base with secret | 1 min | 10 requests | 6 s | 5 requests |
+        | Base | 2 h | 1 request | 2 h | 1 request |
         </div>
       requestBody:
         content:
@@ -3234,6 +3376,15 @@ paths:
                         type: string
                         description: Supplier's article
                         maxLength: 72
+                      kizMarked:
+                        type: boolean
+                        default: false
+                        description: |
+                          Confirmation that required labeling code [Chestny ZNAK](https://chestnyznak.ru/en) is specified:
+                            - `true` — the seller confirms that required labeling code is applied to the product.
+                            - `false` — the seller does not confirm that required labeling code is applied to the product. Pass `true` in the request to confirm that the product has required labeling code. The item will not pass moderation if there is no confirmation from the seller that required labeling code is applied to the product.
+
+                          To check if labeling code [Chestny ZNAK](https://chestnyznak.ru/en) is required, use the [Product Cards List](./work-with-products#tag/Product-Cards/paths/~1content~1v2~1get~1cards~1list/post) method, the response field `needKiz`
                       wholesale:
                         type: object
                         description: Wholesale
@@ -3323,6 +3474,7 @@ paths:
               imtID: 987654321
               cardsToAdd:
                 - vendorCode: myVariant1
+                  kizMarked: true
                   wholesale:
                     enabled: true
                     quantum: 243
@@ -3394,8 +3546,14 @@ paths:
                   $ref: '#/components/examples/CardsVendorCodeUsedInOtherCards'
                 ThisCategoryDoesNotExist:
                   $ref: '#/components/examples/ThisCategoryDoesNotExist'
+                MissingRequiredCharacteristics:
+                  $ref: '#/components/examples/MissingRequiredCharacteristics'
+                NonUniqueCharacteristicsInOneGroupAdd:
+                  $ref: '#/components/examples/NonUniqueCharacteristicsInOneGroupAdd'
         '401':
           $ref: '#/components/responses/401'
+        '402':
+          $ref: '#/components/responses/402'
         '413':
           description: The request body size exceeds the given limit
           content:
@@ -3443,7 +3601,7 @@ paths:
       security:
         - HeaderApiKey: []
       summary: Upload Media File
-      description: "Uploads and adds one media file for the product card.\n\nRequirements for images:\n\n  * maximum images for\_each product card \_— 30,\n  * minimal resolution – 700\_×\_900 pixels,\n  * maximum size\_— 32\_МB,\n  * minimal quality\_— 65%,\n  * formats\_— JPG, PNG, BMP, GIF (static), WebP.\n\nRequirements for video:\n\n  * maximum one video for\_each product card\n  * maximum size\_— 50\_MB\n  * formats\_— MOV, MP4\n\n<div class=\"description_limit\">\n<a href=\"/openapi/api-information#tag/Introduction/Rate-Limits\">Request limit</a> per one seller's account for all methods in the <strong>Content</strong> category:\n\n| Period | Limit | Interval | Burst |\n| --- | --- | --- | --- |\n| 1 min | 100 requests | 600 ms | 5 requests |\n\nExceptions are the methods:\n<ul>\n    <li><a href=\"/openapi/work-with-products#tag/Creating-Product-Cards/paths/~1content~1v2~1cards~1upload/post\">creating product cards</a></li>\n    <li><a href=\"/openapi/work-with-products#tag/Creating-Product-Cards/paths/~1content~1v2~1cards~1upload~1add/post\">creating product cards with merge</a></li>\n    <li><a href=\"/openapi/work-with-products#tag/Product-Cards/paths/~1content~1v2~1cards~1update/post\">editing product cards</a></li>\n    <li><a href=\"/openapi/work-with-products#tag/Product-Cards/paths/~1content~1v2~1cards~1error~1list/post\">getting failed product cards with errors</a></li>\n</ul>\n</div>\n"
+      description: "Uploads and adds one media file for the product card.\n\nRequirements for images:\n\n  * maximum images for\_each product card \_— 30,\n  * minimal resolution – 700\_×\_900 pixels,\n  * maximum size\_— 32\_МB,\n  * minimal quality\_— 65%,\n  * formats\_— JPG, PNG, BMP, GIF (static), WebP.\n\nRequirements for video:\n\n  * maximum one video for\_each product card\n  * maximum size\_— 50\_MB\n  * formats\_— MOV, MP4\n\n<div class=\"description_limit\">\n<a href=\"/openapi/api-information#tag/Introduction/Rate-Limits\">Request limit</a> per one seller's account for all methods in the <strong>Content</strong> category:\n\n| Period | Limit | Interval | Burst |\n| --- | --- | --- | --- |\n| 1 min | 100 requests | 600 ms | 5 requests |\n\nExceptions are the methods:\n<ul>\n    <li><a href=\"/openapi/work-with-products#tag/Creating-Product-Cards/paths/~1content~1v2~1cards~1upload/post\">creating product cards</a></li>\n    <li><a href=\"/openapi/work-with-products#tag/Creating-Product-Cards/paths/~1content~1v2~1cards~1upload~1add/post\">creating product cards with merge</a></li>\n    <li><a href=\"/openapi/work-with-products#tag/Product-Cards/paths/~1content~1v2~1cards~1update/post\">editing product cards</a></li>\n    <li><a href=\"/openapi/work-with-products#tag/Product-Cards/paths/~1content~1v2~1cards~1error~1list/post\">getting failed product cards with errors</a></li>\n    <li><a href=\"/openapi/work-with-products#tag/Product-Cards/paths/~1content~1v2~1cards~1delete~1trash/post\">transfering product card to trash</a></li>\n    <li><a href=\"/openapi/work-with-products#tag/Product-Cards/paths/~1content~1v2~1cards~1recover/post\">recovering product card from trash</a></li>\n</ul>\n</div>\n"
       tags:
         - Media Files
       parameters:
@@ -3506,6 +3664,8 @@ paths:
               example: Invalid 'boundary' for 'multipart/form-data' request
         '401':
           $ref: '#/components/responses/401'
+        '402':
+          $ref: '#/components/responses/402'
         '403':
           description: Access denied
           content:
@@ -3523,7 +3683,7 @@ paths:
       security:
         - HeaderApiKey: []
       summary: Upload Media Files via Links
-      description: "The method uploads a set of media files to a product card by specifying links in the request.\n\n<div class=\"description_important\">\n  New media files (<code>data</code>) replace old ones (<code>mediaFiles</code>). To add new files, set links both to\_new and old files.\n</div>\n\nRequirements for links:\n  * the link must directly lead to the file. Ensure the link does not lead to a preview or authorization page. If the link leads to TXT or HTML page, it is considered incorrect\n  * no authorization is required to access the file via the link\n\nRequirements for images:\n  * maximum images for\_each product card\_— 30\n  * minimal resolution – 700\_×\_900 pixels\n  * maximum size\_— 32\_MB\n  * minimal quality\_— 65%\n  * formats\_— JPG, PNG, BMP, GIF (static), WebP\n\n\nRequirements for video:\n  * maximum one video for\_each product card\n  * maximum size\_— 50\_MB\n  * formats\_— MOV, MP4\n\n\nIf one or several images or a video do not meet the requirements, no images and a video will be uploaded even if you have the success response\_(`200`)\n\n<div class=\"description_limit\">\n<a href=\"/openapi/api-information#tag/Introduction/Rate-Limits\">Request limit</a> per one seller's account for all methods in the <strong>Content</strong> category:\n\n| Period | Limit | Interval | Burst |\n| --- | --- | --- | --- |\n| 1 min | 100 requests | 600 ms | 5 requests |\n\nExceptions are the methods:\n<ul>\n    <li><a href=\"/openapi/work-with-products#tag/Creating-Product-Cards/paths/~1content~1v2~1cards~1upload/post\">creating product cards</a></li>\n    <li><a href=\"/openapi/work-with-products#tag/Creating-Product-Cards/paths/~1content~1v2~1cards~1upload~1add/post\">creating product cards with merge</a></li>\n    <li><a href=\"/openapi/work-with-products#tag/Product-Cards/paths/~1content~1v2~1cards~1update/post\">editing product cards</a></li>\n    <li><a href=\"/openapi/work-with-products#tag/Product-Cards/paths/~1content~1v2~1cards~1error~1list/post\">getting failed product cards with errors</a></li>\n</ul>\n</div>\n"
+      description: "The method uploads a set of media files to a product card by specifying links in the request.\n\n<div class=\"description_important\">\n  New media files (<code>data</code>) replace old ones (<code>mediaFiles</code>). To add new files, set links both to\_new and old files.\n</div>\n\nRequirements for links:\n  * the link must directly lead to the file. Ensure the link does not lead to a preview or authorization page. If the link leads to TXT or HTML page, it is considered incorrect\n  * no authorization is required to access the file via the link\n\nRequirements for images:\n  * maximum images for\_each product card\_— 30\n  * minimal resolution – 700\_×\_900 pixels\n  * maximum size\_— 32\_MB\n  * minimal quality\_— 65%\n  * formats\_— JPG, PNG, BMP, GIF (static), WebP\n\n\nRequirements for video:\n  * maximum one video for\_each product card\n  * maximum size\_— 50\_MB\n  * formats\_— MOV, MP4\n\n\nIf one or several images or a video do not meet the requirements, no images and a video will be uploaded even if you have the success response\_(`200`)\n\n<div class=\"description_limit\">\n<a href=\"/openapi/api-information#tag/Introduction/Rate-Limits\">Request limit</a> per one seller's account for all methods in the <strong>Content</strong> category:\n\n| Period | Limit | Interval | Burst |\n| --- | --- | --- | --- |\n| 1 min | 100 requests | 600 ms | 5 requests |\n\nExceptions are the methods:\n<ul>\n    <li><a href=\"/openapi/work-with-products#tag/Creating-Product-Cards/paths/~1content~1v2~1cards~1upload/post\">creating product cards</a></li>\n    <li><a href=\"/openapi/work-with-products#tag/Creating-Product-Cards/paths/~1content~1v2~1cards~1upload~1add/post\">creating product cards with merge</a></li>\n    <li><a href=\"/openapi/work-with-products#tag/Product-Cards/paths/~1content~1v2~1cards~1update/post\">editing product cards</a></li>\n    <li><a href=\"/openapi/work-with-products#tag/Product-Cards/paths/~1content~1v2~1cards~1error~1list/post\">getting failed product cards with errors</a></li>\n    <li><a href=\"/openapi/work-with-products#tag/Product-Cards/paths/~1content~1v2~1cards~1delete~1trash/post\">transfering product card to trash</a></li>\n    <li><a href=\"/openapi/work-with-products#tag/Product-Cards/paths/~1content~1v2~1cards~1recover/post\">recovering product card from trash</a></li>\n</ul>\n</div>\n"
       tags:
         - Media Files
       requestBody:
@@ -3579,6 +3739,8 @@ paths:
                 $ref: '#/components/schemas/mediaErrors'
         '401':
           $ref: '#/components/responses/401'
+        '402':
+          $ref: '#/components/responses/402'
         '403':
           description: Access denied
           content:
@@ -3659,6 +3821,8 @@ paths:
                   $ref: '#/components/examples/AllItemNosAreSpecifiedIncorrectlyOrPricesAndDiscounts'
         '401':
           $ref: '#/components/responses/401'
+        '402':
+          $ref: '#/components/responses/402'
         '403':
           description: Access denied
           content:
@@ -3668,6 +3832,15 @@ paths:
               examples:
                 AccessDenied:
                   $ref: '#/components/examples/Result403'
+        '409':
+          description: Error while switching currency
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ResponseError'
+              examples:
+                CurrencySwitchingError:
+                  $ref: '#/components/examples/Result409'
         '422':
           description: Unexpected result
           content:
@@ -3743,6 +3916,8 @@ paths:
                   $ref: '#/components/examples/AllItemNosAreSpecifiedIncorrectlyOrPrices'
         '401':
           $ref: '#/components/responses/401'
+        '402':
+          $ref: '#/components/responses/402'
         '403':
           description: Access denied
           content:
@@ -3752,6 +3927,15 @@ paths:
               examples:
                 AccessDenied:
                   $ref: '#/components/examples/Result403'
+        '409':
+          description: Error while switching currency
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ResponseError'
+              examples:
+                CurrencySwitchingError:
+                  $ref: '#/components/examples/Result409'
         '422':
           description: Unexpected result
           content:
@@ -3780,10 +3964,13 @@ paths:
         <div class="description_limit">
         <a href="/openapi/api-information#tag/Introduction/Rate-Limits">Request limit</a> per one seller's account for all methods in the <strong>Prices and Discounts</strong> category:
 
-        | Period | Limit | Interval | Burst |
-        | --- | --- | --- | --- |
-        | 6 s | 10 requests | 600 ms | 5 requests |
 
+        | Type | Period | Limit | Interval | Burst |
+        | --- | --- | --- | --- | --- |
+        | Personal | 6 s | 10 requests | 600 ms | 5 requests |
+        | Service | 6 s | 10 requests | 600 ms | 5 requests |
+        | Base with secret | 6 s | 10 requests | 600 ms | 5 requests |
+        | Base | 1 h | 4 requests | 15 min | 1 request |
         </div>
       requestBody:
         $ref: '#/components/requestBodies/SupplierTaskRequestClubDisc'
@@ -3809,6 +3996,8 @@ paths:
                   $ref: '#/components/examples/InvalidDiscountValue'
         '401':
           $ref: '#/components/responses/401'
+        '402':
+          $ref: '#/components/responses/402'
         '403':
           description: Access denied
           content:
@@ -3818,6 +4007,15 @@ paths:
               examples:
                 AccessDenied:
                   $ref: '#/components/examples/Result403'
+        '409':
+          description: Error while switching currency
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ResponseError'
+              examples:
+                CurrencySwitchingError:
+                  $ref: '#/components/examples/Result409'
         '422':
           description: Unexpected result
           content:
@@ -3846,10 +4044,13 @@ paths:
         <div class="description_limit">
         <a href="/openapi/api-information#tag/Introduction/Rate-Limits">Request limit</a> per one seller's account for all methods in the <strong>Prices and Discounts</strong> category:
 
-        | Period | Limit | Interval | Burst |
-        | --- | --- | --- | --- |
-        | 6 s | 10 requests | 600 ms | 5 requests |
 
+        | Type | Period | Limit | Interval | Burst |
+        | --- | --- | --- | --- | --- |
+        | Personal | 6 s | 10 requests | 600 ms | 5 requests |
+        | Service | 6 s | 10 requests | 600 ms | 5 requests |
+        | Base with secret | 6 s | 10 requests | 600 ms | 5 requests |
+        | Base | 1 h | 4 requests | 15 min | 1 request |
         </div>
       parameters:
         - $ref: '#/components/parameters/uploadID'
@@ -3895,10 +4096,13 @@ paths:
         <div class="description_limit">
         <a href="/openapi/api-information#tag/Introduction/Rate-Limits">Request limit</a> per one seller's account for all methods in the <strong>Prices and Discounts</strong> category:
 
-        | Period | Limit | Interval | Burst |
-        | --- | --- | --- | --- |
-        | 6 s | 10 requests | 600 ms | 5 requests |
 
+        | Type | Period | Limit | Interval | Burst |
+        | --- | --- | --- | --- | --- |
+        | Personal | 6 s | 10 requests | 600 ms | 5 requests |
+        | Service | 6 s | 10 requests | 600 ms | 5 requests |
+        | Base with secret | 6 s | 10 requests | 600 ms | 5 requests |
+        | Base | 1 h | 4 requests | 15 min | 1 request |
         </div>
       parameters:
         - $ref: '#/components/parameters/limit'
@@ -3946,10 +4150,13 @@ paths:
         <div class="description_limit">
         <a href="/openapi/api-information#tag/Introduction/Rate-Limits">Request limit</a> per one seller's account for all methods in the <strong>Prices and Discounts</strong> category:
 
-        | Period | Limit | Interval | Burst |
-        | --- | --- | --- | --- |
-        | 6 s | 10 requests | 600 ms | 5 requests |
 
+        | Type | Period | Limit | Interval | Burst |
+        | --- | --- | --- | --- | --- |
+        | Personal | 6 s | 10 requests | 600 ms | 5 requests |
+        | Service | 6 s | 10 requests | 600 ms | 5 requests |
+        | Base with secret | 6 s | 10 requests | 600 ms | 5 requests |
+        | Base | 1 h | 4 requests | 15 min | 1 request |
         </div>
       parameters:
         - $ref: '#/components/parameters/uploadID'
@@ -3995,10 +4202,13 @@ paths:
         <div class="description_limit">
         <a href="/openapi/api-information#tag/Introduction/Rate-Limits">Request limit</a> per one seller's account for all methods in the <strong>Prices and Discounts</strong> category:
 
-        | Period | Limit | Interval | Burst |
-        | --- | --- | --- | --- |
-        | 6 s | 10 requests | 600 ms | 5 requests |
 
+        | Type | Period | Limit | Interval | Burst |
+        | --- | --- | --- | --- | --- |
+        | Personal | 6 s | 10 requests | 600 ms | 5 requests |
+        | Service | 6 s | 10 requests | 600 ms | 5 requests |
+        | Base with secret | 6 s | 10 requests | 600 ms | 5 requests |
+        | Base | 1 h | 4 requests | 15 min | 1 request |
         </div>
       parameters:
         - $ref: '#/components/parameters/limit'
@@ -4078,6 +4288,8 @@ paths:
                   $ref: '#/components/examples/InvalidRequestParameters'
         '401':
           $ref: '#/components/responses/401'
+        '402':
+          $ref: '#/components/responses/402'
         '403':
           description: Access denied
           content:
@@ -4130,6 +4342,8 @@ paths:
                   $ref: '#/components/examples/InvalidRequestParameters'
         '401':
           $ref: '#/components/responses/401'
+        '402':
+          $ref: '#/components/responses/402'
         '403':
           description: Access denied
           content:
@@ -4158,10 +4372,13 @@ paths:
         <div class="description_limit">
         <a href="/openapi/api-information#tag/Introduction/Rate-Limits">Request limit</a> per one seller's account for all methods in the <strong>Prices and Discounts</strong> category:
 
-        | Period | Limit | Interval | Burst |
-        | --- | --- | --- | --- |
-        | 6 s | 10 requests | 600 ms | 5 requests |
 
+        | Type | Period | Limit | Interval | Burst |
+        | --- | --- | --- | --- | --- |
+        | Personal | 6 s | 10 requests | 600 ms | 5 requests |
+        | Service | 6 s | 10 requests | 600 ms | 5 requests |
+        | Base with secret | 6 s | 10 requests | 600 ms | 5 requests |
+        | Base | 1 h | 4 requests | 15 min | 1 request |
         </div>
       parameters:
         - $ref: '#/components/parameters/limit'
@@ -4181,6 +4398,8 @@ paths:
                   $ref: '#/components/examples/InvalidRequestParameters'
         '401':
           $ref: '#/components/responses/401'
+        '402':
+          $ref: '#/components/responses/402'
         '403':
           description: Access denied
           content:
@@ -4215,10 +4434,13 @@ paths:
         <div class="description_limit">
         <a href="/openapi/api-information#tag/Introduction/Rate-Limits">Request limit</a> per one seller's account for all methods in the <strong>Prices and Discounts</strong> category:
 
-        | Period | Limit | Interval | Burst |
-        | --- | --- | --- | --- |
-        | 6 s | 10 requests | 600 ms | 5 requests |
 
+        | Type | Period | Limit | Interval | Burst |
+        | --- | --- | --- | --- | --- |
+        | Personal | 6 s | 10 requests | 600 ms | 5 requests |
+        | Service | 6 s | 10 requests | 600 ms | 5 requests |
+        | Base with secret | 6 s | 10 requests | 600 ms | 5 requests |
+        | Base | 1 h | 4 requests | 15 min | 1 request |
         </div>
       parameters:
         - $ref: '#/components/parameters/limit'
@@ -4237,6 +4459,8 @@ paths:
                   $ref: '#/components/examples/InvalidRequestParameters'
         '401':
           $ref: '#/components/responses/401'
+        '402':
+          $ref: '#/components/responses/402'
         '403':
           description: Access denied
           content:
@@ -4298,7 +4522,7 @@ paths:
                   type: array
                   minItems: 1
                   maxItems: 1000
-                  description: SKU array
+                  description: Array of size IDs and amounts
                   items:
                     type: object
                     properties:
@@ -4306,11 +4530,6 @@ paths:
                         type: integer
                         description: Size ID
                         example: 12345678
-                      sku:
-                        type: string
-                        description: SKU. The parameter will be disabled on [February 9th](https://dev.wildberries.ru/en/release-notes?id=386)
-                        deprecated: true
-                        example: SkuTest123
                       amount:
                         type: integer
                         maximum: 100000
@@ -4332,8 +4551,12 @@ paths:
                   $ref: '#/components/examples/IncorrectRequest'
                 IncorrectParameter:
                   $ref: '#/components/examples/IncorrectParameter'
+                SKUUploadDisabled:
+                  $ref: '#/components/examples/SKUUploadDisabled'
         '401':
           $ref: '#/components/responses/401'
+        '402':
+          $ref: '#/components/responses/402'
         '403':
           $ref: '#/components/responses/AccessDenied'
         '404':
@@ -4347,10 +4570,6 @@ paths:
               schema:
                 $ref: '#/components/schemas/StocksWarehouseError'
               examples:
-                SubjectDBSRestriction:
-                  $ref: '#/components/examples/SubjectDBSRestriction'
-                SubjectFBSRestriction:
-                  $ref: '#/components/examples/SubjectFBSRestriction'
                 UploadDataLimit:
                   $ref: '#/components/examples/UploadDataLimit'
                 CargoWarehouseRestrictionMGT:
@@ -4365,6 +4584,10 @@ paths:
                   $ref: '#/components/examples/NotFound'
                 StoreIsProcessing:
                   $ref: '#/components/examples/StoreIsProcessing1'
+                ProductPropertyConflict:
+                  $ref: '#/components/examples/ProductPropertyConflict'
+                DeliveryTypeRestriction:
+                  $ref: '#/components/examples/DeliveryTypeRestriction'
         '429':
           $ref: '#/components/responses/429'
     delete:
@@ -4410,17 +4633,6 @@ paths:
                     type: integer
                     nullable: false
                     example: 123456789
-                skus:
-                  type: array
-                  nullable: false
-                  minItems: 1
-                  maxItems: 1000
-                  description: SKUs array. The parameter will be disabled on [February 9th](https://dev.wildberries.ru/en/release-notes?id=386)
-                  deprecated: true
-                  items:
-                    type: string
-                    nullable: false
-                    example: SKUTest123
               required:
                 - chrtIds
       responses:
@@ -4439,8 +4651,12 @@ paths:
                   $ref: '#/components/examples/IncorrectRequest'
                 IncorrectParameter:
                   $ref: '#/components/examples/IncorrectParameter'
+                IncorrectSkuParameter:
+                  $ref: '#/components/examples/SKUUploadDisabled'
         '401':
           $ref: '#/components/responses/401'
+        '402':
+          $ref: '#/components/responses/402'
         '403':
           $ref: '#/components/responses/AccessDenied'
         '404':
@@ -4494,19 +4710,11 @@ paths:
               properties:
                 chrtIds:
                   type: array
+                  maxItems: 1000
                   description: Size IDs array
                   items:
                     type: integer
                     example: 12345678
-                skus:
-                  type: array
-                  description: SKUs array. The parameter will be disabled on [February 9th](https://dev.wildberries.ru/en/release-notes?id=386)
-                  deprecated: true
-                  minItems: 1
-                  maxItems: 1000
-                  items:
-                    type: string
-                    example: SKUTest123
               required:
                 - chrtIds
       responses:
@@ -4527,12 +4735,6 @@ paths:
                           type: integer
                           description: Size ID
                           example: 12345678
-                        sku:
-                          type: string
-                          nullable: false
-                          description: SKU. The field will be disabled on [February 9th](https://dev.wildberries.ru/en/release-notes?id=386)
-                          deprecated: true
-                          example: SkuTest123
                         amount:
                           type: integer
                           nullable: false
@@ -4551,8 +4753,12 @@ paths:
                   $ref: '#/components/examples/IncorrectRequest'
                 IncorrectParameter:
                   $ref: '#/components/examples/IncorrectParameter'
+                IncorrectSkuParameter:
+                  $ref: '#/components/examples/SKUUploadDisabled'
         '401':
           $ref: '#/components/responses/401'
+        '402':
+          $ref: '#/components/responses/402'
         '403':
           $ref: '#/components/responses/AccessDenied'
         '404':
@@ -4708,6 +4914,8 @@ paths:
                   $ref: '#/components/examples/WarehouseNameInvalid'
         '401':
           $ref: '#/components/responses/401'
+        '402':
+          $ref: '#/components/responses/402'
         '403':
           $ref: '#/components/responses/AccessDenied'
         '404':
@@ -4784,6 +4992,8 @@ paths:
                   $ref: '#/components/examples/WarehouseNameInvalid'
         '401':
           $ref: '#/components/responses/401'
+        '402':
+          $ref: '#/components/responses/402'
         '403':
           $ref: '#/components/responses/AccessDenied'
         '404':
@@ -4823,6 +5033,8 @@ paths:
           description: Deleted
         '401':
           $ref: '#/components/responses/401'
+        '402':
+          $ref: '#/components/responses/402'
         '403':
           $ref: '#/components/responses/AccessDenied'
         '404':
@@ -4898,6 +5110,8 @@ paths:
                   $ref: '#/components/examples/IncorrectParameter'
         '401':
           $ref: '#/components/responses/401'
+        '402':
+          $ref: '#/components/responses/402'
         '403':
           $ref: '#/components/responses/AccessDenied'
         '429':
@@ -4964,6 +5178,8 @@ paths:
                   $ref: '#/components/examples/IncorrectRequest'
         '401':
           $ref: '#/components/responses/401'
+        '402':
+          $ref: '#/components/responses/402'
         '403':
           $ref: '#/components/responses/AccessDenied'
         '429':
@@ -5268,6 +5484,9 @@ components:
                 sku:
                   type: string
                   description: SKU
+                chrtId:
+                  type: integer
+                  description: Size ID
                 amount:
                   type: integer
                   description: Stock
@@ -5552,6 +5771,7 @@ components:
           description: Seller's article
         sizeID:
           type: integer
+          nullable: true
           example: 54483342
           description: Size ID. In the Content methods this is the `chrtID` field
         techSizeName:
@@ -5694,6 +5914,7 @@ components:
         newPrice:
           type: number
           format: float
+          nullable: true
           example: 134
           description: New seller's price before discount
         oldPrice:
@@ -5704,6 +5925,7 @@ components:
         newDiscount:
           type: integer
           example: 25
+          nullable: true
           description: New seller's discount, %
         oldDiscount:
           type: integer
@@ -5899,6 +6121,7 @@ components:
         - brands
         - vendorCodes
         - errors
+        - updatedAt
       properties:
         batchUUID:
           type: string
@@ -5926,6 +6149,10 @@ components:
             type: array
             items:
               type: string
+        updatedAt:
+          type: string
+          format: date-time
+          description: Date and time when the batch was created or edited
     viewer_contract.PublicErrorsCursorOutput:
       type: object
       required:
@@ -6154,6 +6381,22 @@ components:
             status: 401
             statusText: Unauthorized
             timestamp: '2024-09-30T06:52:38Z'
+    '402':
+      description: Payment required
+      content:
+        application/problem+json:
+          schema:
+            type: object
+            properties:
+              title:
+                type: string
+                description: Error title
+              detail:
+                type: string
+                description: Error details. The error is only returned to services from the [Solutions for business Catalog](https://dev.wildberries.ru/business-solutions)
+          example:
+            title: payment required
+            detail: wb solution for business has insufficient funds on its balance. please top up the balance in the company's personal account https://dev.wildberries.ru/company
     '429':
       description: Too many requests
       content:
@@ -6256,10 +6499,12 @@ components:
                 properties:
                   uploadID:
                     type: integer
+                    nullable: true
                     description: Upload ID
                     example: 3235236546
                   historyGoods:
                     type: array
+                    nullable: true
                     description: Data of products in the upload
                     items:
                       $ref: '#/components/schemas/GoodHistory'
@@ -6432,6 +6677,11 @@ components:
       value:
         - code: StoreIsProcessing
           message: The store is processing
+    ProductPropertyConflict:
+      description: Wholesale goods are available for sale only under the DBS model
+      value:
+        - code: ProductPropertyConflict
+          message: Products are not allowed for sale under the selected supply scheme.
     IncorrectRequestBody:
       value:
         message: Incorrect request body
@@ -6440,22 +6690,15 @@ components:
       value:
         code: IncorrectRequest
         message: Incorrect request parameters
-    SubjectDBSRestriction:
-      description: The product category cannot be sold with 'Fulfillment By Wildberries'
+    DeliveryTypeRestriction:
+      description: This product category is not available for sale under this delivery type
       value:
-        - code: SubjectDBSRestriction
-          message: The product category cannot be sold with 'Fulfillment By Wildberries'.
-          data:
-            - sku: skuTest1
-              amount: 0
-    SubjectFBSRestriction:
-      description: The product category cannot be sold with 'Delivery By Supplier'
-      value:
-        - code: SubjectFBSRestriction
-          message: The product category cannot be sold with 'Delivery By Supplier'.
-          data:
-            - sku: skuTest2
-              amount: 1
+        - data:
+            - sku: ''
+              chrtId: 123456789
+              amount: 10
+          code: DeliveryTypeRestriction
+          message: This product category is not available for sale under this delivery type.
     UploadDataLimit:
       description: Upload limit exceeded
       value:
@@ -6513,12 +6756,17 @@ components:
       value:
         code: IncorrectParameter
         message: IncorrectParameter
+    SKUUploadDisabled:
+      value:
+        code: SKUUploadDisabled
+        message: Uploading stock is not allowed by 'sku'. Please use the 'chrtId' key
     creatingOneCard:
       description: ''
       value:
         - subjectID: 105
           variants:
             - vendorCode: АртикулПродавца
+              kizMarked: true
               wholesale:
                 enabled: true
                 quantum: 211
@@ -6551,6 +6799,7 @@ components:
         - subjectID: 3091
           variants:
             - vendorCode: АртикулПродавца11
+              kizMarked: true
               wholesale:
                 enabled: true
                 quantum: 211
@@ -6601,6 +6850,7 @@ components:
         - subjectID: 3091
           variants:
             - vendorCode: АртикулПродавца1
+              kizMarked: true
               wholesale:
                 enabled: true
                 quantum: 211
@@ -6751,6 +7001,31 @@ components:
         errorText: This category does not exist
         additionalErrors:
           id: '342342'
+    MissingRequiredCharacteristics:
+      description: Some [merged](https://dev.wildberries.ru/en/release-notes?id=489) items lacks required characteristics
+      value:
+        data: null
+        error: true
+        errorText: some products lacks required characteristics. please fill them and try again.
+        additionalErrors:
+          vendor_code_1: 'missing required characteristics with ids: {1}, {2}'
+          vendor_code_2: 'missing required characteristics with ids: {1}, {2}'
+    NonUniqueCharacteristicsInOneGroupCreate:
+      description: Non-unique characteristics in one group of [merged](https://dev.wildberries.ru/en/release-notes?id=489) items
+      value:
+        data: null
+        error: true
+        errorText: non unique characteristics in one group
+        additionalErrors:
+          vendor_code_1: 'non unique characteristics in group with ids: {1}, {2}'
+    NonUniqueCharacteristicsInOneGroupAdd:
+      description: Non-unique characteristics in one group of [merged](https://dev.wildberries.ru/en/release-notes?id=489) items
+      value:
+        data: null
+        error: true
+        errorText: non unique characteristics in one group
+        additionalErrors:
+          vendor_code_1: 'non unique characteristics in group id: {imt_id} with characteristic ids: {1}, {2}'
     responseBodyContentError400:
       description: Bad request
       value:
@@ -6924,7 +7199,7 @@ components:
       value:
         data: null
         error: true
-        errorText: 'Check the field values in the WB Club Discount column. Field format: a whole number between {{.WbClubMinDiscount}} and {{.WbClubMaxDiscount}}, without dots or commas'
+        errorText: 'Check the field values in the WB Club Discount column. Field format: a whole number between <no value> and <no value>, without dots or commas'
     DiscountsAreTheSameAsThoseAlreadySet:
       description: Some of the discounts in the request are already set
       value:
@@ -6949,6 +7224,12 @@ components:
         data: null
         error: true
         errorText: Access denied
+    Result409:
+      description: You can't change prices and discounts while switching to another currency
+      value:
+        data: null
+        error: true
+        errorText: You can't change prices and discounts while switching to another currency
     BrandsResponseBadRequest1:
       value:
         title: Bad Request

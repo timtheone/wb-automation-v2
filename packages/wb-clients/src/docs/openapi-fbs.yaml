@@ -10,7 +10,7 @@ info:
       - создавать, редактировать и удалять [пропуска](/openapi/orders-fbs#tag/Propuska-FBS) на склады WB
 
     <div class="description_ref">
-      Узнать, как использовать методы в бизнес-кейсах, можно в <a href="https://dev.wildberries.ru/news/127">инструкции</a> по работе с <strong>заказами FBS</strong>
+      Узнать, как использовать методы в бизнес-кейсах, можно в <a href="https://dev.wildberries.ru/knowledge-base/articles/019d49a4-0771-7571-aea9-11d5b597f34c/zakazy-fbs">инструкции</a> по работе с <strong>заказами FBS</strong>
     </div>
 
     <div class="description_important">
@@ -405,9 +405,12 @@ paths:
         - Сборочные задания FBS
       summary: Получить информацию о сборочных заданиях
       description: |
-        Метод возвращает информацию о сборочных заданиях без их актуального [статуса](/openapi/orders-fbs#tag/Sborochnye-zadaniya-FBS/paths/~1api~1v3~1orders~1status/post).
+        Метод возвращает информацию о сборочных заданиях, созданных не более 3 месяцев назад, без их актуального [статуса](/openapi/orders-fbs#tag/Sborochnye-zadaniya-FBS/paths/~1api~1v3~1orders~1status/post).
 
-        Можно получить данные за заданный период, максимум 30 календарных дней одним запросом.
+        Чтобы получить данные за период, укажите в запросе даты начала и окончания периода. Максимум 30 календарных дней одним запросом.
+        В ответе метода будут сборочные задания, созданные в указанный период.<br><br>
+        Чтобы получить сборочные задания, созданные более 3 месяцев назад, используйте метод получения [списка архивных заказов](/openapi/orders-fbs#tag/Sborochnye-zadaniya-FBS/paths/~1api~1marketplace~1v3~1fbs~1orders~1archive/get).
+
 
         <div class="description_limit">
         <a href="/openapi/api-information#tag/Vvedenie/Limity-zaprosov">Лимит запросов</a> на один аккаунт продавца для методов <strong>сборочных заданий, поставок и пропусков FBS</strong>:
@@ -426,12 +429,12 @@ paths:
           schema:
             type: integer
           description: |
-            Дата начала периода в формате Unix timestamp. По умолчанию — дата за 30 дней до запроса
+            Дата начала периода в формате Unix timestamp. По умолчанию — дата за 30 дней до запроса. Часовой пояс — UTC
         - name: dateTo
           in: query
           schema:
             type: integer
-          description: Дата конца периода в формате Unix timestamp
+          description: Дата конца периода в формате Unix timestamp. Часовой пояс — UTC
       responses:
         '200':
           description: Успешно
@@ -489,7 +492,7 @@ paths:
         | `confirm`  | **На сборке** |[Добавить сборочное задание к поставке](/openapi/orders-fbs#tag/Postavki-FBS/paths/~1api~1marketplace~1v3~1supplies~1%7BsupplyId%7D~1orders/patch)
         | `complete` | **В доставке** | [Передать поставку в доставку](/openapi/orders-fbs#tag/Postavki-FBS/paths/~1api~1v3~1supplies~1%7BsupplyId%7D~1deliver/patch) |
         | `cancel`   | **Отменено продавцом**   | [Отменить сборочное задание](/openapi/orders-fbs#tag/Sborochnye-zadaniya-FBS/paths/~1api~1v3~1orders~1%7BorderId%7D~1cancel/patch)|
-        | `cancel_carrier`   | **Отменено перевозчиком** <br>Только для кроссбордера   | Переводится перевозчиком |
+        | `cancel_carrier`   | **Отменено перевозчиком** <br>Только для трансграничных поставок   | Переводится перевозчиком |
 
         <br><br>
         `wbStatus` — статус системы Wildberries.
@@ -502,10 +505,10 @@ paths:
         - `canceled_by_client` — покупатель отменил заказ при получении
         - `declined_by_client` — покупатель отменил заказ. Отмена доступна покупателю в первый час с момента заказа, если заказ не переведён на сборку
         - `defect` — отмена заказа по причине брака
-        - `ready_for_pickup` — сборочное задание прибыло на пункт выдачи заказов (ПВЗ)
+        - `ready_for_pickup` — заказ прибыл на пункт выдачи заказов (ПВЗ)
         - `accepted_by_carrier` — продавец передал заказ в службу доставки в своей стране
         - `sent_to_carrier` — заказ отправлен на склад службы доставки в стране продавца
-        - `canceled_by_carrier` — заказ отменён перевозчиком. Только для кроссбордера
+        - `canceled_by_carrier` — заказ отменён перевозчиком. Только для трансграничных поставок
 
         <div class="description_limit">
         <a href="/openapi/api-information#tag/Vvedenie/Limity-zaprosov">Лимит запросов</a> на один аккаунт продавца для методов <strong>сборочных заданий, поставок и пропусков FBS</strong>:
@@ -553,6 +556,14 @@ paths:
                           nullable: false
                           description: ID сборочного задания
                           example: 5632423
+                        isCancellable:
+                          type: boolean
+                          nullable: false
+                          description: |
+                            Доступна ли [отмена](/openapi/orders-fbs#tag/Sborochnye-zadaniya-FBS/paths/~1api~1v3~1orders~1%7BorderId%7D~1cancel/patch) сборочного задания:
+                            - `false` — недоступна
+                            - `true` — доступна
+                          example: false
                         supplierStatus:
                           type: string
                           nullable: false
@@ -677,6 +688,11 @@ paths:
       summary: Отменить сборочное задание
       description: |
         Метод отменяет [сборочное задание](/openapi/orders-fbs#tag/Sborochnye-zadaniya-FBS/paths/~1api~1v3~1orders/get) и переводит в [статус](/openapi/orders-fbs#tag/Sborochnye-zadaniya-FBS/paths/~1api~1v3~1orders~1status/post) `cancel` — отменено продавцом.
+
+        <div class="description_important">
+        Сборочное задание можно отменить до его передачи Wildberries.
+        Чтобы проверить, можно ли отменить сборочное задание, используйте метод <a href ="https://dev.wildberries.ru/docs/openapi/orders-fbs/#tag/Sborochnye-zadaniya-FBS/paths/~1api~1v3~1orders~1status/post">POST /api/v3/orders/status</a>, поле <code>isCancellable</code>.
+        </div>
 
         <div class="description_limit">
         <a href="/openapi/api-information#tag/Vvedenie/Limity-zaprosov">Лимит запросов</a> на один аккаунт продавца:
@@ -886,7 +902,7 @@ paths:
           - `imei` — [IMEI](/openapi/orders-fbs#tag/Metadannye-FBS/paths/~1api~1v3~1orders~1%7BorderId%7D~1meta~1imei/put)
           - `uin` — [УИН](/openapi/orders-fbs#tag/Metadannye-FBS/paths/~1api~1v3~1orders~1%7BorderId%7D~1meta~1uin/put)
           - `gtin` — [GTIN](/openapi/orders-fbs#tag/Metadannye-FBS/paths/~1api~1v3~1orders~1%7BorderId%7D~1meta~1gtin/put)
-          - `sgtin` — [код маркировки](/openapi/orders-fbs#tag/Metadannye-FBS/paths/~1api~1v3~1orders~1%7BorderId%7D~1meta~1sgtin/put)
+          - `sgtin` — [код маркировки Честного знака](/openapi/orders-fbs#tag/Metadannye-FBS/paths/~1api~1v3~1orders~1%7BorderId%7D~1meta~1sgtin/put)
           - `expiration` — [срок годности товара](/openapi/orders-fbs#tag/Metadannye-FBS/paths/~1api~1v3~1orders~1%7BorderId%7D~1meta~1expiration/put)
           - `customsDeclaration` — [номер ГТД](/openapi/orders-fbs#tag/Metadannye-FBS/paths/~1api~1marketplace~1v3~1orders~1%7BorderId%7D~1meta~1customs-declaration/put)
 
@@ -965,7 +981,7 @@ paths:
           - `imei` — [IMEI](/openapi/orders-fbs#tag/Metadannye-FBS/paths/~1api~1v3~1orders~1%7BorderId%7D~1meta~1imei/put)
           - `uin` — [УИН](/openapi/orders-fbs#tag/Metadannye-FBS/paths/~1api~1v3~1orders~1%7BorderId%7D~1meta~1uin/put)
           - `gtin` — [GTIN](/openapi/orders-fbs#tag/Metadannye-FBS/paths/~1api~1v3~1orders~1%7BorderId%7D~1meta~1gtin/put)
-          - `sgtin` — [код маркировки](/openapi/orders-fbs#tag/Metadannye-FBS/paths/~1api~1v3~1orders~1%7BorderId%7D~1meta~1sgtin/put)
+          - `sgtin` — [код маркировки Честного знака](/openapi/orders-fbs#tag/Metadannye-FBS/paths/~1api~1v3~1orders~1%7BorderId%7D~1meta~1sgtin/put)
           - `customsDeclaration` — [номер ГТД](/openapi/orders-fbs#tag/Metadannye-FBS/paths/~1api~1marketplace~1v3~1orders~1%7BorderId%7D~1meta~1customs-declaration/put)
 
         Можно передать только один ключ.
@@ -985,7 +1001,13 @@ paths:
           in: query
           schema:
             type: string
-          description: Название метаданных для удаления (`imei`, `uin`, `gtin`, `sgtin`, `customsDeclaration`). Передается только одно значение.
+            enum:
+              - imei
+              - uin
+              - gtin
+              - sgtin
+              - customsDeclaration
+          description: Название метаданных для удаления. Передается только одно значение.
       responses:
         '204':
           description: Удалено
@@ -1027,11 +1049,11 @@ paths:
         - HeaderApiKey: []
       tags:
         - Метаданные FBS
-      summary: Закрепить за сборочным заданием код маркировки товара
+      summary: Закрепить за сборочным заданием код маркировки Честного знака
       description: |
-        Метод позволяет закрепить за [сборочным заданием](/openapi/orders-fbs#tag/Sborochnye-zadaniya-FBS/paths/~1api~1v3~1orders/get) код маркировки [Честный знак](https://честныйзнак.рф).
+        Метод позволяет закрепить за [сборочным заданием](/openapi/orders-fbs#tag/Sborochnye-zadaniya-FBS/paths/~1api~1v3~1orders/get) код маркировки [Честного знака](https://честныйзнак.рф).
         <br><br>
-        Закрепить код маркировки можно только если в [метаданных сборочного задания](/openapi/orders-fbs#tag/Metadannye-FBS/paths/~1api~1marketplace~1v3~1orders~1meta/post) есть поле `sgtin`, а сборочное задание находится в [статусе](/openapi/orders-fbs#tag/Sborochnye-zadaniya-FBS/paths/~1api~1v3~1orders~1status/post) `confirm`.
+        Закрепить код маркировки Честного знака можно только если в [метаданных сборочного задания](/openapi/orders-fbs#tag/Metadannye-FBS/paths/~1api~1marketplace~1v3~1orders~1meta/post) есть поле `sgtin`, а сборочное задание находится в [статусе](/openapi/orders-fbs#tag/Sborochnye-zadaniya-FBS/paths/~1api~1v3~1orders~1status/post) `confirm`.
         <br><br>
         Получить загруженные маркировки можно в [метаданных сборочного задания](/openapi/orders-fbs#tag/Metadannye-FBS/paths/~1api~1marketplace~1v3~1orders~1meta/post).
 
@@ -1054,12 +1076,12 @@ paths:
               properties:
                 sgtins:
                   type: array
-                  description: Массив кодов маркировки. Допускается от 16 до 135 символов для кода одной маркировки.
+                  description: Массив кодов маркировки
                   minItems: 1
                   maxItems: 100
                   items:
                     type: string
-                    description: Код маркировки на упаковке. От 16 до 135 символов.
+                    description: Код маркировки [Честного знака](https://честныйзнак.рф/) на упаковке. От 16 до 135 символов
                     example: '1234567890123456'
       responses:
         '204':
@@ -1488,9 +1510,9 @@ paths:
         - HeaderApiKey: []
       tags:
         - Сборочные задания FBS
-      summary: Получить стикеры сборочных заданий кроссбордера
+      summary: Получить стикеры сборочных заданий трансграничных поставок
       description: |
-        Метод возвращает список стикеров [сборочных заданий](/openapi/orders-fbs#tag/Sborochnye-zadaniya-FBS/paths/~1api~1v3~1orders/get) кроссбордера в формате PDF.<br><br>
+        Метод возвращает список стикеров [сборочных заданий](/openapi/orders-fbs#tag/Sborochnye-zadaniya-FBS/paths/~1api~1v3~1orders/get) трансграничных поставок в формате PDF.<br><br>
 
         Для каждого сборочного задания в ответе указывается статус генерации стикера:
           - `awaitingTrackNumber` — стикер не готов. Ожидается трек-номер от перевозчика.
@@ -1628,9 +1650,9 @@ paths:
         - HeaderApiKey: []
       tags:
         - Сборочные задания FBS
-      summary: История статусов для сборочных заданий кроссбордера
+      summary: История статусов для сборочных заданий трансграничных поставок
       description: |
-        Метод возвращает историю [статусов](/openapi/orders-fbs#tag/Sborochnye-zadaniya-FBS/paths/~1api~1v3~1orders~1status/post) для [сборочных заданий](/openapi/orders-fbs#tag/Sborochnye-zadaniya-FBS/paths/~1api~1v3~1orders/get) кроссбордера.
+        Метод возвращает историю [статусов](/openapi/orders-fbs#tag/Sborochnye-zadaniya-FBS/paths/~1api~1v3~1orders~1status/post) для [сборочных заданий](/openapi/orders-fbs#tag/Sborochnye-zadaniya-FBS/paths/~1api~1v3~1orders/get) трансграничных поставок.
 
         <div class="description_limit">
         <a href="/openapi/api-information#tag/Vvedenie/Limity-zaprosov">Лимит запросов</a> на один аккаунт продавца для методов <strong>сборочных заданий, поставок и пропусков FBS</strong>:
@@ -1768,7 +1790,7 @@ paths:
       description: |
         Метод позволяет получать информацию о покупателе по ID сборочного задания.
 
-        Только для кроссбордера из **Турции**.
+        Только для трансграничных поставок из **Турции**.
 
         <div class="description_limit">
         <a href="/openapi/api-information#tag/Vvedenie/Limity-zaprosov">Лимит запросов</a> на один аккаунт продавца для методов <strong>сборочных заданий, поставок и пропусков FBS</strong>:
@@ -1968,7 +1990,7 @@ paths:
         В поставку нельзя добавить сборочные задания, поступившие на разные склады.
         </div>
         <div class="description_important">
-        В пустую поставку можно добавить сборочные задания любого типа: кроссбордер или не кроссбордер.
+        В пустую поставку можно добавить сборочные задания трансграничных или внутренних поставок.
         После этого поставка приобретает тип первого добавленного сборочного задания из поля <code>crossBorderType</code>.
         Далее в неё можно добавить только сборочные задания такого же типа.
         </div>
@@ -2208,9 +2230,10 @@ paths:
         <br><br>
         Передать поставку в доставку можно только если в ней:
           - есть хотя бы одно сборочное задание
-          - нет сборочных заданий:
-            - с отсутствующей обязательной маркировкой
-            - с маркировкой, не прошедшей валидацию
+          - для всех сборочных заданий указана обязательная маркировка
+          - маркировка всех сборочных заданий прошла валидацию
+
+        Если поставка содержит сборочные задания с обязательным УИН, убедитесь, что вы заранее создали и загрузили спецификацию с договором на поставку. [ГИИС ДМДК](https://minfin.gov.ru/ru/perfomance/jewels/dmdk) требуется около 30 минут для обработки изменений в статусах УИН.
 
         <div class="description_limit">
         <a href="/openapi/api-information#tag/Vvedenie/Limity-zaprosov">Лимит запросов</a> на один аккаунт продавца для методов <strong>сборочных заданий, поставок и пропусков FBS</strong>:
@@ -2358,9 +2381,9 @@ paths:
         - HeaderApiKey: []
       tags:
         - Поставки FBS
-      summary: Получить список коробов поставки
+      summary: Получить список грузомест поставки
       description: |
-        Возвращает список коробов поставки.
+        Возвращает список грузомест поставки.
 
         <div class="description_limit">
         <a href="/openapi/api-information#tag/Vvedenie/Limity-zaprosov">Лимит запросов</a> на один аккаунт продавца для методов <strong>сборочных заданий, поставок и пропусков FBS</strong>:
@@ -2411,14 +2434,14 @@ paths:
         - HeaderApiKey: []
       tags:
         - Поставки FBS
-      summary: Добавить короба к поставке
+      summary: Добавить грузоместа к поставке
       description: |
-        Метод добавляет требуемое количество [коробов](/openapi/orders-fbs#tag/Postavki-FBS/paths/~1api~1v3~1supplies~1%7BsupplyId%7D~1trbx/get) в [поставку](/openapi/orders-fbs#tag/Postavki-FBS/paths/~1api~1v3~1supplies~1%7BsupplyId%7D/get).
+        Метод добавляет требуемое количество [грузомест](/openapi/orders-fbs#tag/Postavki-FBS/paths/~1api~1v3~1supplies~1%7BsupplyId%7D~1trbx/get) в [поставку](/openapi/orders-fbs#tag/Postavki-FBS/paths/~1api~1v3~1supplies~1%7BsupplyId%7D/get).
         <br>
         <br>
-        Короба необходимо добавлять только в поставки, отгружаемые на ПВЗ.
+        Грузоместа необходимо добавлять только в поставки, отгружаемые на ПВЗ.
         <br>
-        Короба можно добавить только в открытую поставку. Вы можете добавить столько же коробов, сколько всего товаров в поставке, плюс ещё один.
+        Грузоместа можно добавить только в открытую поставку. Вы можете добавить столько же грузомест, сколько всего товаров в поставке, плюс ещё один.
 
         <div class="description_limit">
         <a href="/openapi/api-information#tag/Vvedenie/Limity-zaprosov">Лимит запросов</a> на один аккаунт продавца для методов <strong>сборочных заданий, поставок и пропусков FBS</strong>:
@@ -2443,7 +2466,7 @@ paths:
                   type: integer
                   minimum: 1
                   maximum: 1000
-                  description: Количество коробов, которые необходимо добавить к поставке.
+                  description: Количество грузомест, которые необходимо добавить к поставке
                   example: 4
       responses:
         '201':
@@ -2455,7 +2478,7 @@ paths:
                 properties:
                   trbxIds:
                     type: array
-                    description: Список ID коробов, которые были созданы.
+                    description: Список ID грузомест, которые были созданы
                     minItems: 1
                     items:
                       type: string
@@ -2486,9 +2509,9 @@ paths:
         - HeaderApiKey: []
       tags:
         - Поставки FBS
-      summary: Удалить короба из поставки
+      summary: Удалить грузоместа из поставки
       description: |
-        Метод удаляет короба из поставки.
+        Метод удаляет грузоместа из поставки.
         <br><br>
         Можно удалить только пока поставка на сборке.
 
@@ -2513,7 +2536,7 @@ paths:
               properties:
                 trbxIds:
                   type: array
-                  description: Список ID коробов, которые необходимо удалить.
+                  description: Список ID грузомест, которые необходимо удалить
                   items:
                     type: string
                     example: WB-TRBX-1234567
@@ -2549,7 +2572,7 @@ paths:
         - HeaderApiKey: []
       tags:
         - Поставки FBS
-      summary: Получить стикеры коробов поставки
+      summary: Получить стикеры грузомест поставки
       description: |
         Метод возвращает QR-стикеры в форматах:
           - SVG
@@ -2591,7 +2614,7 @@ paths:
               properties:
                 trbxIds:
                   type: array
-                  description: Список ID коробов, по которым необходимо вернуть стикеры.
+                  description: Список ID грузомест, по которым необходимо вернуть стикеры
                   items:
                     type: string
                     example: WB-TRBX-1234567
@@ -2628,6 +2651,93 @@ paths:
           $ref: '#/components/responses/NotFound'
         '429':
           $ref: '#/components/responses/429'
+  /api/marketplace/v3/fbs/orders/archive:
+    servers:
+      - url: https://marketplace-api.wildberries.ru
+    get:
+      tags:
+        - Сборочные задания FBS
+      summary: Получить список архивных сборочных заданий
+      x-readonly-method: true
+      x-category: marketplace
+      description: |
+        Метод возвращает сборочные задания, созданные более 3 месяцев назад.<br>
+        Часть сборочных заданий попадает в архив позже, чем через 3 месяца после создания, так как поставка переходит в архив только после того, как все заказы в ней будут завершены.
+        Например, так происходит, если продавец не доставил один из заказов в поставке и заказ был отменён автоматически через несколько дней.
+
+        <div class="description_limit">
+        <a href="/openapi/api-information#tag/Vvedenie/Limity-zaprosov">Лимит запросов</a> на один аккаунт продавца для методов <strong>сборочных заданий, поставок и пропусков FBS</strong>:
+
+        | Период | Лимит | Интервал | Всплеск |
+        | --- | --- | --- | --- |
+        | 1 мин | 300 запросов | 200 мс | 20 запросов |
+
+        </div>
+      parameters:
+        - name: year
+          in: query
+          description: Год создания заказа
+          example: 2023
+          required: true
+          schema:
+            type: integer
+        - name: month
+          in: query
+          description: Месяц создания заказа
+          example: 2
+          required: true
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 12
+        - name: next
+          in: query
+          description: Параметр пагинации. Устанавливает значение, с которого надо получить следующий пакет данных. Для получения полного списка данных должен быть равен `0` в первом запросе. Для следующих запросов необходимо брать значения из одноимённого поля в ответе.
+          required: true
+          example: 0
+          schema:
+            type: integer
+            format: int64
+        - name: limit
+          in: query
+          description: Количество сборочных заданий в ответе
+          required: true
+          example: 150
+          schema:
+            type: integer
+            format: int32
+            minimum: 100
+            maximum: 1000
+            default: 100
+      responses:
+        '200':
+          description: Успешно
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/v3.ArchiveOrders'
+        '400':
+          description: Неправильный запрос
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/v3.APIErrorV2'
+              examples:
+                BadRequest:
+                  $ref: '#/components/examples/APIError400V2'
+        '401':
+          $ref: '#/components/responses/401-2'
+        '403':
+          description: Доступ запрещён
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/v3.APIErrorV2'
+              examples:
+                AccessDenied:
+                  $ref: '#/components/examples/APIError403V2'
+        '429':
+          $ref: '#/components/responses/429-2'
 components:
   securitySchemes:
     HeaderApiKey:
@@ -2740,6 +2850,30 @@ components:
       value:
         code: StatusChangeNotAllowed
         message: Задание перейдёт в завершенные после сканирования на пункте выдачи заказов (ПВЗ)
+    APIError400V2:
+      value:
+        code: BadRequest
+        detail: Incorrect parameter
+        errors:
+          - location: query.next
+            message: expected integer
+            value: 1w
+        origin: marketplace-public-api
+        requestId: a0b5907c-2978-4db6-9a59-00666e8b8d54
+        status: 400
+        title: IncorrectParameter
+    APIError403V2:
+      value:
+        code: AccessDenied
+        detail: ''
+        errors:
+          - location: ''
+            message: ''
+            value: 0
+        origin: marketplace-public-api
+        requestId: a0b5907c-2978-4db6-9a59-00666e8b8d54
+        status: 403
+        title: AccessDenied
   responses:
     '401':
       description: Не авторизован
@@ -2794,10 +2928,10 @@ components:
                 description: Заголовок ошибки
               detail:
                 type: string
-                description: Детали ошибки. Ошибка означает, что на балансе сервиса из [Каталога](https://dev.wildberries.ru/business-solutions) недостаточно средств
+                description: Детали ошибки. Ошибка возвращается только сервисам из [Каталога решений для бизнеса](https://dev.wildberries.ru/business-solutions)
           example:
             title: payment required
-            detail: please top up your balance in your company personal account https://dev.wildberries.ru/company
+            detail: wb solution for business has insufficient funds on its balance. please top up the balance in the company's personal account https://dev.wildberries.ru/company
     '429':
       description: Слишком много запросов
       content:
@@ -2857,7 +2991,294 @@ components:
           example:
             code: AccessDenied
             message: Доступ запрещён
+    401-2:
+      description: Не авторизован
+      content:
+        application/problem+json:
+          schema:
+            type: object
+            properties:
+              title:
+                type: string
+                description: Заголовок ошибки
+              detail:
+                type: string
+                description: Детали ошибки
+              code:
+                type: string
+                description: Внутренний код ошибки
+              requestId:
+                type: string
+                description: Уникальный ID запроса
+              origin:
+                type: string
+                description: ID внутреннего сервиса WB
+              status:
+                type: number
+                description: HTTP статус-код
+              statusText:
+                type: string
+                description: Расшифровка HTTP статус-кода
+              timestamp:
+                type: string
+                format: date-time
+                description: Дата и время запроса
+          example:
+            title: unauthorized
+            detail: 'token problem; token is malformed: could not base64 decode signature: illegal base64 data at input byte 84'
+            code: 07e4668e--a53a3d31f8b0-[UK-oWaVDUqNrKG]; 03bce=277; 84bd353bf-75
+            requestId: 7b80742415072fe8b6b7f7761f1d1211
+            origin: s2s-api-auth-catalog
+            status: 401
+            statusText: Unauthorized
+            timestamp: '2024-09-30T06:52:38Z'
+    429-2:
+      description: Слишком много запросов
+      content:
+        application/problem+json:
+          schema:
+            type: object
+            properties:
+              title:
+                type: string
+                description: Заголовок ошибки
+              detail:
+                type: string
+                description: Детали ошибки
+              code:
+                type: string
+                description: Внутренний код ошибки
+              requestId:
+                type: string
+                description: Уникальный ID запроса
+              origin:
+                type: string
+                description: ID внутреннего сервиса WB
+              status:
+                type: number
+                description: HTTP статус-код
+              statusText:
+                type: string
+                description: Расшифровка HTTP статус-кода
+              timestamp:
+                type: string
+                format: date-time
+                description: Дата и время запроса
+          example:
+            title: too many requests
+            detail: limited by c122a060-a7fb-4bb4-abb0-32fd4e18d489
+            code: 07e4668e-ac2242c5c8c5-[UK-4dx7JUdskGZ]
+            requestId: 9d3c02cc698f8b041c661a7c28bed293
+            origin: s2s-api-auth-catalog
+            status: 429
+            statusText: Too Many Requests
+            timestamp: '2024-09-30T06:52:38Z'
   schemas:
+    v3.ArchiveOrders:
+      type: object
+      description: Список архивных сборочных заданий
+      required:
+        - orders
+        - next
+      properties:
+        next:
+          description: Параметр пагинации. Содержит значение, которое необходимо указать в запросе для получения следующего пакета данных
+          type: integer
+          format: int64
+          nullable: true
+        orders:
+          description: Архивные сборочные задания
+          type: array
+          items:
+            $ref: '#/components/schemas/v3.ArchiveOrder'
+    v3.ArchiveOrder:
+      type: object
+      description: Архивное сборочное задание
+      required:
+        - cargoType
+        - colorCode
+        - createdAt
+        - crossBorder
+        - crossBorderType
+        - id
+        - isZeroOrder
+        - metaDetails
+        - options
+        - orderUid
+        - priceInfo
+        - product
+        - rid
+        - scanPrice
+        - status
+        - stickerId
+        - supplyId
+        - warehouseId
+      properties:
+        cargoType:
+          description: |
+            Тип товара:
+              - `mgt` — малогабаритный товар (МГТ)
+              - `sgt` — сверхгабаритный товар (СГТ)
+              - `kgtPlus` — крупногабаритный товар (КГТ+)
+          type: string
+          example: mgt
+        colorCode:
+          description: Код цвета для колеруемых товаров
+          type: string
+          example: RAL 3017
+          nullable: true
+        createdAt:
+          description: Дата создания заказа
+          type: string
+          example: '2022-05-04'
+        crossBorder:
+          description: Информация о заказе по модели кроссбордер
+          type: object
+          nullable: true
+          properties:
+            parcel:
+              description: ID посылки
+              type: string
+              example: 1Z999AA10123456784
+        crossBorderType:
+          description: |
+            Тип сборочного задания:
+              - `local` — внутренняя поставка
+              - `crossBorder` — трансграничная поставка
+          type: string
+          example: crossBorder
+        id:
+          description: ID сборочного задания
+          type: integer
+          example: 1234567890
+        isZeroOrder:
+          description: |
+            Признак заказа товара с нулевым остатком:
+              - `false` — заказ сделан на товар с ненулевым остатком
+              - `true` — заказ сделан на товар с нулевым остатком
+          type: boolean
+          example: false
+        metaDetails:
+          description: Метаданные сборочного задания
+          $ref: '#/components/schemas/MetaDetails'
+          type: array
+        options:
+          description: Опции заказа
+          type: object
+          properties:
+            isB2B:
+              description: |
+                Признак B2B-продажи:
+                  - `false` — не B2B-продажа
+                  - `true` — B2B-продажа
+              type: boolean
+              example: false
+        orderUid:
+          description: ID транзакции для группировки сборочных заданий. Сборочные задания в одной корзине покупателя будут иметь одинаковый `orderUid`
+          type: string
+          example: 165918930_629fbc924b984618a44354475ca58675
+        priceInfo:
+          description: Информация о цене заказа
+          type: object
+          required:
+            - convertedCurrencyCode
+            - convertedPrice
+            - currencyCode
+            - price
+          properties:
+            convertedCurrencyCode:
+              description: Код валюты страны продавца
+              type: integer
+              example: 643
+            convertedPrice:
+              description: Цена в валюте страны продавца с учетом всех скидок, кроме скидки по WB Кошельку, умноженная на 100
+              type: integer
+              example: 1020
+            currencyCode:
+              description: Код валюты продажи
+              type: integer
+              example: 643
+            price:
+              description: Цена в валюте продажи с учетом всех скидок, кроме скидки по WB Кошельку, умноженная на 100
+              type: integer
+              example: 1020
+        product:
+          description: Информация о товаре
+          type: object
+          required:
+            - article
+            - chrtId
+            - nmId
+            - skus
+          properties:
+            article:
+              description: Артикул продавца
+              type: string
+              example: wv1702fyjh
+            chrtId:
+              description: ID размера товара в системе WB
+              type: integer
+              example: 12345678
+            nmId:
+              description: Артикул WB
+              type: integer
+              example: 370870300
+            skus:
+              description: Список баркодов
+              items:
+                type: string
+              type: array
+              example:
+                - 12345Ejf5
+                - 12345Ejf6
+                - 12345Ejf7
+        rid:
+          description: |
+            Уникальный ID заказа. <br>
+            Примечание: `rid` — это `srid` в ответах методов:
+              - [Заявки покупателей на возврат](./user-communication#tag/Vozvraty-pokupatelyami/paths/~1api~1v1~1claims/get)
+              - [Заказы](./reports#tag/Osnovnye-otchyoty/paths/~1api~1v1~1supplier~1orders/get)
+              - [Продажи](./reports#tag/Osnovnye-otchyoty/paths/~1api~1v1~1supplier~1sales/get)
+              - [Отчёт о возвратах и перемещении товаров](./reports#tag/Otchyot-o-vozvratah-i-peremeshenii-tovarov)
+              - [Детализации к отчётам реализации по ID отчётов](./financial-reports-and-accounting#tag/Finansovye-otchyoty/operation/postV1SalesReportsDetailedReportId)
+              - [Детализации к отчётам реализации за период](./financial-reports-and-accounting#tag/Finansovye-otchyoty/operation/postV1SalesReportsDetailed)
+              - [Детализации к отчётам об издержках на приём платежей по ID отчётов](./financial-reports-and-accounting#tag/Finansovye-otchyoty/operation/postV1AcquiringDetailedReportId)
+              - [Детализации к отчётам об издержках на приём платежей за период](./financial-reports-and-accounting#tag/Finansovye-otchyoty/operation/postV1AcquiringDetailed)
+          type: string
+          example: f884001e44e511edb8780242ac120002
+        scanPrice:
+          description: Цена приёмки заказа в копейках
+          type: integer
+          nullable: true
+          example: 5200
+        status:
+          description: Последние статусы сборочного задания
+          required:
+            - supplierStatus
+            - wbStatus
+          properties:
+            supplierStatus:
+              description: Статус сборочного задания, установленный продавцом
+              example: complete
+              type: string
+            wbStatus:
+              description: Статус сборочного задания в системе Wildberries
+              example: sent_to_carrier
+              type: string
+          type: object
+        stickerId:
+          description: ID стикера
+          example: 33811984302
+          type: integer
+        supplyId:
+          description: ID поставки
+          example: WB-GI-1234588
+          type: string
+          nullable: true
+        warehouseId:
+          description: ID склада продавца, с которого был отгружен товар
+          example: 55684681
+          type: integer
     v3.SupplyOrderIDsAPI:
       type: object
       properties:
@@ -2907,6 +3328,43 @@ components:
           type: object
           description: Дополнительные данные ошибки
           nullable: true
+    v3.APIErrorV2:
+      required:
+        - title
+        - detail
+      properties:
+        code:
+          description: Код ошибки
+          type: string
+        detail:
+          description: Детали ошибки
+          type: string
+        errors:
+          items:
+            properties:
+              location:
+                description: Параметр, где произошла ошибка
+                type: string
+              message:
+                description: Текст ошибки
+                type: string
+              value:
+                description: Значение параметра, где произошла ошибка
+            type: object
+          type: array
+        origin:
+          description: ID внутреннего сервиса WB
+          type: string
+        requestId:
+          description: Уникальный ID запроса
+          type: string
+        status:
+          description: HTTP статус-код ответа
+          type: integer
+        title:
+          description: Заголовок ошибки
+          type: string
+      type: object
     409SupplyDeliverError:
       type: object
       nullable: false
@@ -2949,25 +3407,30 @@ components:
                           type: string
                           description: |
                             Статус проверки:
-                            - IMEI
+                            - `imei`
                               - `pending` — Маркировка на проверке
                               - `required` — Обязательная маркировка не заполнена
                               - `imeiInvalidFormat` — Неверный формат маркировки
                               - `imeiAlreadySold` — Товар с этим IMEI уже продан
-                            - UIN
+                            - `uin`
                               - `required` — Обязательная маркировка не заполнена
                               - `pending` — Маркировка на проверке
                               - `required` — Маркировка обязательна, не заполнена
                               - `uinInvalidFormat` — Неверный формат маркировки
-                              - `uinNotFound` — Не найден в ГИС
                               - `uinBadStatus` — Некорректный статус партии
                               - `uinBadProcess` — Некорректная стадия обработки
                               - `uinBadStatusAndBadProcess` — Некорректный статус партии. Некорректная стадия обработки
-                            - SGTIN
+                              - `uinNotFound` — Не найден в [ГИИС](https://minfin.gov.ru/ru/perfomance/jewels/dmdk).
+                                При получении этой ошибки убедитесь, что УИН:
+                                  - указан в загруженной спецификации с договором на поставку. Если спецификация загружена более 30 минут назад, [удалите УИН](./orders-fbs#tag/Metadannye-FBS/paths/~1api~1v3~1orders~1%7BorderId%7D~1meta/delete) из сборочного задания и [добавьте его](./orders-fbs#tag/Metadannye-FBS/paths/~1api~1v3~1orders~1%7BorderId%7D~1meta~1uin/put) заново
+                                  - зарегистрирован в ГИИС ДМДК
+                                  - указан корректно и считывается с бирки без ошибок
+                                  - находится в обороте
+                            - `sgtin`
                               - `required` — Обязательная маркировка не заполнена
                               - `pending` — Маркировка на проверке
                               - `sgtinInvalidFormat` — Неверный формат маркировки
-                              - `sgtinNotFound` — Маркировка не найдена в [Честном Знаке](https://chestnyznak.ru)
+                              - `sgtinNotFound` — Маркировка не найдена в [Честном знаке](https://chestnyznak.ru)
                               - `sgtinEmitted` —  Маркировка эмитирована
                               - `sgtinApplied` — Не пройдена процедура Ввод в оборот
                               - `sgtinWrittenOff` — Списан
@@ -2976,11 +3439,11 @@ components:
                               - `sgtinDisaggregation` — Расформирован
                               - `sgtinDisaggregated` — Расформирован
                               - `sgtinAppliedNotPaid` — Не оплачен
-                            - GTIN
+                            - `gtin`
                               - `required` — Маркировка обязательна, не заполнена
-                            - Expiration
+                            - `expiration`
                               - `required` — Маркировка обязательна, не заполнена
-                            - Customs declaration
+                            - `customsDeclaration`
                               - `required` — Маркировка обязательна, не заполнена
     Next:
       type: integer
@@ -3054,13 +3517,16 @@ components:
               - [Заказы](./reports#tag/Osnovnye-otchyoty/paths/~1api~1v1~1supplier~1orders/get)
               - [Продажи](./reports#tag/Osnovnye-otchyoty/paths/~1api~1v1~1supplier~1sales/get)
               - [Отчет о возвратах и перемещении товаров](./reports#tag/Otchyot-o-vozvratah-i-peremeshenii-tovarov)
-              - [Отчет о продажах по реализации](./financial-reports-and-accounting#tag/Finansovye-otchyoty/paths/~1api~1v5~1supplier~1reportDetailByPeriod/get)
+              - [Детализации к отчётам реализации по ID отчётов](./financial-reports-and-accounting#tag/Finansovye-otchyoty/operation/postV1SalesReportsDetailedReportId)
+              - [Детализации к отчётам реализации за период](./financial-reports-and-accounting#tag/Finansovye-otchyoty/operation/postV1SalesReportsDetailed)
+              - [Детализации к отчётам об издержках на приём платежей по ID отчётов](./financial-reports-and-accounting#tag/Finansovye-otchyoty/operation/postV1AcquiringDetailedReportId)
+              - [Детализации к отчётам об издержках на приём платежей за период](./financial-reports-and-accounting#tag/Finansovye-otchyoty/operation/postV1AcquiringDetailed)
           example: f884001e44e511edb8780242ac120002
         createdAt:
           type: string
           format: date-time
           nullable: false
-          description: Дата создания сборочного задания (RFC3339)
+          description: Дата создания сборочного задания (RFC3339). Часовой пояс — UTC
           example: '2022-05-04T07:56:29Z'
         offices:
           type: array
@@ -3141,8 +3607,8 @@ components:
         crossBorderType:
           description: |
             Тип сборочного задания:
-              - `0` — не кроссбордер
-              - `1` — кроссбордер
+              - `0` — внутренняя поставка
+              - `1` — трансграничная поставка
           enum:
             - 0
             - 1
@@ -3235,8 +3701,8 @@ components:
         crossBorderType:
           description: |
             Тип поставки:
-              - `0` — не кроссбордер
-              - `1` — кроссбордер
+              - `0` — внутренняя поставка
+              - `1` — трансграничная поставка
               - `null` — значение отсутствует
           enum:
             - 0
@@ -3251,6 +3717,14 @@ components:
           nullable: true
           description: ID склада назначения поставки. Если `null`, склад назначения не указан
           example: 123
+        recommendedWhId:
+          type: integer
+          format: int64
+          description: |
+            ID рекомендуемого склада для приёмки поставки для Москвы и МО. <br>
+            Рекомендуется ближайший к покупателям склад, который определяется автоматически при передаче поставки в доставку с учётом параметров всех сборочных заданий в поставке.<br>
+            Если `0`, рекомендуемый склад не определён
+          example: 123569
     OrderNew:
       type: object
       properties:
@@ -3278,7 +3752,7 @@ components:
         ddate:
           type: string
           description: |
-            Планируемая дата доставки.<br>
+            Планируемая дата доставки заказа покупателю.<br>
             Поле отображается для сборочных заданий со сверхгабаритными товарами `СГТ`, `cargoType: 2`
           nullable: false
           example: 17.05.2024
@@ -3357,8 +3831,11 @@ components:
               - [Заявки покупателей на возврат](./user-communication#tag/Vozvraty-pokupatelyami/paths/~1api~1v1~1claims/get)
               - [Заказы](./reports#tag/Osnovnye-otchyoty/paths/~1api~1v1~1supplier~1orders/get)
               - [Продажи](./reports#tag/Osnovnye-otchyoty/paths/~1api~1v1~1supplier~1sales/get)
-              - [Отчет о возвратах и перемещении товаров](./reports#tag/Otchyot-o-vozvratah-i-peremeshenii-tovarov)
-              - [Отчет о продажах по реализации](./financial-reports-and-accounting#tag/Finansovye-otchyoty/paths/~1api~1v5~1supplier~1reportDetailByPeriod/get)
+              - [Отчёт о возвратах и перемещении товаров](./reports#tag/Otchyot-o-vozvratah-i-peremeshenii-tovarov)
+              - [Детализации к отчётам реализации по ID отчётов](./financial-reports-and-accounting#tag/Finansovye-otchyoty/operation/postV1SalesReportsDetailedReportId)
+              - [Детализации к отчётам реализации за период](./financial-reports-and-accounting#tag/Finansovye-otchyoty/operation/postV1SalesReportsDetailed)
+              - [Детализации к отчётам об издержках на приём платежей по ID отчётов](./financial-reports-and-accounting#tag/Finansovye-otchyoty/operation/postV1AcquiringDetailedReportId)
+              - [Детализации к отчётам об издержках на приём платежей за период](./financial-reports-and-accounting#tag/Finansovye-otchyoty/operation/postV1AcquiringDetailed)
           example: f884001e44e511edb8780242ac120002
         createdAt:
           type: string
@@ -3453,8 +3930,8 @@ components:
         crossBorderType:
           description: |
             Тип сборочного задания:
-              - `0` — не кроссбордер
-              - `1` — кроссбордер
+              - `0` — внутренняя поставка
+              - `1` — трансграничная поставка
           enum:
             - 0
             - 1
@@ -3483,7 +3960,7 @@ components:
       type: object
       properties:
         id:
-          description: ID короба
+          description: ID грузоместа
           type: string
           example: WB-TRBX-1234567
     TrbxStickers:
@@ -3538,7 +4015,7 @@ components:
               example:
                 - '123456789012345'
               nullable: true
-          description: Код маркировки Честного знака
+          description: Код маркировки [Честного знака](https://честныйзнак.рф/)
         expiration:
           type: object
           properties:
@@ -3576,7 +4053,7 @@ components:
             example: uinMaySell
             description: |
               Статус:
-              - IMEI
+              - `imei`
                 - `filled` — Валидация пройдена
                 - `deadlineExceeded` — Валидация пройдена
                 - `optional` — Маркировка не обязательна
@@ -3584,41 +4061,46 @@ components:
                 - `required` — Обязательная маркировка не заполнена. Валидация не пройдена
                 - `imeiInvalidFormat` — Неверный формат маркировки. Валидация не пройдена
                 - `imeiAlreadySold` — Товар с этим IMEI уже продан. Валидация не пройдена
-              - UIN
+              - `uin`
                 - `filled` — Валидация пройдена
                 - `deadlineExceeded` — Валидация пройдена
                 - `optional` — Маркировка не обязательна
                 - `pending` — Маркировка на проверке
                 - `uinMaySell` — Валидация пройдена
                 - `required` — Маркировка обязательна, не заполнена. Валидация не пройдена
-                - `uinInvalidFormat` — Неверный формат маркировки. Валидация не пройдена
-                - `uinNotFound` — Не найден в ГИС. Валидация не пройдена
                 - `uinBadStatus` — Некорректный статус партии. Валидация не пройдена
                 - `uinBadProcess` — Некорректная стадия обработки. Валидация не пройдена
                 - `uinBadStatusAndBadProcess` — Некорректный статус партии. Некорректная стадия обработки. Валидация не пройдена
-              - SGTIN
+                - `uinInvalidFormat` — Неверный формат маркировки. Валидация не пройдена
+                - `uinNotFound` — Не найден в [ГИИС](https://minfin.gov.ru/ru/perfomance/jewels/dmdk). Валидация не пройдена.
+                  Статус может означать, что УИН:
+                    - не указан в загруженной спецификации с договором на поставку
+                    - не зарегистрирован в ГИИС ДМДК
+                    - указан некорректно и считывается с бирки с ошибками
+                    - не находится в обороте
+              - `sgtin`
                 - `filled` — Валидация пройдена
                 - `deadlineExceeded` — Валидация пройдена
                 - `optional` — Маркировка не обязательна
                 - `pending` — Маркировка на проверке
                 - `required` — Маркировка обязательна, не заполнена. Валидация не пройдена
                 - `sgtinInvalidFormat` — Неверный формат маркировки. Валидация не пройдена
-                - `sgtinNotFound` — Маркировка не найдена в [Честном Знаке](https://chestnyznak.ru). Валидация не пройдена
+                - `sgtinNotFound` — Маркировка не найдена в [Честном знаке](https://chestnyznak.ru). Валидация не пройдена
                 - `sgtinEmitted` —  Маркировка эмитирована. Валидация не пройдена
                 - `sgtinApplied` — Не пройдена процедура Ввод в оборот. Валидация не пройдена
                 - `sgtinWrittenOff` — Списан. Валидация не пройдена
                 - `sgtinRetired` — Выбыл. Валидация не пройдена
                 - `sgtinDisaggregated` — Расформирован. Валидация не пройдена
                 - `sgtinAppliedNotPaid` — Не оплачен. Валидация не пройдена
-              - GTIN
+              - `gtin`
                 - `filled` — Валидация пройдена
                 - `optional` — Маркировка не обязательна
                 - `required` — Маркировка обязательна, не заполнена. Валидация не пройдена
-              - Expiration
+              - `expiration`
                 - `filled` — Валидация пройдена
                 - `optional` — Маркировка не обязательна
                 - `required` — Маркировка обязательна, не заполнена. Валидация не пройдена
-              - Customs declaration
+              - `customsDeclaration`
                 - `filled` — Валидация пройдена
                 - `required` — Маркировка обязательна, не заполнена. Валидация не пройдена
     v3.GetMetaMultiRequest:
@@ -3741,7 +4223,7 @@ components:
     CrossborderTurkeyClientInfoResp:
       properties:
         orders:
-          description: Информация по клиенту для кроссбордер-заказа из Турции
+          description: Информация по клиенту для трансграничных поставок из Турции
           items:
             $ref: '#/components/schemas/CrossborderTurkeyClientInfo'
           type: array
