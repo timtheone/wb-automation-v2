@@ -327,7 +327,8 @@ export function createGetCombinedOrdersXlsService(
       const finishedAt = now();
       const workbook = XLSX.utils.book_new();
       const rowsForSheet = deduplicatedRows.map((row) => ({
-        "Арт.Продавца": row.vendorCode ?? "-",
+        "Артикул Продавца": row.vendorCode ?? "-",
+        Источник: row.source === "waiting" ? "ожидающие" : "лист подбора",
         Наименование: row.title ?? "-"
       }));
       const worksheet = XLSX.utils.json_to_sheet(rowsForSheet);

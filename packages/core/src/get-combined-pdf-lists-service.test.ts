@@ -402,7 +402,8 @@ describe("get combined pdf lists service", () => {
     expect(worksheet).toBeDefined();
     const rows = XLSX.utils.sheet_to_json<Record<string, string>>(worksheet as XLSX.WorkSheet);
     expect(rows).toHaveLength(2);
-    expect(rows[0]?.["Арт.Продавца"]).toBe("vc-101");
+    expect(rows[0]?.["Артикул Продавца"]).toBe("vc-101");
+    expect(rows[0]?.["Источник"]).toBe("лист подбора");
     expect(rows[0]?.["Наименование"]).toBe("Title-101");
   });
 
