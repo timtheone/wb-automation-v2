@@ -27,8 +27,6 @@ services:
     image: postgres:17-alpine
     container_name: wb-automation-v2-postgres
     restart: unless-stopped
-    ports:
-      - "${POSTGRES_PORT:-5440}:5432"
     environment:
       POSTGRES_DB: ${POSTGRES_DB:-wb_automation_v2}
       POSTGRES_USER: ${POSTGRES_USER:-wb-automation-db-dev-user}
@@ -53,8 +51,6 @@ services:
     depends_on:
       postgres:
         condition: service_healthy
-    ports:
-      - "${BACKEND_PORT:-3000}:3000"
     environment:
       <<: *backend-runtime-env
       BACKEND_PORT: "3000"
