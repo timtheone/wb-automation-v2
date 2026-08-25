@@ -8,6 +8,7 @@ export {
 export {
   createWbBaseClient,
   WbApiHttpError,
+  WbApiTransportError,
   type CreateWbBaseClientOptions,
   type FetchLike
 } from "./base-client.js";
